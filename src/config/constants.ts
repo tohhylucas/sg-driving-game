@@ -58,3 +58,25 @@ export const VEHICLE_CONFIG = {
   wheelBaseM: 2.6,
   maxSteerRad: 0.55
 } as const;
+
+export const CAR_CONFIG = {
+  lengthM: 4.2,
+  widthM: 1.7,
+  bodyHeightM: 0.9,
+  roofLengthM: 1.8,
+  roofWidthM: 1.2,
+  roofHeightM: 0.55,
+  wheelRadiusM: 0.34,
+  wheelWidthM: 0.28,
+  frontMarkerLengthM: 0.16,
+  frontMarkerHeightM: 0.18,
+  spawnHeightM: ROAD_CONFIG.surfaceYOffsetM,
+  spawnZM: 0,
+  forwardHeadingRad: 0,
+  initialSpeedMps: 0,
+  bodyColor: 0x2563eb,
+  roofColor: 0xdbeafe,
+  windshieldColor: 0x93c5fd,
+  wheelColor: 0x111827,
+  frontMarkerColor: 0xf8fafc
+} as const;

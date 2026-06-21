@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FIXED_CAMERA_CONFIG, RENDER_CONFIG } from '../config/constants';
+import { Car } from '../vehicle/Car';
 import { World } from '../world/World';
 import { Engine } from './Engine';
 import { Loop } from './Loop';
@@ -11,6 +12,7 @@ interface GameOptions {
 
 export class Game {
   private readonly camera: THREE.PerspectiveCamera;
+  private readonly car: Car;
   private readonly engine: Engine;
   private readonly loop = new Loop();
   private readonly resizeObserver: ResizeObserver;
@@ -36,10 +38,12 @@ export class Game {
     );
 
     this.world = new World();
+    this.car = new Car();
     this.engine.scene.background = this.world.sky.color;
     this.engine.scene.add(this.world.object);
+    this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm1';
+    uiRoot.dataset.phase = 'm2';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -69,6 +73,6 @@ export class Game {
   }
 
   private update(): void {
-    // M1 is a static world slice; later milestones add vehicle updates.
+    // M2 keeps the placeholder car parked; later milestones add vehicle updates.
   }
 }
