@@ -1,10 +1,21 @@
 import { CONTROL_KEYS } from '../config/controls';
 import type { InputState } from '../types';
 
+interface InputTarget {
+  addEventListener(
+    type: 'keydown' | 'keyup',
+    listener: (event: KeyboardEvent) => void
+  ): void;
+  removeEventListener(
+    type: 'keydown' | 'keyup',
+    listener: (event: KeyboardEvent) => void
+  ): void;
+}
+
 export class Input {
   private readonly pressedKeys = new Set<string>();
 
-  constructor(private readonly target: Window = window) {}
+  constructor(private readonly target: InputTarget = window) {}
 
   start(): void {
     this.target.addEventListener('keydown', this.handleKeyDown);

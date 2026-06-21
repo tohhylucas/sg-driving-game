@@ -36,11 +36,13 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 
 ### M3 - Free Driving (kinematic, no rules)
 
-- [ ] Keyboard input manager (accelerate, brake/reverse, steer left/right).
-- [ ] `KinematicModel` bicycle model - test-first.
-- [ ] `CarController` maps input to model to car transform.
-- [ ] Chase/cockpit camera attached to car.
-- **Test:** Smooth accelerate/brake/steer around the world; camera follows correctly.
+- [DONE] Keyboard input manager (accelerate, staged brake/reverse, steer left/right).
+- [DONE] `KinematicModel` bicycle model - test-first.
+- [DONE] `CarController` maps input to model to car transform, with steering-only smoothing.
+- [DONE] Chase camera attached to car, with configurable lateral/view offset support.
+- [DONE] Preserve free driving: no lane keeping, road-edge blocking, collision physics, rules, or scoring.
+- Delivery note: Implemented issue #4 free driving with kinematic controls, chase camera follow, shared config constants, and focused tests.
+- **Test:** Smooth accelerate/brake/reverse/steer around the world; camera follows correctly and supports configurable offset.
 
 ### M4 - In-Car Cockpit UI
 

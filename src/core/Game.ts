@@ -1,8 +1,9 @@
-import * as THREE from 'three';
-import { FIXED_CAMERA_CONFIG, RENDER_CONFIG } from '../config/constants';
+import { ChaseCamera } from '../camera/ChaseCamera';
 import { Car } from '../vehicle/Car';
+import { CarController } from '../vehicle/CarController';
 import { World } from '../world/World';
 import { Engine } from './Engine';
+import { Input } from './Input';
 import { Loop } from './Loop';
 
 interface GameOptions {
@@ -11,39 +12,27 @@ interface GameOptions {
 }
 
 export class Game {
-  private readonly camera: THREE.PerspectiveCamera;
   private readonly car: Car;
+  private readonly carController: CarController;
+  private readonly chaseCamera: ChaseCamera;
   private readonly engine: Engine;
+  private readonly input = new Input();
   private readonly loop = new Loop();
   private readonly resizeObserver: ResizeObserver;
   private readonly world: World;
 
   constructor({ canvas, uiRoot }: GameOptions) {
     this.engine = new Engine(canvas);
-    this.camera = new THREE.PerspectiveCamera(
-      RENDER_CONFIG.cameraFovDeg,
-      1,
-      RENDER_CONFIG.cameraNear,
-      RENDER_CONFIG.cameraFar
-    );
-    this.camera.position.set(
-      FIXED_CAMERA_CONFIG.positionXM,
-      FIXED_CAMERA_CONFIG.positionYM,
-      FIXED_CAMERA_CONFIG.positionZM
-    );
-    this.camera.lookAt(
-      FIXED_CAMERA_CONFIG.lookAtXM,
-      FIXED_CAMERA_CONFIG.lookAtYM,
-      FIXED_CAMERA_CONFIG.lookAtZM
-    );
-
     this.world = new World();
     this.car = new Car();
+    this.carController = new CarController(this.car);
+    this.chaseCamera = new ChaseCamera();
+    this.chaseCamera.update(this.car.state);
     this.engine.scene.background = this.world.sky.color;
     this.engine.scene.add(this.world.object);
     this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm2';
+    uiRoot.dataset.phase = 'm3';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -51,13 +40,15 @@ export class Game {
   }
 
   start(): void {
+    this.input.start();
     this.loop.start(
-      () => this.update(),
-      () => this.engine.render(this.camera)
+      (dtSec) => this.update(dtSec),
+      () => this.engine.render(this.chaseCamera.camera)
     );
   }
 
   dispose(): void {
+    this.input.stop();
     this.loop.stop();
     this.resizeObserver.disconnect();
     this.engine.dispose();
@@ -68,11 +59,12 @@ export class Game {
     const height = canvas.clientHeight;
 
     this.engine.resize(width, height);
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    this.chaseCamera.camera.aspect = width / height;
+    this.chaseCamera.camera.updateProjectionMatrix();
   }
 
-  private update(): void {
-    // M2 keeps the placeholder car parked; later milestones add vehicle updates.
+  private update(dtSec: number): void {
+    this.carController.update(this.input.getState(), dtSec);
+    this.chaseCamera.update(this.car.state);
   }
 }
