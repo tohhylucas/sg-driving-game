@@ -1,5 +1,12 @@
 import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'vite';
@@ -51,7 +58,7 @@ async function main() {
     chrome = launchChrome(chromePath, userDataDir);
 
     const port = await readDevToolsPort(userDataDir);
-    const target = await createPageTarget(port, appUrl);
+    const target = await createPageTarget(port);
     cdp = await connectCdp(target.webSocketDebuggerUrl);
 
     cdp.on('Runtime.consoleAPICalled', (params) => {
@@ -155,7 +162,7 @@ function getFlagValue(name) {
 async function findChrome() {
   for (const candidate of CHROME_CANDIDATES) {
     try {
-      await readFile(candidate);
+      await access(candidate);
       return candidate;
     } catch {
       // Try the next known install location.
@@ -173,11 +180,17 @@ function launchChrome(chromePath, userDataDir) {
     '--disable-background-networking',
     '--disable-default-apps',
     '--disable-extensions',
+    '--disable-gpu',
+    '--disable-gpu-sandbox',
     '--disable-sync',
     '--hide-scrollbars',
     '--mute-audio',
     '--no-first-run',
+    '--no-sandbox',
+    '--disable-features=RendererCodeIntegrity',
+    '--remote-allow-origins=*',
     '--remote-debugging-port=0',
+    '--use-angle=swiftshader',
     `--user-data-dir=${userDataDir}`,
     'about:blank'
   ]);
@@ -189,7 +202,9 @@ async function readDevToolsPort(userDataDir) {
 
   while (Date.now() - start < WAIT_TIMEOUT_MS) {
     try {
-      const [port] = (await readFile(activePortFile, 'utf8')).trim().split(/\r?\n/);
+      const [port] = (await readFile(activePortFile, 'utf8'))
+        .trim()
+        .split(/\r?\n/);
       return Number(port);
     } catch {
       await delay(100);
@@ -199,9 +214,9 @@ async function readDevToolsPort(userDataDir) {
   throw new Error('Chrome did not expose a DevTools port in time.');
 }
 
-async function createPageTarget(port, url) {
+async function createPageTarget(port) {
   const response = await fetch(
-    `http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`,
+    `http://127.0.0.1:${port}/json/new?${encodeURIComponent('about:blank')}`,
     { method: 'PUT' }
   );
 
@@ -233,39 +248,91 @@ function connectCdp(webSocketDebuggerUrl) {
         send: (method, params = {}) => {
           const id = nextId;
           nextId += 1;
-          ws.send(JSON.stringify({ id, method, params }));
 
           return new Promise((resolveSend, rejectSend) => {
-            pending.set(id, { reject: rejectSend, resolve: resolveSend });
+            const timeout = setTimeout(() => {
+              pending.delete(id);
+              rejectSend(new Error(`Timed out waiting for ${method} response.`));
+            }, WAIT_TIMEOUT_MS);
+
+            pending.set(id, {
+              reject: (error) => {
+                clearTimeout(timeout);
+                rejectSend(error);
+              },
+              resolve: (value) => {
+                clearTimeout(timeout);
+                resolveSend(value);
+              }
+            });
+            ws.send(JSON.stringify({ id, method, params }));
           });
         }
       });
     });
 
     ws.addEventListener('message', (event) => {
-      const message = JSON.parse(event.data);
+      void parseCdpMessage(event.data)
+        .then((message) => {
+          if (message.id) {
+            const callback = pending.get(message.id);
+            pending.delete(message.id);
 
-      if (message.id) {
-        const callback = pending.get(message.id);
-        pending.delete(message.id);
+            if (message.error) {
+              callback?.reject(new Error(message.error.message));
+            } else {
+              callback?.resolve(message.result ?? {});
+            }
 
-        if (message.error) {
-          callback?.reject(new Error(message.error.message));
-        } else {
-          callback?.resolve(message.result ?? {});
-        }
+            return;
+          }
 
-        return;
-      }
-
-      const handlers = listeners.get(message.method) ?? [];
-      for (const handler of handlers) {
-        handler(message.params ?? {});
-      }
+          const handlers = listeners.get(message.method) ?? [];
+          for (const handler of handlers) {
+            handler(message.params ?? {});
+          }
+        })
+        .catch((error) => {
+          for (const callback of pending.values()) {
+            callback.reject(error);
+          }
+          pending.clear();
+        });
     });
 
+    ws.addEventListener('close', (event) => {
+      const error = new Error(
+        `Chrome DevTools WebSocket closed: ${event.code} ${event.reason}`
+      );
+      for (const callback of pending.values()) {
+        callback.reject(error);
+      }
+      pending.clear();
+    });
     ws.addEventListener('error', () => reject(new Error('Chrome DevTools WebSocket failed.')));
   });
+}
+
+async function parseCdpMessage(data) {
+  if (typeof data === 'string') {
+    return JSON.parse(data);
+  }
+
+  if (data instanceof ArrayBuffer) {
+    return JSON.parse(Buffer.from(data).toString('utf8'));
+  }
+
+  if (ArrayBuffer.isView(data)) {
+    return JSON.parse(
+      Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString('utf8')
+    );
+  }
+
+  if (typeof Blob !== 'undefined' && data instanceof Blob) {
+    return JSON.parse(await data.text());
+  }
+
+  return JSON.parse(String(data));
 }
 
 function addListener(listeners, method, handler) {

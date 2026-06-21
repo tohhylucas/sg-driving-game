@@ -1,13 +1,13 @@
 Chrome verification
-Timestamp: 2026-06-21T19:16:56.955Z
+Timestamp: 2026-06-21T19:42:41.648Z
 Chrome path: C:\Program Files\Google\Chrome\Application\chrome.exe
 App URL: http://127.0.0.1:5174/
 Recording: artifacts/issue-2-chrome-recording.webm
-Recording source: Chrome DevTools Protocol screenshots encoded with ffmpeg after canvas MediaRecorder fallback: Chrome recording failed: no WebM bytes were produced.
+Recording source: Chrome canvas.captureStream() recorded with MediaRecorder
 Recording duration ms: 1500
-Recording frames: 14
-Recording MIME type: video/webm
-Recording bytes: 5819
+Recording frames: not reported
+Recording MIME type: video/webm;codecs=vp9
+Recording bytes: 18995
 
 Smoke result:
 {
@@ -25,5 +25,10 @@ Browser log entries:
 console.debug: [vite] connecting...
 console.debug: [vite] connected.
 console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:2F34001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x3d0c0012b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x3d0c0012b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x3d0c0012b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x3d0c0012b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
 
 Console/runtime error result: none
