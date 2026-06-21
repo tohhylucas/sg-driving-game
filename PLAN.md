@@ -1,48 +1,68 @@
-# Singapore Rule-Adherence Driving Game Phase 1
+# PLAN.md - Phased Implementation Plan
 
-## Summary
-Build a browser-based, game-first driving experience for Singapore learner drivers. Phase 1 is a laptop-browser-only, first-person cockpit, timed open-driving vertical slice focused on habit formation through lane-changing, keep-left discipline, following distance, signalling, mirror checks, blind-spot checks, and post-drive feedback.
+Status legend: `[ ]` not started, `[WIP]` in progress, `[DONE]` complete.
+Agents must keep this file current. See `AGENTS.md` section 3.
 
-Use a Singapore-like fictional road network, not real test routes. The first slice proves lane changes end-to-end with light AI traffic, fully rendered rear/side mirrors, local-only webcam processing, and positive mastery scoring.
+## PHASE 1 - Free Driving World (CURRENT)
 
-## Key Changes
-- Build with `Three.js` for the 3D cockpit/world and MediaPipe-style local browser vision for face/eye/head landmark checks.
-- Use first-person cockpit only, with functional rear-view and side mirrors rendered from alternate camera views.
-- Camera model:
-  - Fixed laptop webcam assumption.
-  - Rear-view mirror check = eyes glance upward toward the camera area.
-  - Blind-spot check = visible head turn left/right.
-  - Webcam frames stay local; no video upload or storage.
-- Core loop:
-  - Open-driving timed sessions, default `6 minutes`.
-  - Critical collision/impossible-manoeuvre warnings only during driving.
-  - All rule coaching and mistake explanations happen in the post-drive recap.
-- First playable slice:
-  - Lane change on a multi-lane Singapore-like road.
-  - Required sequence follows syllabus-first logic: traffic/mirror awareness, signal, blind spot, then manoeuvre.
-  - Correct observation gives credit, but unsafe lane-change decisions are still penalized.
-- Scoring:
-  - Positive mastery score, not just deductions.
-  - Separate scoring channels for observation sequence, road judgment, lane discipline, following distance, and line/signal compliance.
-  - Keep-left is contextual: no penalty when overtaking, preparing for right turn/U-turn, avoiding hazards, or obeying lane markings.
+Goal: A drivable car in a Singapore-style world with a working cockpit UI and
+real rendered mirror views. No rules, no scoring, and no procedural generation.
 
-## Core Interfaces
-- `DrivingEvent`: timestamped event for signal, mirror glance, blind-spot check, lane departure, lane change, following-distance breach, stop-line breach, collision risk, or rule success.
-- `ObservationTrace`: derived from local webcam landmarks; records upward glance, left/right head turn, confidence, and timing window.
-- `RoadRuleEvaluator`: consumes vehicle state, traffic state, road markings, signals, and observation traces; emits mastery gains, penalties, and recap reasons.
-- `SessionRecap`: grouped post-drive results with score, rule breakdown, replay markers, and highest-impact habit failures.
+### M0 - Project Setup
 
-## Test Plan
-- Unit-test rule evaluators for lane changes, keep-left exceptions, signal-before-line-crossing, safe time gap, and unsafe target-lane decisions.
-- Simulate webcam traces for valid/invalid mirror and blind-spot timing windows.
-- Integration-test a full 6-minute lane-change session with scripted/light AI traffic.
-- Performance-test cockpit plus three mirror views on laptop Chrome/Edge.
-- Privacy acceptance test: confirm no webcam frames or face data leave the browser.
-- User validation default: small learner-driver study measuring whether repeated sessions improve reported observation habits.
+- [DONE] Initialize Vite + TypeScript project. Delivered initial Vite app shell.
+- [DONE] Install three, vitest. Configure tsconfig (strict), vite, vitest. Delivered package and config files.
+- [DONE] Create folder structure per ARCHITECTURE.md. Delivered source folders and placeholder modules.
+- [DONE] `index.html` with full-window canvas + UI overlay root. Delivered `#game-canvas` and `#ui-overlay`.
+- [DONE] Bootstrap `Engine` (renderer, scene, clock) + empty render loop. Delivered `Engine`, `Game`, and fixed-step `Loop`.
+- **Test:** App boots, blank canvas fills window, no console errors, `npm run build` passes.
 
-## Assumptions
-- Phase 1 targets Singapore Class 3/3A learner drivers.
-- It is a game-first product, but syllabus accuracy remains non-negotiable.
-- Real Singapore roads are deferred; the first map is fictional but Singapore-like.
-- Full mobile, steering wheel, instructor dashboards, cloud analytics, and real-route recreation are out of scope for Phase 1.
-- References used for feasibility and rule grounding: [SPF Final Theory of Driving PDF](https://www.police.gov.sg/-/media/Spf/Files/TP/Online-Learning-Portal/FT-ENG-9th-Edition-130717.pdf), [Three.js examples](https://github.com/mrdoob/three.js), and [MediaPipe browser examples](https://github.com/google-ai-edge/mediapipe).
+### M1 - The World (static, Singapore markings, keep-left)
+
+- [ ] Solid blue sky + green ground plane.
+- [ ] Straight road mesh (grey) with solid white edge lines and a dashed white center line.
+- [ ] Encode keep-left: left lane is the default driving lane.
+- [ ] No debug camera. Use a fixed forward camera for now to verify visuals.
+- **Test:** Road renders with correct Singapore-style markings; left lane clearly the driving lane.
+
+### M2 - The Car
+
+- [ ] Low-poly placeholder car mesh with a clear front.
+- [ ] Spawn in the left lane, facing forward, resting on the road.
+- [ ] Car holds state: position, heading, speed (no input yet).
+- **Test:** Car sits correctly positioned in the left lane, facing the right direction.
+
+### M3 - Free Driving (kinematic, no rules)
+
+- [ ] Keyboard input manager (accelerate, brake/reverse, steer left/right).
+- [ ] `KinematicModel` bicycle model - test-first.
+- [ ] `CarController` maps input to model to car transform.
+- [ ] Chase/cockpit camera attached to car.
+- **Test:** Smooth accelerate/brake/steer around the world; camera follows correctly.
+
+### M4 - In-Car Cockpit UI
+
+- [ ] Rearview mirror (top center) - real rendered view via mirror camera.
+- [ ] Left and right side mirrors - real rendered views.
+- [ ] Steering wheel (bottom center) rotates with steering input.
+- [ ] Speedometer (bottom center) shows live km/h.
+- [ ] Instructor caption frame (empty placeholder; no logic this phase).
+- **Test:** Mirrors reflect actual scene behind/beside the car; wheel and speedometer respond live; layout matches the reference mockup.
+
+### M5 - Hand-Built Test Track
+
+- [ ] Extend straight road into a small fixed track with a couple of turns and a junction to serve as a stable environment for Phase 2 rule testing.
+- **Test:** Car can be driven around the full track without falling off or glitching.
+
+## PHASE 2 - Rules & Scoring (NOT STARTED - DO NOT IMPLEMENT YET)
+
+Placeholder only, for context. Each rule should be an independent, toggleable
+module emitting scored events.
+
+- [ ] Mirror / blind-spot check detection (before turns and lane changes)
+- [ ] Keep-left enforcement
+- [ ] Stop-line detection (solid white line, side road to main road)
+- [ ] Safe following-distance with lead vehicles
+- [ ] Instructor instruction system (queued voice/text tied to road features)
+- [ ] Scoring / feedback loop
+- [ ] Procedural map generation (last)
