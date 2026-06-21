@@ -73,6 +73,7 @@ driving-game/
 |   |   |-- Sky.ts
 |   |   |-- Road.ts
 |   |   |-- RoadMarkings.ts
+|   |   |-- roadLayout.ts
 |   |   `-- TestTrack.ts
 |   |-- vehicle/
 |   |   |-- Car.ts
@@ -114,6 +115,9 @@ driving-game/
 - `MirrorCamera.ts`: camera and render target for a mirror.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame.
 - `config/constants.ts`: single source of truth for tunable numbers and colors.
+- `roadLayout.ts`: pure, testable straight-road layout derived from shared
+  road config, including the Singapore keep-left default lane and marking
+  positions.
 
 ## Data Flow
 
