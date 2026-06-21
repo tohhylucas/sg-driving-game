@@ -17,6 +17,7 @@ const CHROME_CANDIDATES = [
 
 const WAIT_TIMEOUT_MS = 15_000;
 const RECORDING_DURATION_MS = 1_500;
+const M4_RECORDING_DURATION_MS = 4_500;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 
@@ -101,7 +102,16 @@ async function main() {
           canvasClientHeight: canvas instanceof HTMLCanvasElement ? canvas.clientHeight : 0,
           viewportWidth: window.innerWidth,
           viewportHeight: window.innerHeight,
-          overlayPhase: overlay instanceof HTMLDivElement ? overlay.dataset.phase ?? null : null
+          overlayPhase: overlay instanceof HTMLDivElement ? overlay.dataset.phase ?? null : null,
+          m4: overlay instanceof HTMLDivElement ? {
+            mirrorIds: [...overlay.querySelectorAll('[data-mirror]')].map((element) => element.dataset.mirror),
+            steeringWheelExists: overlay.querySelector('[data-instrument="steering-wheel"]') !== null,
+            speedometerExists: overlay.querySelector('[data-instrument="speedometer"]') !== null,
+            instructorAudioExists: overlay.querySelector('[data-instrument="instructor-audio"]') !== null,
+            instructorCaptionExists: overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') !== null,
+            instructorAudioText: overlay.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? null,
+            overlayText: overlay.innerText
+          } : null
         };
       })()`,
       returnByValue: true
@@ -109,14 +119,18 @@ async function main() {
 
     const smoke = result.result?.value;
     assertSmokeResult(smoke, expectedPhase);
+    const acceptance =
+      expectedPhase === 'm4' ? await runM4AcceptanceSample(cdp) : undefined;
 
     const artifactPaths = await writeArtifacts({
+      acceptance,
       artifactPrefix,
       appUrl,
       browserLogEntries,
       chromePath,
       cdp,
       errors,
+      expectedPhase,
       smoke
     });
 
@@ -318,15 +332,128 @@ function assertSmokeResult(smoke, expectedPhase) {
       `Expected #ui-overlay data-phase to be ${expectedPhase}, got ${smoke.overlayPhase}.`
     );
   }
+
+  if (expectedPhase === 'm4') {
+    assertM4SmokeResult(smoke.m4);
+  }
+}
+
+function assertM4SmokeResult(m4) {
+  const mirrorIds = new Set(m4?.mirrorIds ?? []);
+
+  for (const mirrorId of ['rearview', 'leftSide', 'rightSide']) {
+    if (!mirrorIds.has(mirrorId)) {
+      throw new Error(`Expected M4 mirror frame ${mirrorId} to exist.`);
+    }
+  }
+
+  if (!m4?.steeringWheelExists) {
+    throw new Error('Expected M4 steering wheel to exist.');
+  }
+
+  if (!m4?.speedometerExists) {
+    throw new Error('Expected M4 speedometer to exist.');
+  }
+
+  if (!m4?.instructorAudioExists) {
+    throw new Error('Expected M4 instructor audio placeholder to exist.');
+  }
+
+  if (m4.instructorCaptionExists) {
+    throw new Error('Expected no instructor caption placeholder in M4.');
+  }
+
+  if ((m4.instructorAudioText ?? '').trim() !== '') {
+    throw new Error('Expected instructor audio placeholder to contain no text.');
+  }
+}
+
+async function runM4AcceptanceSample(cdp) {
+  const initial = await readM4HudState(cdp);
+
+  await dispatchKey(cdp, 'keyDown', 'ArrowUp', 'ArrowUp', 38);
+  await delay(650);
+
+  const moving = await readM4HudState(cdp);
+
+  await dispatchKey(cdp, 'keyDown', 'ArrowLeft', 'ArrowLeft', 37);
+  await delay(450);
+
+  const steering = await readM4HudState(cdp);
+
+  await dispatchKey(cdp, 'keyUp', 'ArrowLeft', 'ArrowLeft', 37);
+  await dispatchKey(cdp, 'keyUp', 'ArrowUp', 'ArrowUp', 38);
+
+  if (!(moving.speedKmh > initial.speedKmh)) {
+    throw new Error(
+      `Expected speedometer to increase during M4 sample; before ${initial.speedKmh}, after ${moving.speedKmh}.`
+    );
+  }
+
+  if (!(steering.steer > initial.steer)) {
+    throw new Error(
+      `Expected steering wheel data to change during M4 sample; before ${initial.steer}, after ${steering.steer}.`
+    );
+  }
+
+  return {
+    initial,
+    moving,
+    steering
+  };
+}
+
+async function readM4HudState(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    returnByValue: true,
+    expression: `(() => {
+      const speedometer = document.querySelector('[data-instrument="speedometer"]');
+      const wheel = document.querySelector('[data-instrument="steering-wheel"]');
+      const overlay = document.querySelector('#ui-overlay');
+      return {
+        speedKmh: Number(speedometer?.dataset.speedKmh ?? 0),
+        steer: Number(wheel?.dataset.steer ?? 0),
+        mirrorCount: overlay?.querySelectorAll('[data-mirror]').length ?? 0,
+        instructorAudioText: overlay?.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? ''
+      };
+    })()`
+  });
+
+  return result.result?.value;
+}
+
+async function runM4DrivingScenario(cdp) {
+  await delay(350);
+  await dispatchKey(cdp, 'keyDown', 'ArrowUp', 'ArrowUp', 38);
+  await delay(850);
+  await dispatchKey(cdp, 'keyDown', 'ArrowLeft', 'ArrowLeft', 37);
+  await delay(950);
+  await dispatchKey(cdp, 'keyUp', 'ArrowLeft', 'ArrowLeft', 37);
+  await dispatchKey(cdp, 'keyDown', 'ArrowRight', 'ArrowRight', 39);
+  await delay(950);
+  await dispatchKey(cdp, 'keyUp', 'ArrowRight', 'ArrowRight', 39);
+  await delay(550);
+  await dispatchKey(cdp, 'keyUp', 'ArrowUp', 'ArrowUp', 38);
+}
+
+async function dispatchKey(cdp, type, code, key, windowsVirtualKeyCode) {
+  await cdp.send('Input.dispatchKeyEvent', {
+    code,
+    key,
+    type,
+    windowsVirtualKeyCode
+  });
 }
 
 async function writeArtifacts({
+  acceptance,
   artifactPrefix,
   appUrl,
   browserLogEntries,
   chromePath,
   cdp,
   errors,
+  expectedPhase,
   smoke
 }) {
   if (!artifactPrefix) {
@@ -342,7 +469,9 @@ async function writeArtifacts({
   const logsPath = join(ARTIFACT_DIR, `${artifactPrefix}-chrome-logs.txt`);
   const recording = await captureChromeRecording({
     cdp,
-    durationMs: RECORDING_DURATION_MS,
+    durationMs:
+      expectedPhase === 'm4' ? M4_RECORDING_DURATION_MS : RECORDING_DURATION_MS,
+    expectedPhase,
     outputPath: recordingPath
   });
 
@@ -353,6 +482,7 @@ async function writeArtifacts({
       browserLogEntries,
       chromePath,
       errors,
+      acceptance,
       recording,
       recordingPath,
       smoke
@@ -365,7 +495,16 @@ async function writeArtifacts({
   };
 }
 
-async function captureChromeRecording({ cdp, durationMs, outputPath }) {
+async function captureChromeRecording({
+  cdp,
+  durationMs,
+  expectedPhase,
+  outputPath
+}) {
+  if (expectedPhase === 'm4') {
+    return captureM4PageRecording({ cdp, durationMs, outputPath });
+  }
+
   try {
     const recording = await captureCanvasRecording(cdp, durationMs);
     await writeFile(outputPath, recording.buffer);
@@ -373,6 +512,24 @@ async function captureChromeRecording({ cdp, durationMs, outputPath }) {
   } catch (error) {
     return captureScreenshotRecording({ cdp, durationMs, outputPath, error });
   }
+}
+
+async function captureM4PageRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM4DrivingScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M4 records full page so DOM cockpit instruments are visible.'),
+    outputPath
+  });
+
+  await scenario;
+
+  return {
+    ...recording,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M4 driving input'
+  };
 }
 
 async function captureCanvasRecording(cdp, durationMs) {
@@ -537,6 +694,7 @@ async function recordCanvasInPage(durationMs) {
 }
 
 function formatArtifactLog({
+  acceptance,
   appUrl,
   browserLogEntries,
   chromePath,
@@ -548,7 +706,7 @@ function formatArtifactLog({
   return [
     'Chrome verification',
     `Timestamp: ${new Date().toISOString()}`,
-    `Chrome path: ${chromePath}`,
+    `Chrome: ${chromePath ? 'detected' : 'not detected'}`,
     `App URL: ${appUrl}`,
     `Recording: ${toArtifactPath(recordingPath)}`,
     `Recording source: ${recording.source}`,
@@ -559,6 +717,9 @@ function formatArtifactLog({
     '',
     'Smoke result:',
     JSON.stringify(smoke, null, 2),
+    '',
+    'M4 acceptance sample:',
+    acceptance ? JSON.stringify(acceptance, null, 2) : 'not run',
     '',
     'Browser log entries:',
     browserLogEntries.length > 0 ? browserLogEntries.join('\n') : 'none',

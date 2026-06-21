@@ -16,8 +16,8 @@ game defaults.
 
 We are currently in Phase 1 only. Do not implement Phase 2 features such as a
 rules engine, scoring, procedural generation, or instructor logic unless the
-active task in `PLAN.md` explicitly says so. A caption frame in the UI is
-allowed; instruction logic is not.
+active task in `PLAN.md` explicitly says so. An audio placeholder frame in the
+UI is allowed; on-screen instructor text and instruction logic are not.
 
 ## 1. Core Principles
 
@@ -83,6 +83,6 @@ allowed; instruction logic is not.
 
 - Introducing a physics engine in Phase 1.
 - Adding a free-orbit debug camera to the shipped game.
-- Right-hand-drive assumptions anywhere.
+- Left-hand-drive or right-lane-driving assumptions anywhere.
 - Putting business constants inside feature files.
 - Leaving `PLAN.md` out of date.

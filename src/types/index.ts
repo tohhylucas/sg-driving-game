@@ -20,3 +20,12 @@ export interface InputState {
   brake: number;
   steer: number;
 }
+
+export type MirrorId = 'rearview' | 'leftSide' | 'rightSide';
+
+export interface CanvasViewport {
+  xPx: number;
+  yPx: number;
+  widthPx: number;
+  heightPx: number;
+}

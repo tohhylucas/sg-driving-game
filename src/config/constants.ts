@@ -61,6 +61,91 @@ export const CHASE_CAMERA_CONFIG = {
   viewLateralOffsetM: 0
 } as const;
 
+export const COCKPIT_CAMERA_CONFIG = {
+  lateralOffsetM: 0.45,
+  viewLateralOffsetM: 0.6
+} as const;
+
+export const COCKPIT_UI_CONFIG = {
+  steeringWheel: {
+    maxRotationDeg: 150,
+    rightPercent: 8,
+    bottomPercent: 4,
+    sizeViewportWidth: 17,
+    minSizePx: 120,
+    maxSizePx: 220
+  },
+  speedometer: {
+    leftPercent: 50,
+    bottomPercent: 6
+  },
+  instructorAudio: {
+    leftPercent: 4,
+    bottomPercent: 5,
+    sizePx: 42
+  }
+} as const;
+
+export const MIRROR_CONFIG = {
+  rearview: {
+    ui: {
+      leftPercent: 34,
+      topPercent: 2.5,
+      widthPercent: 32,
+      heightPercent: 12
+    },
+    camera: {
+      fovDeg: 55,
+      renderTargetWidthPx: 640,
+      renderTargetHeightPx: 240,
+      mountRightOffsetM: 0.35,
+      mountUpOffsetM: 2.1,
+      mountForwardOffsetM: 0.1,
+      targetRightOffsetM: 0,
+      targetUpOffsetM: 1.2,
+      targetForwardOffsetM: -18
+    }
+  },
+  leftSide: {
+    ui: {
+      leftPercent: 3,
+      topPercent: 28,
+      widthPercent: 23,
+      heightPercent: 13
+    },
+    camera: {
+      fovDeg: 70,
+      renderTargetWidthPx: 512,
+      renderTargetHeightPx: 256,
+      mountRightOffsetM: -1.05,
+      mountUpOffsetM: 1.35,
+      mountForwardOffsetM: 0.55,
+      targetRightOffsetM: -5,
+      targetUpOffsetM: 1.05,
+      targetForwardOffsetM: -14
+    }
+  },
+  rightSide: {
+    ui: {
+      leftPercent: 74,
+      topPercent: 28,
+      widthPercent: 23,
+      heightPercent: 13
+    },
+    camera: {
+      fovDeg: 70,
+      renderTargetWidthPx: 512,
+      renderTargetHeightPx: 256,
+      mountRightOffsetM: 1.05,
+      mountUpOffsetM: 1.35,
+      mountForwardOffsetM: 0.55,
+      targetRightOffsetM: 5,
+      targetUpOffsetM: 1.05,
+      targetForwardOffsetM: -14
+    }
+  }
+} as const;
+
 export const VEHICLE_CONFIG = {
   maxForwardSpeedMps: 18,
   maxReverseSpeedMps: 5,

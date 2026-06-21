@@ -10,6 +10,11 @@ export class CarController {
 
   constructor(private readonly car: Car) {}
 
+  /** Current smoothed steering amount for cockpit instruments. */
+  get steerAmount(): number {
+    return this.smoothedSteer;
+  }
+
   /** Applies player input to the car through the kinematic model. */
   update(input: InputState, dtSec: number): void {
     this.smoothedSteer = lerp(
