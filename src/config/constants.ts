@@ -52,11 +52,24 @@ export const FIXED_CAMERA_CONFIG = {
   lookAtZM: -42
 } as const;
 
+export const CHASE_CAMERA_CONFIG = {
+  distanceM: 9,
+  heightM: 4,
+  lateralOffsetM: 0,
+  lookAheadM: 8,
+  lookAtHeightM: 1.2,
+  viewLateralOffsetM: 0
+} as const;
+
 export const VEHICLE_CONFIG = {
   maxForwardSpeedMps: 18,
   maxReverseSpeedMps: 5,
+  accelerationMps2: 4.5,
+  brakeDecelerationMps2: 8,
+  reverseAccelerationMps2: 3,
   wheelBaseM: 2.6,
-  maxSteerRad: 0.55
+  maxSteerRad: 0.55,
+  steerSmoothingRatePerSec: 8
 } as const;
 
 export const CAR_CONFIG = {
