@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { RENDER_CONFIG } from '../config/constants';
+import { FIXED_CAMERA_CONFIG, RENDER_CONFIG } from '../config/constants';
+import { World } from '../world/World';
 import { Engine } from './Engine';
 import { Loop } from './Loop';
 
@@ -13,6 +14,7 @@ export class Game {
   private readonly engine: Engine;
   private readonly loop = new Loop();
   private readonly resizeObserver: ResizeObserver;
+  private readonly world: World;
 
   constructor({ canvas, uiRoot }: GameOptions) {
     this.engine = new Engine(canvas);
@@ -22,10 +24,22 @@ export class Game {
       RENDER_CONFIG.cameraNear,
       RENDER_CONFIG.cameraFar
     );
-    this.camera.position.set(0, 2.5, 8);
-    this.camera.lookAt(0, 0, 0);
+    this.camera.position.set(
+      FIXED_CAMERA_CONFIG.positionXM,
+      FIXED_CAMERA_CONFIG.positionYM,
+      FIXED_CAMERA_CONFIG.positionZM
+    );
+    this.camera.lookAt(
+      FIXED_CAMERA_CONFIG.lookAtXM,
+      FIXED_CAMERA_CONFIG.lookAtYM,
+      FIXED_CAMERA_CONFIG.lookAtZM
+    );
 
-    uiRoot.dataset.phase = 'm0';
+    this.world = new World();
+    this.engine.scene.background = this.world.sky.color;
+    this.engine.scene.add(this.world.object);
+
+    uiRoot.dataset.phase = 'm1';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -55,6 +69,6 @@ export class Game {
   }
 
   private update(): void {
-    // M0 intentionally has no world or vehicle logic yet.
+    // M1 is a static world slice; later milestones add vehicle updates.
   }
 }

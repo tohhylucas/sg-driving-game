@@ -19,10 +19,11 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 
 ### M1 - The World (static, Singapore markings, keep-left)
 
-- [ ] Solid blue sky + green ground plane.
-- [ ] Straight road mesh (grey) with solid white edge lines and a dashed white center line.
-- [ ] Encode keep-left: left lane is the default driving lane.
-- [ ] No debug camera. Use a fixed forward camera for now to verify visuals.
+- [DONE] Solid blue sky + green ground plane.
+- [DONE] Straight road mesh (grey) with solid white edge lines and a dashed white center line.
+- [DONE] Encode keep-left: left lane is the default driving lane.
+- [DONE] No debug camera. Use a fixed forward camera for now to verify visuals.
+- Delivery note: Rendered the static M1 world with config-backed road layout and a fixed camera aligned to the left/default driving lane.
 - **Test:** Road renders with correct Singapore-style markings; left lane clearly the driving lane.
 
 ### M2 - The Car
