@@ -77,6 +77,7 @@ driving-game/
 |   |   `-- TestTrack.ts
 |   |-- vehicle/
 |   |   |-- Car.ts
+|   |   |-- carState.ts
 |   |   |-- KinematicModel.ts
 |   |   `-- CarController.ts
 |   |-- camera/
@@ -97,6 +98,7 @@ driving-game/
 |   `-- types/
 |       `-- index.ts
 `-- tests/
+    |-- carState.test.ts
     |-- kinematic.test.ts
     `-- math.test.ts
 ```
@@ -111,6 +113,10 @@ driving-game/
 - `Input.ts`: tracks pressed keys and exposes normalized input state.
 - `KinematicModel.ts`: pure logic for bicycle-model integration. No Three.js
   imports. Must be unit-tested when implemented.
+- `Car.ts`: renders the exterior placeholder car and syncs its scene transform
+  from `CarState`.
+- `carState.ts`: pure initial parked-car state derived from shared car and road
+  config, including the Singapore keep-left spawn convention.
 - `CarController.ts`: adapter from input to model to Three.js car transform.
 - `MirrorCamera.ts`: camera and render target for a mirror.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame.

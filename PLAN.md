@@ -28,9 +28,10 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 
 ### M2 - The Car
 
-- [ ] Low-poly placeholder car mesh with a clear front.
-- [ ] Spawn in the left lane, facing forward, resting on the road.
-- [ ] Car holds state: position, heading, speed (no input yet).
+- [DONE] Low-poly placeholder car mesh with a clear front.
+- [DONE] Spawn in the left lane, facing forward, resting on the road.
+- [DONE] Car holds state: position, heading, speed (no input yet).
+- Delivery note: Rendered a config-backed exterior placeholder car at the Singapore keep-left spawn with zero initial speed.
 - **Test:** Car sits correctly positioned in the left lane, facing the right direction.
 
 ### M3 - Free Driving (kinematic, no rules)
