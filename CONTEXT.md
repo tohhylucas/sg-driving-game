@@ -25,3 +25,28 @@ _Avoid_: Centered generic driver view, left-hand-drive placement
 Future instructor guidance is delivered through TTS audio only, without
 on-screen instructional text or transcripts.
 _Avoid_: Caption text, text prompts, readable instruction panels
+
+**Fixed test track**:
+A hand-built deterministic Phase 1 driving environment used as the stable road
+layout for future rule testing.
+_Avoid_: Procedural map, generated level, scenario
+
+**T-junction**:
+A road junction where one side road meets another road without continuing
+through it.
+_Avoid_: Three-way intersection
+
+**Cross junction**:
+A road junction where two roads cross through each other, creating four
+approaches.
+_Avoid_: Crossroad, four-way intersection
+
+**Uncontrolled junction**:
+A junction with static road geometry but no active signal, priority, scoring,
+or instructor behavior in Phase 1.
+_Avoid_: Traffic-light junction, rule-enforced junction
+
+**Stop line**:
+A static road marking placed before a junction approach to support future rule
+testing.
+_Avoid_: Stop rule, stop enforcement, stop feedback

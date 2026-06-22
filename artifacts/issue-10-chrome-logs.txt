@@ -1,0 +1,289 @@
+Chrome verification
+Timestamp: 2026-06-22T07:59:20.577Z
+Chrome: detected
+App URL: http://127.0.0.1:5174/
+Recording: artifacts/issue-10-chrome-recording.webm
+Recording source: Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M5 driving input
+Recording duration ms: 35000
+Recording frames: 297
+Recording MIME type: video/webm
+Recording bytes: 798702
+
+Smoke result:
+{
+  "title": "Singapore Driving Game",
+  "canvasExists": true,
+  "overlayExists": true,
+  "canvasClientWidth": 758,
+  "canvasClientHeight": 482,
+  "viewportWidth": 758,
+  "viewportHeight": 482,
+  "overlayPhase": "m5",
+  "m4": {
+    "mirrorIds": [
+      "rearview",
+      "leftSide",
+      "rightSide"
+    ],
+    "steeringWheelExists": true,
+    "speedometerExists": true,
+    "instructorAudioExists": true,
+    "instructorCaptionExists": false,
+    "instructorAudioText": "",
+    "overlayText": "0\nKM/H"
+  }
+}
+
+M4 acceptance sample:
+not run
+
+M5 acceptance drive:
+{
+  "completed": true,
+  "durationMs": 19762,
+  "checkpointRadiusM": 7,
+  "checkpoints": [
+    {
+      "id": "cross-junction-first-pass",
+      "reached": true,
+      "reachedAtMs": 1843,
+      "minDistanceM": 6.64
+    },
+    {
+      "id": "north-loop-bend",
+      "reached": true,
+      "reachedAtMs": 3458,
+      "minDistanceM": 6.51
+    },
+    {
+      "id": "northwest-loop-bend",
+      "reached": true,
+      "reachedAtMs": 5325,
+      "minDistanceM": 6.95
+    },
+    {
+      "id": "west-loop-bend",
+      "reached": true,
+      "reachedAtMs": 7586,
+      "minDistanceM": 6.37
+    },
+    {
+      "id": "west-loop-straight",
+      "reached": true,
+      "reachedAtMs": 13997,
+      "minDistanceM": 6
+    },
+    {
+      "id": "southwest-loop-bend",
+      "reached": true,
+      "reachedAtMs": 16296,
+      "minDistanceM": 5.97
+    },
+    {
+      "id": "loop-rejoin",
+      "reached": true,
+      "reachedAtMs": 18229,
+      "minDistanceM": 6.02
+    },
+    {
+      "id": "t-junction-main-road-pass",
+      "reached": true,
+      "reachedAtMs": 19650,
+      "minDistanceM": 6.17
+    }
+  ],
+  "samples": [
+    {
+      "atMs": 19,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 14.11,
+      "headingErrorRad": -0.124,
+      "speedMps": 0,
+      "xM": -1.75,
+      "zM": 0
+    },
+    {
+      "atMs": 141,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 14.07,
+      "headingErrorRad": -0.125,
+      "speedMps": 0.53,
+      "xM": -1.75,
+      "zM": -0.04
+    },
+    {
+      "atMs": 247,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 14,
+      "headingErrorRad": -0.125,
+      "speedMps": 0.97,
+      "xM": -1.75,
+      "zM": -0.11
+    },
+    {
+      "atMs": 361,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 13.85,
+      "headingErrorRad": -0.127,
+      "speedMps": 1.5,
+      "xM": -1.75,
+      "zM": -0.26
+    },
+    {
+      "atMs": 480,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 13.64,
+      "headingErrorRad": -0.129,
+      "speedMps": 2.02,
+      "xM": -1.75,
+      "zM": -0.47
+    },
+    {
+      "atMs": 607,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 13.33,
+      "headingErrorRad": -0.132,
+      "speedMps": 2.63,
+      "xM": -1.75,
+      "zM": -0.79
+    },
+    {
+      "atMs": 713,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 13.04,
+      "headingErrorRad": -0.135,
+      "speedMps": 3.08,
+      "xM": -1.75,
+      "zM": -1.08
+    },
+    {
+      "atMs": 826,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 12.65,
+      "headingErrorRad": -0.139,
+      "speedMps": 3.6,
+      "xM": -1.75,
+      "zM": -1.47
+    },
+    {
+      "atMs": 957,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 12.2,
+      "headingErrorRad": -0.144,
+      "speedMps": 4.13,
+      "xM": -1.75,
+      "zM": -1.93
+    },
+    {
+      "atMs": 1090,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 11.61,
+      "headingErrorRad": -0.103,
+      "speedMps": 4.73,
+      "xM": -1.74,
+      "zM": -2.52
+    },
+    {
+      "atMs": 1222,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 10.94,
+      "headingErrorRad": -0.043,
+      "speedMps": 5.33,
+      "xM": -1.68,
+      "zM": -3.19
+    },
+    {
+      "atMs": 1354,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 10.18,
+      "headingErrorRad": -0.023,
+      "speedMps": 5.93,
+      "xM": -1.58,
+      "zM": -3.94
+    },
+    {
+      "atMs": 1482,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 9.35,
+      "headingErrorRad": -0.017,
+      "speedMps": 6.53,
+      "xM": -1.47,
+      "zM": -4.77
+    },
+    {
+      "atMs": 1600,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 8.55,
+      "headingErrorRad": -0.016,
+      "speedMps": 7.05,
+      "xM": -1.36,
+      "zM": -5.56
+    },
+    {
+      "atMs": 1725,
+      "checkpointId": "cross-junction-first-pass",
+      "distanceM": 7.57,
+      "headingErrorRad": -0.017,
+      "speedMps": 7.65,
+      "xM": -1.22,
+      "zM": -6.53
+    },
+    {
+      "atMs": 1843,
+      "checkpointId": "north-loop-bend",
+      "distanceM": 6.64,
+      "headingErrorRad": 0.092,
+      "speedMps": 8.18,
+      "xM": -1.08,
+      "zM": -7.45
+    },
+    {
+      "atMs": 1974,
+      "checkpointId": "north-loop-bend",
+      "distanceM": 19.59,
+      "headingErrorRad": 0.097,
+      "speedMps": 8.7,
+      "xM": -0.94,
+      "zM": -8.43
+    },
+    {
+      "atMs": 2094,
+      "checkpointId": "north-loop-bend",
+      "distanceM": 18.43,
+      "headingErrorRad": 0.103,
+      "speedMps": 8.78,
+      "xM": -0.77,
+      "zM": -9.59
+    },
+    {
+      "atMs": 2212,
+      "checkpointId": "north-loop-bend",
+      "distanceM": 17.41,
+      "headingErrorRad": 0.109,
+      "speedMps": 8.78,
+      "xM": -0.62,
+      "zM": -10.6
+    },
+    {
+      "atMs": 2344,
+      "checkpointId": "north-loop-bend",
+      "distanceM": 16.25,
+      "headingErrorRad": 0.117,
+      "speedMps": 8.78,
+      "xM": -0.46,
+      "zM": -11.76
+    }
+  ]
+}
+
+Browser log entries:
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:66E4001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x551c0013b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x551c0013b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x551c0013b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x551c0013b600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+
+Console/runtime error result: none
