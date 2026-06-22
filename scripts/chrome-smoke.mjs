@@ -866,8 +866,8 @@ async function runM7ViolationResetScenario(cdp) {
   const startedAt = Date.now();
 
   try {
-    await dispatchKey(cdp, 'keyDown', 'ArrowUp', 'ArrowUp', 38);
-    await dispatchKey(cdp, 'keyDown', 'ArrowRight', 'ArrowRight', 39);
+    await dispatchControlKey(cdp, 'keyDown', 'KeyW');
+    await dispatchControlKey(cdp, 'keyDown', 'ArrowRight');
 
     while (Date.now() - startedAt < M7_VIOLATION_TIMEOUT_MS) {
       await delay(M7_DRIVER_INTERVAL_MS);
@@ -879,17 +879,17 @@ async function runM7ViolationResetScenario(cdp) {
       }
     }
   } finally {
-    await dispatchKey(cdp, 'keyUp', 'ArrowRight', 'ArrowRight', 39);
-    await dispatchKey(cdp, 'keyUp', 'ArrowUp', 'ArrowUp', 38);
+    await dispatchControlKey(cdp, 'keyUp', 'ArrowRight');
+    await dispatchControlKey(cdp, 'keyUp', 'KeyW');
   }
 
   if (!sample.violation) {
     throw new Error('Expected M7 drive to emit a keep-left violation.');
   }
 
-  await dispatchKey(cdp, 'keyDown', 'KeyR', 'r', 82);
+  await dispatchControlKey(cdp, 'keyDown', 'KeyR');
   await delay(100);
-  await dispatchKey(cdp, 'keyUp', 'KeyR', 'r', 82);
+  await dispatchControlKey(cdp, 'keyUp', 'KeyR');
   await delay(400);
   sample.afterReset = await readM7State(cdp);
 
@@ -1093,6 +1093,8 @@ function getControlKeyInfo(code) {
       return { key: 'a', windowsVirtualKeyCode: 65 };
     case 'KeyD':
       return { key: 'd', windowsVirtualKeyCode: 68 };
+    case 'KeyR':
+      return { key: 'r', windowsVirtualKeyCode: 82 };
     case 'KeyS':
       return { key: 's', windowsVirtualKeyCode: 83 };
     case 'KeyW':
