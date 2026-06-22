@@ -8,6 +8,41 @@
 - Testing: Vitest
 - Physics: none in Phase 1. Use a kinematic bicycle model only.
 
+## Ad-Hoc Map Editor Tool
+
+`map_editor/` is a standalone Vite + TypeScript canvas tool for tracing
+satellite or orthophoto images into game-ready `mapData.json`. It is separate
+from the shipped gameplay bundle and exists only as local authoring tooling.
+
+The editor keeps geometry in image pixels while editing, then exports meters
+using the calibrated `metersPerPixel` value and the project coordinate
+convention: `+X` right, `+Y` up, and `-Z` down-screen from the selected image
+origin. The canvas view can rotate independently while click/zoom math remains
+mapped back to image pixels for export. The editor can import a previously
+exported `mapData.json` and rebuild editable pixel geometry from the stored
+origin, image size, and `metersPerPixel` metadata. Legacy JSON with ordered
+nodes but no edges is recovered as a single editable road path, and export
+commits any active road path with at least two points before downloading.
+Give-way placement creates editable `paintedLines` so those markings can meet
+other road linework. Symbol placement uses a click-drag preview: the mouse-down
+point is the center, drag direction sets rotation, drag distance from center
+sets size, and mouse-up commits the final symbol. Symbol sizes are stored in
+meters and rendered through the calibrated `metersPerPixel` scale, with
+placement-drag sizing and numeric controls for precise adjustment.
+Road center paths and placed symbols remain separate map objects. Editor
+mutations push local undo snapshots so `Ctrl+Z` can restore accidental road,
+symbol, painted-line, origin, scale, and inspector edits. Its `src/schema.ts`
+file is the current export contract for future game-side map builders.
+The map status and selection inspector is a toggleable right-side drawer so
+setup metadata remains available without permanently reducing the canvas at
+normal browser zoom levels. Road paths display lane-count badges on the canvas,
+and selected road path controls edit the lane count, lane width, one-way flag,
+and edge markings for that whole path. Road path segments may be straight or
+quadratic curves; a curve stores a control point between adjacent road path
+nodes and is authored with Ctrl-click while drawing or editing a selected path.
+The toolbar is grouped by workflow, with symbol placement controls kept beside
+the symbol tool, and shortcut reminders live in a compact right-side popout.
+
 ## Setup Guidance
 
 Scripts in `package.json`:
@@ -56,6 +91,28 @@ driving-game/
 |-- PLAN.md
 |-- ARCHITECTURE.md
 |-- index.html
+|-- map_editor/
+|   |-- README.md
+|   |-- index.html
+|   |-- package.json
+|   |-- tsconfig.json
+|   |-- vite.config.ts
+|   |-- src/
+|   |   |-- constants.ts
+|   |   |-- exportMap.ts
+|   |   |-- geometry.ts
+|   |   |-- history.ts
+|   |   |-- importMap.ts
+|   |   |-- main.ts
+|   |   |-- render.ts
+|   |   |-- schema.ts
+|   |   |-- state.ts
+|   |   |-- symbols.ts
+|   |   |-- styles.css
+|   |   |-- tools.ts
+|   |   |-- upload.ts
+|   |   `-- vite-env.d.ts
+|   `-- tests/
 |-- package.json
 |-- tsconfig.json
 |-- vite.config.ts

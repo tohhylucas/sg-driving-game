@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SG Driving Map Editor</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="toolbar">
+        <div class="toolbar-group file-group" aria-label="File and map">
+          <label class="toolbar-field file-picker">
+            Image
+            <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp" />
+          </label>
+          <label class="toolbar-field file-picker">
+            Import JSON
+            <input id="json-file" type="file" accept="application/json,.json" />
+          </label>
+          <input id="map-name" type="text" aria-label="Map name" value="Singapore Practice Map" />
+          <button id="export" type="button" title="Download mapData.json">Export JSON</button>
+        </div>
+
+        <div class="toolbar-group" aria-label="Road editing">
+          <button type="button" data-tool="select" class="active" title="Pick an existing item to edit or delete">Select/Edit</button>
+          <button type="button" data-tool="edge" title="Draw the road center path used by the game">Draw Road Path</button>
+          <button type="button" data-tool="erase" title="Click an item on the canvas to remove it">Erase</button>
+        </div>
+
+        <div class="toolbar-group symbol-group" aria-label="Symbol placement">
+          <button type="button" data-tool="decal" title="Place a road symbol such as an arrow, stop line, or zebra crossing">Place Symbol</button>
+          <select id="decal-type" aria-label="Road symbol type"></select>
+          <label class="toolbar-field">
+            Symbol size (m)
+            <input id="symbol-scale" type="number" min="0.5" max="20" step="0.25" value="5" />
+          </label>
+        </div>
+
+        <div class="toolbar-group" aria-label="View and calibration">
+          <button id="rotate-map-left" type="button" title="Rotate map view left">Rotate -15</button>
+          <label class="toolbar-field">
+            Map rotation
+            <input id="map-rotation" type="number" step="1" value="0" />
+          </label>
+          <button id="rotate-map-right" type="button" title="Rotate map view right">Rotate +15</button>
+          <button id="reset-map-rotation" type="button" title="Reset map rotation">Reset Rotation</button>
+          <label class="toolbar-field">
+            Known distance (m)
+            <input id="calibration-distance" type="number" min="0.1" step="0.1" value="3.5" />
+          </label>
+          <button type="button" data-tool="calibrate" title="Click two image points with the known real distance">Calibrate Scale</button>
+          <button type="button" data-tool="origin" title="Set the game world origin">Set Origin</button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="canvas-panel" aria-label="Map canvas">
+          <canvas id="map-canvas"></canvas>
+          <div id="status" class="status-line"></div>
+        </section>
+
+        <nav class="right-nav" aria-label="Map editor panels">
+          <button
+            id="inspector-toggle"
+            type="button"
+            class="right-nav-button"
+            aria-controls="inspector-drawer"
+            aria-expanded="false"
+          >
+            Map Panel
+          </button>
+          <button
+            id="shortcuts-toggle"
+            type="button"
+            class="right-nav-button"
+            aria-controls="shortcuts-popover"
+            aria-expanded="false"
+          >
+            Shortcuts
+          </button>
+        </nav>
+
+        <div id="shortcuts-popover" class="shortcuts-popover" hidden>
+          <h2>Shortcuts</h2>
+          <dl>
+            <div>
+              <dt>Ctrl+Z</dt>
+              <dd>Undo</dd>
+            </div>
+            <div>
+              <dt>Enter</dt>
+              <dd>Finish road path</dd>
+            </div>
+            <div>
+              <dt>Ctrl-click</dt>
+              <dd>Curve road segment</dd>
+            </div>
+            <div>
+              <dt>Space + drag</dt>
+              <dd>Pan</dd>
+            </div>
+            <div>
+              <dt>Mouse wheel</dt>
+              <dd>Zoom</dd>
+            </div>
+            <div>
+              <dt>Delete</dt>
+              <dd>Remove selected item</dd>
+            </div>
+            <div>
+              <dt>Q / E</dt>
+              <dd>Rotate selected marking</dd>
+            </div>
+            <div>
+              <dt>Esc</dt>
+              <dd>Cancel or clear selection</dd>
+            </div>
+          </dl>
+        </div>
+
+        <aside id="inspector-drawer" class="inspector" aria-label="Map status and selection panel">
+          <section>
+            <h1>Map Status</h1>
+            <dl>
+              <div>
+                <dt>Scale</dt>
+                <dd id="scale-readout">0.0500 m/px</dd>
+              </div>
+              <div>
+                <dt>Origin</dt>
+                <dd id="origin-readout">0, 0 px</dd>
+              </div>
+              <div>
+                <dt>Items</dt>
+                <dd id="counts-readout">0 nodes, 0 roads, 0 markings</dd>
+              </div>
+              <div>
+                <dt>Symbol size</dt>
+                <dd id="symbol-size-readout">5.00 m</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section>
+            <h2 id="selection-heading">Selected Item</h2>
+            <p id="selection-summary">Nothing selected.</p>
+
+            <div id="edge-controls" class="control-group" hidden>
+              <label>
+                Lanes on path
+                <input id="edge-lanes" type="number" min="1" max="8" step="1" />
+              </label>
+              <label>
+                Lane width (m)
+                <input id="edge-lane-width" type="number" min="2.5" max="5" step="0.1" />
+              </label>
+              <label>
+                Center marking
+                <select id="edge-center-marking"></select>
+              </label>
+              <label>
+                Left edge marking
+                <select id="edge-left-marking"></select>
+              </label>
+              <label>
+                Right edge marking
+                <select id="edge-right-marking"></select>
+              </label>
+              <label class="inline-toggle">
+                <input id="edge-oneway" type="checkbox" />
+                One-way
+              </label>
+            </div>
+
+            <div id="decal-controls" class="control-group" hidden>
+              <label>
+                Rotation (deg)
+                <input id="decal-rotation" type="number" min="0" max="359" step="15" />
+              </label>
+              <label>
+                Scale (m)
+                <input id="decal-scale" type="number" min="0.25" max="20" step="0.25" />
+              </label>
+            </div>
+          </section>
+
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
