@@ -77,6 +77,7 @@ describe('StopLineRule', () => {
       })
     ).toEqual([
       expect.objectContaining({
+        message: 'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
         outcome: 'violation',
         ruleId: 'stop-line',
         sessionId: 2
@@ -108,6 +109,7 @@ describe('StopLineRule', () => {
       })
     ).toEqual([
       expect.objectContaining({
+        message: 'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
         outcome: 'violation',
         ruleId: 'stop-line',
         sessionId: 3

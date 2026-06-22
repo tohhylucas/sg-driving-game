@@ -27,6 +27,7 @@ export type SessionRuleDiagnostics =
 
 export interface DrivingSessionState {
   readonly active: boolean;
+  readonly endReason: SessionEndReason | undefined;
   readonly elapsedSec: number;
   readonly sessionId: number;
 }
@@ -41,6 +42,7 @@ export class DrivingSession {
   private readonly track: FixedTestTrackLayout;
   private active = false;
   private elapsedSec = 0;
+  private endReason: SessionEndReason | undefined;
   private events: ScoredEvent[] = [];
   private sessionId = 0;
 
@@ -52,6 +54,7 @@ export class DrivingSession {
   get state(): DrivingSessionState {
     return {
       active: this.active,
+      endReason: this.endReason,
       elapsedSec: this.elapsedSec,
       sessionId: this.sessionId
     };
@@ -79,6 +82,7 @@ export class DrivingSession {
   start(_car: CarState): void {
     this.sessionId += 1;
     this.elapsedSec = 0;
+    this.endReason = undefined;
     this.events = [];
     this.active = true;
 
@@ -150,6 +154,7 @@ export class DrivingSession {
     }
 
     this.active = false;
+    this.endReason = reason;
   }
 
   private syncRuleDiagnostics(car: CarState): void {

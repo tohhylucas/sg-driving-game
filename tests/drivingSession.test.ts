@@ -75,10 +75,12 @@ describe('DrivingSession', () => {
     session.update(makeCarStateAtZone(segment, zone, -0.2, 1), 0.1);
 
     expect(session.state.active).toBe(false);
+    expect(session.state.endReason).toBe('failure');
     expect(session.summary.violationCount).toBe(1);
     expect(session.summary.passCount).toBe(0);
     expect(session.summary.events).toEqual([
       expect.objectContaining({
+        message: 'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
         outcome: 'violation',
         ruleId: 'stop-line'
       })

@@ -39,6 +39,7 @@ export interface GameDiagnostics {
   };
   readonly session: {
     readonly active: boolean;
+    readonly endReason: string | undefined;
     readonly elapsedSec: number;
     readonly events: readonly {
       readonly outcome: string;

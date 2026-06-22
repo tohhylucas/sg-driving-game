@@ -937,7 +937,12 @@ async function runM8StopLineRuleScenario(cdp) {
     awaitPromise: true,
     returnByValue: true,
     expression: `(async () => {
-      const [{ StopLineRule }, { getFixedTestTrackLayout }] = await Promise.all([
+      const [
+        { DrivingSession },
+        { StopLineRule },
+        { getFixedTestTrackLayout }
+      ] = await Promise.all([
+        import('/src/rules/DrivingSession.ts'),
         import('/src/rules/StopLineRule.ts'),
         import('/src/world/testTrackLayout.ts')
       ]);
@@ -992,9 +997,26 @@ async function runM8StopLineRuleScenario(cdp) {
         return {
           diagnostics: rule.getDiagnostics(),
           events: events.map((event) => ({
+            message: event.message,
             outcome: event.outcome,
             ruleId: event.ruleId
           }))
+        };
+      };
+      const runTerminalFailureSession = () => {
+        const session = new DrivingSession({
+          rules: [new StopLineRule({ completeStopMaxSpeedMps: 0.1 })],
+          track: layout
+        });
+
+        session.start(makeCarState(3, 0));
+        session.update(makeCarState(1, 1), 0.1);
+        session.update(makeCarState(-0.2, 1), 0.1);
+
+        return {
+          active: session.state.active,
+          endReason: session.state.endReason,
+          latestMessage: session.summary.events.at(-1)?.message
         };
       };
       const activeDiagnostics = api
@@ -1013,6 +1035,7 @@ async function runM8StopLineRuleScenario(cdp) {
         [1, 0.11],
         [-0.2, 1]
       ]);
+      const terminalFailureSession = runTerminalFailureSession();
       const reversedAndRetried = runScenario(804, [
         [1, 1],
         [3, -1],
@@ -1035,6 +1058,14 @@ async function runM8StopLineRuleScenario(cdp) {
         violationWithoutStop:
           crossedWithoutStop.events.length === 1 &&
           crossedWithoutStop.events[0].outcome === 'violation',
+        immediateFailureMessage:
+          crossedWithoutStop.events[0]?.message ===
+          'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
+        terminalFailureEndsSession:
+          terminalFailureSession.active === false &&
+          terminalFailureSession.endReason === 'failure' &&
+          terminalFailureSession.latestMessage ===
+            'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
         zoneExposed:
           zone.kind === 'stop-line-rule-zone' &&
           zone.stopLineId === 't-junction-side-road-stop-line'
@@ -1072,6 +1103,7 @@ async function runM8StopLineRuleScenario(cdp) {
         reversedAndRetried,
         rollingStop,
         stoppedThenCrossed,
+        terminalFailureSession,
         zone
       };
     })()`

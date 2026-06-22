@@ -59,7 +59,7 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 ### M5 - Hand-Built Test Track
 
 - [DONE] Extend straight road into a small fixed track with a couple of turns and a junction to serve as a stable environment for Phase 2 rule testing.
-- Delivery note: Implemented issue #10 fixed loop track with T-junction and uncontrolled cross junction, static stop-line markings, free-driving preservation, tests, and Chrome recording evidence.
+- Delivery note: Implemented issue #10 fixed loop track with T-junction and uncontrolled cross junction geometry, free-driving preservation, tests, and Chrome recording evidence.
 - **Test:** Car can be driven around the full track without falling off or glitching.
 
 ## PHASE 2 - Controls, Rules & Scoring (PLANNED - DO NOT IMPLEMENT YET)
@@ -122,14 +122,16 @@ blind-spot camera look controls and M7's scoring foundation.
 - [DONE] Emit pass/violation scored events through the M7 rule foundation.
 - [DONE] Unit-test the stop-line state machine, including rolling stops and reset.
 - Delivery note: Implemented issue #14 with a visually obvious T-junction side
-  road, a solid white side-road floor line, red stop-line markings, a side-road
-  stop-line rule zone, always-active stop-line scoring through the M7 session
-  event stream, immediate session failure on crossing without a complete stop,
-  unit coverage for pass/violation/rolling/reverse/retry/reset behavior, and
-  M8 Chrome evidence.
+  road, a solid white side-road floor line, a single enforced red side-road
+  stop-line marking, a side-road stop-line rule zone, always-active stop-line
+  scoring through the M7 session event stream, an explicit `IMMEDIATE FAILURE`
+  terminal state when the stop line is crossed without a complete stop, unit
+  coverage for pass/violation/rolling/reverse/retry/reset behavior, and M8
+  Chrome evidence.
 - **Test:** Stopping before the line passes; crossing without a full stop fails;
   crossing from the side road into the main road without stopping ends the
-  session immediately; reversing and retrying behaves predictably.
+  session immediately with `IMMEDIATE FAILURE`; unenforced junction approaches
+  are not drawn as stop lines; reversing and retrying behaves predictably.
 
 ### M9 - Side-Hazard Accident Scenarios
 

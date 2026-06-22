@@ -209,20 +209,10 @@ function findSegment(
 }
 
 function makeStopLines(segments: readonly TrackSegment[]): TrackStopLine[] {
-  const loopMain = findSegment(segments, 'loop-1');
   const tJunctionSideRoad = findSegment(segments, 't-junction-side-road');
-  const crossJunctionRoad = findSegment(segments, 'cross-junction-road');
   const tJunctionLocalZM = getSegmentLocalZM(
     tJunctionSideRoad,
     TEST_TRACK_CONFIG.tJunctionSideRoad.junctionCenter
-  );
-  const crossLocalZMOnLoop = getSegmentLocalZM(
-    loopMain,
-    TEST_TRACK_CONFIG.crossJunctionRoad.junctionCenter
-  );
-  const crossLocalZMOnCrossRoad = getSegmentLocalZM(
-    crossJunctionRoad,
-    TEST_TRACK_CONFIG.crossJunctionRoad.junctionCenter
   );
   const setbackM = TEST_TRACK_CONFIG.stopLineSetbackM;
 
@@ -232,30 +222,6 @@ function makeStopLines(segments: readonly TrackSegment[]): TrackStopLine[] {
       't-junction',
       tJunctionSideRoad,
       tJunctionLocalZM + setbackM
-    ),
-    makeStopLine(
-      'cross-junction-loop-south-stop-line',
-      'cross-junction',
-      loopMain,
-      crossLocalZMOnLoop + setbackM
-    ),
-    makeStopLine(
-      'cross-junction-loop-north-stop-line',
-      'cross-junction',
-      loopMain,
-      crossLocalZMOnLoop - setbackM
-    ),
-    makeStopLine(
-      'cross-junction-west-stop-line',
-      'cross-junction',
-      crossJunctionRoad,
-      crossLocalZMOnCrossRoad + setbackM
-    ),
-    makeStopLine(
-      'cross-junction-east-stop-line',
-      'cross-junction',
-      crossJunctionRoad,
-      crossLocalZMOnCrossRoad - setbackM
     )
   ];
 }

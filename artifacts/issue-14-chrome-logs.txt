@@ -1,5 +1,5 @@
 Chrome verification
-Timestamp: 2026-06-22T17:00:40.356Z
+Timestamp: 2026-06-22T17:08:21.994Z
 Chrome: detected
 App URL: http://127.0.0.1:5175/
 Recording: artifacts/issue-14-chrome-recording.webm
@@ -7,7 +7,7 @@ Recording source: Chrome DevTools Protocol full-page screenshots encoded with ff
 Recording duration ms: 7000
 Recording frames: 65
 Recording MIME type: video/webm
-Recording bytes: 32482
+Recording bytes: 33697
 
 Smoke result:
 {
@@ -76,6 +76,8 @@ Recorded acceptance scenario:
     "retryAfterReverse": true,
     "rollingStopViolates": true,
     "violationWithoutStop": true,
+    "immediateFailureMessage": true,
+    "terminalFailureEndsSession": true,
     "zoneExposed": true
   },
   "crossedWithoutStop": {
@@ -89,6 +91,7 @@ Recorded acceptance scenario:
     },
     "events": [
       {
+        "message": "IMMEDIATE FAILURE: Stop line crossed without a complete stop",
         "outcome": "violation",
         "ruleId": "stop-line"
       }
@@ -105,6 +108,7 @@ Recorded acceptance scenario:
     },
     "events": [
       {
+        "message": "Stopped before the side-road stop line",
         "outcome": "pass",
         "ruleId": "stop-line"
       }
@@ -121,6 +125,7 @@ Recorded acceptance scenario:
     },
     "events": [
       {
+        "message": "IMMEDIATE FAILURE: Stop line crossed without a complete stop",
         "outcome": "violation",
         "ruleId": "stop-line"
       }
@@ -137,10 +142,16 @@ Recorded acceptance scenario:
     },
     "events": [
       {
+        "message": "Stopped before the side-road stop line",
         "outcome": "pass",
         "ruleId": "stop-line"
       }
     ]
+  },
+  "terminalFailureSession": {
+    "active": false,
+    "endReason": "failure",
+    "latestMessage": "IMMEDIATE FAILURE: Stop line crossed without a complete stop"
   },
   "zone": {
     "id": "t-junction-side-road-stop-line-rule-zone",
@@ -159,10 +170,10 @@ Browser log entries:
 console.debug: [vite] connecting...
 console.debug: [vite] connected.
 console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
-browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:73BC001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
-browser.warning: [.WebGL-0xe1c00132c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0xe1c00132c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0xe1c00132c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0xe1c00132c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:38D4001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x69b400158200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x69b400158200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x69b400158200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x69b400158200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
 
 Console/runtime error result: none

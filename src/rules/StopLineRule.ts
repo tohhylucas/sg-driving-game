@@ -149,7 +149,7 @@ export class StopLineRule {
       message:
         outcome === 'pass'
           ? 'Stopped before the side-road stop line'
-          : 'Stop line violation',
+          : 'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
       occurredAtSec
     };
   }

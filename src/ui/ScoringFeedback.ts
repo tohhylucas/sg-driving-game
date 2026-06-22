@@ -38,7 +38,11 @@ export class ScoringFeedback {
 
     if (latestEvent) {
       const latest = document.createElement('div');
-      latest.className = 'cockpit__scoring-latest';
+      latest.className = `cockpit__scoring-latest${
+        isImmediateFailureEvent(latestEvent)
+          ? ' cockpit__scoring-latest--failure'
+          : ''
+      }`;
       latest.textContent = latestEvent.message;
       this.root.append(latest);
     }
@@ -124,4 +128,13 @@ function isKeepLeftDiagnostics(
   diagnostics: SessionRuleDiagnostics
 ): diagnostics is KeepLeftRuleDiagnostics {
   return diagnostics.ruleId === 'keep-left';
+}
+
+function isImmediateFailureEvent(
+  event: ScoredEventSummary['events'][number]
+): boolean {
+  return (
+    event.outcome === 'violation' &&
+    event.message.startsWith('IMMEDIATE FAILURE')
+  );
 }
