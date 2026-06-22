@@ -98,6 +98,42 @@ describe('FollowingTimeGapRule', () => {
     ]);
   });
 
+  it('completes an active clean encounter when the session ends', () => {
+    const rule = new FollowingTimeGapRule({
+      detectionRangeM: 50,
+      minimumEncounterDurationSec: 1,
+      safeTimeGapSec: 2,
+      unsafeGracePeriodSec: 1
+    });
+    const car = makeCar(loopSegment, layout.defaultDrivingLane.centerOffsetM, 0, 5);
+    const safeLead = makeMovingElement('lead', loopSegment, -24);
+
+    rule.startSession(12, layout);
+    rule.update({
+      car,
+      dtSec: 1.1,
+      elapsedSec: 1.1,
+      movingElements: [safeLead],
+      sessionId: 12,
+      track: layout
+    });
+
+    expect(
+      rule.endSession({
+        car,
+        elapsedSec: 1.1,
+        reason: 'finish',
+        sessionId: 12,
+        track: layout
+      })
+    ).toEqual([
+      expect.objectContaining({
+        outcome: 'pass',
+        ruleId: 'following-time-gap'
+      })
+    ]);
+  });
+
   it('does not start following encounters outside the forward detection range', () => {
     const rule = new FollowingTimeGapRule({
       detectionRangeM: 8,
