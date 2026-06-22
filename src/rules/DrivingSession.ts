@@ -8,19 +8,22 @@ import type {
   RuleUpdateContext,
   SessionEndReason
 } from './KeepLeftRule';
+import type { StopLineRuleDiagnostics } from './StopLineRule';
 import type { ScoredEvent, ScoredEventSummary } from './scoring';
 import { summarizeScoredEvents } from './scoring';
 
 export interface SessionRule {
   readonly id: string;
-  startSession(sessionId: number): void;
+  startSession(sessionId: number, track: FixedTestTrackLayout): void;
   update(context: RuleUpdateContext): ScoredEvent[];
   endSession(context: RuleEndContext): ScoredEvent[];
   getDiagnostics?(): SessionRuleDiagnostics;
   syncDiagnostics?(context: RuleDiagnosticsContext): void;
 }
 
-export type SessionRuleDiagnostics = KeepLeftRuleDiagnostics;
+export type SessionRuleDiagnostics =
+  | KeepLeftRuleDiagnostics
+  | StopLineRuleDiagnostics;
 
 export interface DrivingSessionState {
   readonly active: boolean;
@@ -80,7 +83,7 @@ export class DrivingSession {
     this.active = true;
 
     for (const rule of this.rules) {
-      rule.startSession(this.sessionId);
+      rule.startSession(this.sessionId, this.track);
     }
   }
 

@@ -11,7 +11,8 @@ export const LOOP_CONFIG = {
 } as const;
 
 export const RULE_CONFIG = {
-  keepLeftGracePeriodSec: 1.5
+  keepLeftGracePeriodSec: 1.5,
+  stopLineCompleteStopMaxSpeedMps: 0.1
 } as const;
 
 export const RENDER_CONFIG = {
@@ -72,6 +73,7 @@ export const TEST_TRACK_CONFIG = {
     junctionCenter: { xM: 0, zM: -14 }
   },
   stopLineSetbackM: 4,
+  stopLineRuleApproachDepthM: 8,
   finishZone: {
     center: { xM: 0, zM: 24 },
     depthM: 4

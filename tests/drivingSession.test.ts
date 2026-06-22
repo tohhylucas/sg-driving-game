@@ -5,12 +5,18 @@ import {
   type SessionRule
 } from '../src/rules/DrivingSession';
 import { KeepLeftRule } from '../src/rules/KeepLeftRule';
+import { StopLineRule } from '../src/rules/StopLineRule';
 import type { ScoredEvent } from '../src/rules/scoring';
 import { createInitialCarState } from '../src/vehicle/carState';
-import { getFixedTestTrackLayout } from '../src/world/testTrackLayout';
+import {
+  getFixedTestTrackLayout,
+  type TrackSegment,
+  type TrackStopLineRuleZone
+} from '../src/world/testTrackLayout';
+
+const track = getFixedTestTrackLayout();
 
 describe('DrivingSession', () => {
-  const track = getFixedTestTrackLayout();
 
   it('starts always-active rules when a session starts', () => {
     const rule = new RecordingRule();
@@ -36,6 +42,55 @@ describe('DrivingSession', () => {
     expect(session.summary.violationCount).toBe(1);
     expect(session.summary.passCount).toBe(0);
     expect(session.summary.events).toHaveLength(1);
+  });
+
+  it('starts stop-line diagnostics with active rule zones', () => {
+    const session = new DrivingSession({
+      rules: [new StopLineRule()],
+      track
+    });
+
+    session.start(createInitialCarState());
+
+    expect(session.state.active).toBe(true);
+    expect(session.ruleDiagnostics).toEqual([
+      expect.objectContaining({
+        ruleId: 'stop-line',
+        activeZoneCount: 1,
+        pendingZoneCount: 1
+      })
+    ]);
+  });
+
+  it('aggregates stop-line scored events through the session event stream', () => {
+    const session = new DrivingSession({
+      rules: [new StopLineRule({ completeStopMaxSpeedMps: 0.1 })],
+      track
+    });
+    const zone = getTjunctionStopLineZone();
+    const segment = getSegment(zone.segmentId);
+
+    session.start(createInitialCarState());
+    session.update(makeCarStateAtZone(segment, zone, 1, 1), 0.1);
+    session.update(makeCarStateAtZone(segment, zone, -0.2, 1), 0.1);
+
+    expect(session.state.active).toBe(true);
+    expect(session.summary.violationCount).toBe(1);
+    expect(session.summary.passCount).toBe(0);
+    expect(session.summary.events).toEqual([
+      expect.objectContaining({
+        outcome: 'violation',
+        ruleId: 'stop-line'
+      })
+    ]);
+    expect(session.ruleDiagnostics).toEqual([
+      expect.objectContaining({
+        ruleId: 'stop-line',
+        activeZoneCount: 1,
+        pendingZoneCount: 0,
+        violationZoneCount: 1
+      })
+    ]);
   });
 
   it('aggregates separate keep-left violation episodes independently', () => {
@@ -146,5 +201,51 @@ function makeCarState(x: number, z: number): CarState {
     position: { x, y: 0.01, z },
     headingRad: 0,
     speedMps: 0
+  };
+}
+
+function getTjunctionStopLineZone(): TrackStopLineRuleZone {
+  const zone = track.stopLineRuleZones.find(
+    (candidate) => candidate.junctionId === 't-junction'
+  );
+
+  if (!zone) {
+    throw new Error('Expected T-junction stop-line rule zone.');
+  }
+
+  return zone;
+}
+
+function getSegment(segmentId: string): TrackSegment {
+  const segment = track.segments.find((candidate) => candidate.id === segmentId);
+
+  if (!segment) {
+    throw new Error(`Expected test track segment ${segmentId}.`);
+  }
+
+  return segment;
+}
+
+function makeCarStateAtZone(
+  segment: TrackSegment,
+  zone: TrackStopLineRuleZone,
+  signedApproachDistanceM: number,
+  speedMps: number
+): CarState {
+  const localZM =
+    zone.stopLineLocalZM +
+    signedApproachDistanceM *
+      (zone.crossingDirection === -1 ? 1 : -1);
+  const x =
+    segment.center.xM +
+    localZM * Math.sin(segment.headingRad);
+  const z =
+    segment.center.zM +
+    localZM * Math.cos(segment.headingRad);
+
+  return {
+    position: { x, y: 0.01, z },
+    headingRad: segment.headingRad,
+    speedMps
   };
 }

@@ -91,7 +91,8 @@ driving-game/
 |   |   |-- finishZone.ts
 |   |   |-- KeepLeftRule.ts
 |   |   |-- laneRules.ts
-|   |   `-- scoring.ts
+|   |   |-- scoring.ts
+|   |   `-- StopLineRule.ts
 |   |-- ui/
 |   |   |-- Cockpit.ts
 |   |   |-- InstructorAudio.ts
@@ -150,6 +151,10 @@ driving-game/
   the finish zone.
 - `laneRules.ts`: pure lane-side and default-lane helpers for fixed track
   segments.
+- `StopLineRule.ts`: always-active Phase 2 stop-line rule for configured fixed
+  track rule zones. It observes approach-side complete stops before crossing a
+  side-road stop line into the main road and emits pass/violation scored events
+  through the shared M7 event stream.
 - `finishZone.ts`: pure finish-gate containment helper.
 - `scoring.ts`: shared scored-event shape and pass/violation aggregation.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
@@ -175,8 +180,8 @@ driving-game/
   positions. Also provides shared center-dash cadence helpers.
 - `testTrackLayout.ts`: pure, testable fixed-track layout data derived from
   shared config, including deterministic loop segments, uncontrolled junction
-  metadata, static stop-line marker geometry, and a fixed finish zone. It
-  contains no scoring, collision, or instructor logic.
+  metadata, static stop-line marker geometry, M8 stop-line rule zones, and a
+  fixed finish zone. It contains no scoring, collision, or instructor logic.
 
 ## Data Flow
 

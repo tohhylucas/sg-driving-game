@@ -9,6 +9,7 @@ import {
   type SessionRuleDiagnostics
 } from '../rules/DrivingSession';
 import { KeepLeftRule } from '../rules/KeepLeftRule';
+import { StopLineRule } from '../rules/StopLineRule';
 import { Cockpit } from '../ui/Cockpit';
 import { Car } from '../vehicle/Car';
 import { CarController } from '../vehicle/CarController';
@@ -58,7 +59,7 @@ export class Game {
   private readonly chaseCamera: ChaseCamera;
   private readonly cockpit: Cockpit;
   private readonly drivingSession = new DrivingSession({
-    rules: [new KeepLeftRule()],
+    rules: [new KeepLeftRule(), new StopLineRule()],
     track: getFixedTestTrackLayout()
   });
   private readonly engine: Engine;
@@ -104,7 +105,7 @@ export class Game {
     this.engine.scene.add(this.world.object);
     this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm7';
+    uiRoot.dataset.phase = 'm8';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);

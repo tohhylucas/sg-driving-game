@@ -49,6 +49,20 @@ export interface TrackStopLine {
   readonly widthM: number;
 }
 
+export type TrackStopLineCrossingDirection = -1 | 1;
+
+export interface TrackStopLineRuleZone {
+  readonly id: string;
+  readonly kind: 'stop-line-rule-zone';
+  readonly stopLineId: string;
+  readonly junctionId: string;
+  readonly segmentId: string;
+  readonly stopLineLocalZM: number;
+  readonly crossingDirection: TrackStopLineCrossingDirection;
+  readonly approachDepthM: number;
+  readonly widthM: number;
+}
+
 export interface TrackFinishZone {
   readonly id: string;
   readonly kind: 'finish-zone';
@@ -63,6 +77,7 @@ export interface FixedTestTrackLayout {
   readonly segments: readonly TrackSegment[];
   readonly junctions: readonly TrackJunction[];
   readonly stopLines: readonly TrackStopLine[];
+  readonly stopLineRuleZones: readonly TrackStopLineRuleZone[];
   readonly finishZone: TrackFinishZone;
   readonly defaultDrivingLane: TrackDrivingLaneLayout;
 }
@@ -245,6 +260,45 @@ function makeStopLines(segments: readonly TrackSegment[]): TrackStopLine[] {
   ];
 }
 
+function makeStopLineRuleZones(
+  segments: readonly TrackSegment[],
+  stopLines: readonly TrackStopLine[]
+): TrackStopLineRuleZone[] {
+  const sideRoadSegment = findSegment(segments, 't-junction-side-road');
+  const sideRoadStopLine = stopLines.find(
+    (stopLine) => stopLine.id === 't-junction-side-road-stop-line'
+  );
+
+  if (!sideRoadStopLine) {
+    throw new Error('Missing T-junction side-road stop line.');
+  }
+
+  const stopLineLocalZM = getSegmentLocalZM(
+    sideRoadSegment,
+    sideRoadStopLine.center
+  );
+  const startLocalZM = getSegmentLocalZM(
+    sideRoadSegment,
+    sideRoadSegment.start
+  );
+  const crossingDirection: TrackStopLineCrossingDirection =
+    startLocalZM > stopLineLocalZM ? -1 : 1;
+
+  return [
+    {
+      id: 't-junction-side-road-stop-line-rule-zone',
+      kind: 'stop-line-rule-zone',
+      stopLineId: sideRoadStopLine.id,
+      junctionId: sideRoadStopLine.junctionId,
+      segmentId: sideRoadSegment.id,
+      stopLineLocalZM,
+      crossingDirection,
+      approachDepthM: TEST_TRACK_CONFIG.stopLineRuleApproachDepthM,
+      widthM: sideRoadSegment.widthM
+    }
+  ];
+}
+
 function makeFinishZone(): TrackFinishZone {
   return {
     id: 'loop-finish-gate',
@@ -259,13 +313,15 @@ export function getFixedTestTrackLayout(): FixedTestTrackLayout {
   const loopSegments = makeLoopSegments();
   const featureSegments = makeFeatureSegments();
   const segments = [...loopSegments, ...featureSegments];
+  const stopLines = makeStopLines(segments);
 
   return {
     roadWidthM: ROAD_CONFIG.roadWidthM,
     loopSegments,
     segments,
     junctions: makeJunctions(),
-    stopLines: makeStopLines(segments),
+    stopLines,
+    stopLineRuleZones: makeStopLineRuleZones(segments, stopLines),
     finishZone: makeFinishZone(),
     defaultDrivingLane: {
       side: ROAD_CONFIG.defaultDrivingLaneSide,

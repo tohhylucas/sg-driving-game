@@ -68,7 +68,10 @@ export class KeepLeftRule {
   }
 
   /** Resets per-session keep-left state. */
-  startSession(_sessionId: number): void {
+  startSession(
+    _sessionId: number,
+    _track?: FixedTestTrackLayout
+  ): void {
     this.currentWrongLaneSegmentId = undefined;
     this.hasAnyViolation = false;
     this.hasPass = false;

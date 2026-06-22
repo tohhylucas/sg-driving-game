@@ -117,10 +117,11 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M8 - Stop-Line Rule at the Hand-Built Junction
 
-- [ ] Add fixed stop-line rule zones to the M5 test track data.
-- [ ] Detect a complete stop before crossing the line from the side road.
-- [ ] Emit pass/violation scored events through the M7 rule foundation.
-- [ ] Unit-test the stop-line state machine, including rolling stops and reset.
+- [DONE] Add fixed stop-line rule zones to the M5 test track data.
+- [DONE] Detect a complete stop before crossing the line from the side road.
+- [DONE] Emit pass/violation scored events through the M7 rule foundation.
+- [DONE] Unit-test the stop-line state machine, including rolling stops and reset.
+- Delivery note: Implemented issue #14 with a T-junction side-road stop-line rule zone, always-active stop-line scoring through the M7 session event stream, unit coverage for pass/violation/rolling/reverse/retry/reset behavior, and M8 Chrome evidence.
 - **Test:** Stopping before the line passes; crossing without a full stop fails;
   reversing and retrying behaves predictably.
 

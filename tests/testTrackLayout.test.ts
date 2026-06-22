@@ -88,4 +88,26 @@ describe('fixed test track layout', () => {
       ).toBe(true);
     }
   });
+
+  it('exposes the T-junction side-road stop line as a rule zone', () => {
+    const layout = getFixedTestTrackLayout();
+    const zone = layout.stopLineRuleZones.find(
+      (candidate) => candidate.junctionId === 't-junction'
+    );
+
+    expect(zone).toEqual(
+      expect.objectContaining({
+        id: 't-junction-side-road-stop-line-rule-zone',
+        kind: 'stop-line-rule-zone',
+        stopLineId: 't-junction-side-road-stop-line',
+        segmentId: 't-junction-side-road',
+        crossingDirection: -1
+      })
+    );
+    expect(zone?.approachDepthM).toBeGreaterThan(0);
+    expect(zone?.widthM).toBe(ROAD_CONFIG.roadWidthM);
+    expect(
+      layout.stopLines.some((stopLine) => stopLine.id === zone?.stopLineId)
+    ).toBe(true);
+  });
 });
