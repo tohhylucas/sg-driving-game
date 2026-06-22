@@ -28,6 +28,7 @@ const M4_RECORDING_DURATION_MS = 4_500;
 const M5_RECORDING_DURATION_MS = 35_000;
 const M6_RECORDING_DURATION_MS = 9_000;
 const M7_RECORDING_DURATION_MS = 9_000;
+const M8_RECORDING_DURATION_MS = 7_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -151,6 +152,11 @@ async function main() {
             passCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.passCount ?? -1),
             violationCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.violationCount ?? -1),
             latestOutcome: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.latestOutcome ?? null
+          } : null,
+          m8: window.__SG_DRIVING_GAME_DEV__ ? {
+            stopLineDiagnostics: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.ruleDiagnostics.find(
+              (entry) => entry.ruleId === 'stop-line'
+            ) ?? null
           } : null
         };
       })()`,
@@ -451,13 +457,18 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm4' ||
     expectedPhase === 'm5' ||
     expectedPhase === 'm6' ||
-    expectedPhase === 'm7'
+    expectedPhase === 'm7' ||
+    expectedPhase === 'm8'
   ) {
     assertM4SmokeResult(smoke.m4);
   }
 
-  if (expectedPhase === 'm7') {
+  if (expectedPhase === 'm7' || expectedPhase === 'm8') {
     assertM7SmokeResult(smoke.m7);
+  }
+
+  if (expectedPhase === 'm8') {
+    assertM8SmokeResult(smoke.m8);
   }
 }
 
@@ -517,6 +528,26 @@ function assertM7SmokeResult(m7) {
   }
 }
 
+function assertM8SmokeResult(m8) {
+  const stopLineDiagnostics = m8?.stopLineDiagnostics;
+
+  if (!stopLineDiagnostics) {
+    throw new Error('Expected M8 stop-line diagnostics to exist.');
+  }
+
+  if (stopLineDiagnostics.activeZoneCount !== 1) {
+    throw new Error('Expected M8 to start with one active stop-line rule zone.');
+  }
+
+  if (stopLineDiagnostics.pendingZoneCount !== 1) {
+    throw new Error('Expected M8 stop-line rule zone to start pending.');
+  }
+
+  if (!(stopLineDiagnostics.completeStopMaxSpeedMps > 0)) {
+    throw new Error('Expected M8 stop-line complete-stop threshold.');
+  }
+}
+
 function getRecordingDurationMs(expectedPhase) {
   if (expectedPhase === 'm4') {
     return M4_RECORDING_DURATION_MS;
@@ -532,6 +563,10 @@ function getRecordingDurationMs(expectedPhase) {
 
   if (expectedPhase === 'm7') {
     return M7_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm8') {
+    return M8_RECORDING_DURATION_MS;
   }
 
   return RECORDING_DURATION_MS;
@@ -897,6 +932,197 @@ async function runM7ViolationResetScenario(cdp) {
   return sample;
 }
 
+async function runM8StopLineRuleScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        { DrivingSession },
+        { StopLineRule },
+        { getFixedTestTrackLayout }
+      ] = await Promise.all([
+        import('/src/rules/DrivingSession.ts'),
+        import('/src/rules/StopLineRule.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const layout = getFixedTestTrackLayout();
+      const zone = layout.stopLineRuleZones.find(
+        (candidate) => candidate.junctionId === 't-junction'
+      );
+      const segment = layout.segments.find(
+        (candidate) => candidate.id === zone?.segmentId
+      );
+      const api = window.__SG_DRIVING_GAME_DEV__;
+
+      if (!zone || !segment || !api) {
+        return { available: false };
+      }
+
+      const makeCarState = (signedApproachDistanceM, speedMps) => {
+        const localZM =
+          zone.stopLineLocalZM +
+          signedApproachDistanceM *
+            (zone.crossingDirection === -1 ? 1 : -1);
+
+        return {
+          position: {
+            x: segment.center.xM + localZM * Math.sin(segment.headingRad),
+            y: 0.01,
+            z: segment.center.zM + localZM * Math.cos(segment.headingRad)
+          },
+          headingRad: segment.headingRad,
+          speedMps
+        };
+      };
+      const runScenario = (sessionId, steps) => {
+        const rule = new StopLineRule({ completeStopMaxSpeedMps: 0.1 });
+        const events = [];
+
+        rule.startSession(sessionId, layout);
+
+        for (let index = 0; index < steps.length; index += 1) {
+          const [signedApproachDistanceM, speedMps] = steps[index];
+          events.push(
+            ...rule.update({
+              car: makeCarState(signedApproachDistanceM, speedMps),
+              dtSec: 0.1,
+              elapsedSec: (index + 1) / 10,
+              sessionId,
+              track: layout
+            })
+          );
+        }
+
+        return {
+          diagnostics: rule.getDiagnostics(),
+          events: events.map((event) => ({
+            message: event.message,
+            outcome: event.outcome,
+            ruleId: event.ruleId
+          }))
+        };
+      };
+      const runTerminalFailureSession = () => {
+        const session = new DrivingSession({
+          rules: [new StopLineRule({ completeStopMaxSpeedMps: 0.1 })],
+          track: layout
+        });
+
+        session.start(makeCarState(3, 0));
+        session.update(makeCarState(1, 1), 0.1);
+        session.update(makeCarState(-0.2, 1), 0.1);
+
+        return {
+          active: session.state.active,
+          endReason: session.state.endReason,
+          latestMessage: session.summary.events.at(-1)?.message
+        };
+      };
+      const activeDiagnostics = api
+        .readDiagnostics()
+        .session.ruleDiagnostics.find((entry) => entry.ruleId === 'stop-line');
+      const stoppedThenCrossed = runScenario(801, [
+        [3, 2],
+        [1, 0],
+        [-0.2, 1]
+      ]);
+      const crossedWithoutStop = runScenario(802, [
+        [1, 1],
+        [-0.2, 1]
+      ]);
+      const rollingStop = runScenario(803, [
+        [1, 0.11],
+        [-0.2, 1]
+      ]);
+      const terminalFailureSession = runTerminalFailureSession();
+      const reversedAndRetried = runScenario(804, [
+        [1, 1],
+        [3, -1],
+        [1, 0],
+        [-0.2, 1]
+      ]);
+      const checks = {
+        activeAtSessionStart:
+          activeDiagnostics?.activeZoneCount === 1 &&
+          activeDiagnostics?.pendingZoneCount === 1,
+        passAfterCompleteStop:
+          stoppedThenCrossed.events.length === 1 &&
+          stoppedThenCrossed.events[0].outcome === 'pass',
+        retryAfterReverse:
+          reversedAndRetried.events.length === 1 &&
+          reversedAndRetried.events[0].outcome === 'pass',
+        rollingStopViolates:
+          rollingStop.events.length === 1 &&
+          rollingStop.events[0].outcome === 'violation',
+        violationWithoutStop:
+          crossedWithoutStop.events.length === 1 &&
+          crossedWithoutStop.events[0].outcome === 'violation',
+        immediateFailureMessage:
+          crossedWithoutStop.events[0]?.message ===
+          'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
+        terminalFailureEndsSession:
+          terminalFailureSession.active === false &&
+          terminalFailureSession.endReason === 'failure' &&
+          terminalFailureSession.latestMessage ===
+            'IMMEDIATE FAILURE: Stop line crossed without a complete stop',
+        zoneExposed:
+          zone.kind === 'stop-line-rule-zone' &&
+          zone.stopLineId === 't-junction-side-road-stop-line'
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm8-stop-line';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:520px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M8 stop-line acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        activeDiagnostics,
+        allPassed,
+        checks,
+        crossedWithoutStop,
+        reversedAndRetried,
+        rollingStop,
+        stoppedThenCrossed,
+        terminalFailureSession,
+        zone
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M8 browser acceptance requires dev diagnostics and rule modules.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M8 stop-line browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
 async function readM7State(cdp) {
   const result = await cdp.send('Runtime.evaluate', {
     returnByValue: true,
@@ -1146,6 +1372,10 @@ async function writeArtifacts({
     errors.push('M5 acceptance drive did not reach every route checkpoint.');
   }
 
+  if (expectedPhase === 'm8' && !recording.acceptance?.allPassed) {
+    errors.push('M8 stop-line acceptance scenario did not pass every check.');
+  }
+
   await writeFile(
     logsPath,
     formatArtifactLog({
@@ -1186,6 +1416,10 @@ async function captureChromeRecording({
 
   if (expectedPhase === 'm7') {
     return captureM7DrivingRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm8') {
+    return captureM8StopLineRecording({ cdp, durationMs, outputPath });
   }
 
   try {
@@ -1248,6 +1482,24 @@ async function captureM7DrivingRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M7 scoring input'
+  };
+}
+
+async function captureM8StopLineRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM8StopLineRuleScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M8 records the stop-line rule acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M8 stop-line rule acceptance'
   };
 }
 

@@ -1,4 +1,5 @@
 import type { SessionRuleDiagnostics } from '../rules/DrivingSession';
+import type { KeepLeftRuleDiagnostics } from '../rules/KeepLeftRule';
 import type { ScoredEventSummary } from '../rules/scoring';
 
 export class ScoringFeedback {
@@ -19,9 +20,7 @@ export class ScoringFeedback {
     sessionActive = true
   ): void {
     const latestEvent = summary.events.at(-1);
-    const keepLeftDiagnostics = ruleDiagnostics.find(
-      (diagnostics) => diagnostics.ruleId === 'keep-left'
-    );
+    const keepLeftDiagnostics = ruleDiagnostics.find(isKeepLeftDiagnostics);
 
     this.root.dataset.passCount = String(summary.passCount);
     this.root.dataset.sessionActive = String(sessionActive);
@@ -39,7 +38,11 @@ export class ScoringFeedback {
 
     if (latestEvent) {
       const latest = document.createElement('div');
-      latest.className = 'cockpit__scoring-latest';
+      latest.className = `cockpit__scoring-latest${
+        isImmediateFailureEvent(latestEvent)
+          ? ' cockpit__scoring-latest--failure'
+          : ''
+      }`;
       latest.textContent = latestEvent.message;
       this.root.append(latest);
     }
@@ -63,7 +66,7 @@ function createMetric(label: string, value: number): HTMLElement {
 }
 
 function createKeepLeftDebug(
-  diagnostics: SessionRuleDiagnostics,
+  diagnostics: KeepLeftRuleDiagnostics,
   sessionActive: boolean
 ): HTMLElement {
   const debug = document.createElement('div');
@@ -81,7 +84,7 @@ function createKeepLeftDebug(
 
 function syncKeepLeftDataset(
   root: HTMLElement,
-  diagnostics: SessionRuleDiagnostics | undefined,
+  diagnostics: KeepLeftRuleDiagnostics | undefined,
   sessionActive: boolean
 ): void {
   if (!diagnostics) {
@@ -105,7 +108,7 @@ function syncKeepLeftDataset(
 }
 
 export function formatKeepLeftDebugText(
-  diagnostics: SessionRuleDiagnostics,
+  diagnostics: KeepLeftRuleDiagnostics,
   sessionActive: boolean
 ): string {
   const outsideText = sessionActive
@@ -119,4 +122,19 @@ export function formatKeepLeftDebugText(
     `Correct ${diagnostics.withinDefaultLane ? 'yes' : 'no'}`,
     outsideText
   ].join(' | ');
+}
+
+function isKeepLeftDiagnostics(
+  diagnostics: SessionRuleDiagnostics
+): diagnostics is KeepLeftRuleDiagnostics {
+  return diagnostics.ruleId === 'keep-left';
+}
+
+function isImmediateFailureEvent(
+  event: ScoredEventSummary['events'][number]
+): boolean {
+  return (
+    event.outcome === 'violation' &&
+    event.message.startsWith('IMMEDIATE FAILURE')
+  );
 }

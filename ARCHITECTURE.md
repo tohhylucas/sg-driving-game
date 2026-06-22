@@ -91,7 +91,8 @@ driving-game/
 |   |   |-- finishZone.ts
 |   |   |-- KeepLeftRule.ts
 |   |   |-- laneRules.ts
-|   |   `-- scoring.ts
+|   |   |-- scoring.ts
+|   |   `-- StopLineRule.ts
 |   |-- ui/
 |   |   |-- Cockpit.ts
 |   |   |-- InstructorAudio.ts
@@ -141,8 +142,9 @@ driving-game/
   scoring events or affect vehicle motion.
 - `DrivingSession.ts`: pure session lifecycle and scored-event aggregation.
   Sessions start when the game starts or resets, end at the finish zone, and
-  keep rule modules active only while the session is active. It also exposes
-  read-only rule diagnostics for debug HUDs without mutating gameplay.
+  keep rule modules active only while the session is active. It records the
+  session end reason, including terminal failures, and exposes read-only rule
+  diagnostics for debug HUDs without mutating gameplay.
 - `KeepLeftRule.ts`: always-active Phase 2 keep-left rule. It observes car
   state, emits one violation per continuous wrong-lane episode after a
   configurable grace period, allows new episodes after returning left or
@@ -150,6 +152,12 @@ driving-game/
   the finish zone.
 - `laneRules.ts`: pure lane-side and default-lane helpers for fixed track
   segments.
+- `StopLineRule.ts`: always-active Phase 2 stop-line rule for configured fixed
+  track rule zones. It observes approach-side complete stops before crossing a
+  side-road stop line into the main road and emits pass/violation scored events
+  through the shared M7 event stream. A stop-line violation is a terminal
+  failure, emits an `IMMEDIATE FAILURE` message, and ends the active session
+  immediately.
 - `finishZone.ts`: pure finish-gate containment helper.
 - `scoring.ts`: shared scored-event shape and pass/violation aggregation.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
@@ -160,7 +168,8 @@ driving-game/
   instruction text or caption API in Phase 1.
 - `ScoringFeedback.ts`: minimal feedback HUD for scored pass/violation counts
   plus rule diagnostics such as keep-left grace period and lane-side debug
-  state. It is separate from instructor audio.
+  state. It highlights terminal `IMMEDIATE FAILURE` messages and is separate
+  from instructor audio.
 - `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
   helpers.
 - `config/constants.ts`: single source of truth for tunable numbers and colors.
@@ -169,14 +178,15 @@ driving-game/
   available for milestone history but is not the active M5 world road.
 - `TestTrack.ts`: renders the M5 fixed test track from pure layout data:
   loop road segments, a T-junction side road, a cross junction, lane markings,
-  and static stop-line markings only.
+  an obvious solid white T-junction side-road guide line, and only the red
+  stop-line marking that is enforced by an M8 stop-line rule zone.
 - `roadLayout.ts`: pure, testable straight-road layout derived from shared
   road config, including the Singapore keep-left default lane and marking
   positions. Also provides shared center-dash cadence helpers.
 - `testTrackLayout.ts`: pure, testable fixed-track layout data derived from
   shared config, including deterministic loop segments, uncontrolled junction
-  metadata, static stop-line marker geometry, and a fixed finish zone. It
-  contains no scoring, collision, or instructor logic.
+  metadata, the single enforced M8 stop-line marker/rule zone, and a fixed
+  finish zone. It contains no scoring, collision, or instructor logic.
 
 ## Data Flow
 

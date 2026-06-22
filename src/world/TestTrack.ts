@@ -62,18 +62,31 @@ function createRoadSegmentGroup(segment: TrackSegment): THREE.Group {
     })
   );
 
-  for (const dashCenterZM of getCenterDashCenterZMs(segment.lengthM)) {
+  if (segment.kind === 't-junction-side-road') {
     group.add(
       makeHorizontalPlaneMesh({
-        name: `CenterLineDash-${segment.id}`,
-        widthM: ROAD_CONFIG.centerLineWidthM,
-        lengthM: ROAD_CONFIG.centerDashLengthM,
-        color: ROAD_CONFIG.centerLineColor,
+        name: `SideRoadSolidLine-${segment.id}`,
+        widthM: ROAD_CONFIG.sideRoadSolidLineWidthM,
+        lengthM: segment.lengthM,
+        color: ROAD_CONFIG.sideRoadSolidLineColor,
         xM: ROAD_CONFIG.centerLineXM,
-        yM: ROAD_CONFIG.markingYOffsetM,
-        zM: dashCenterZM
+        yM: ROAD_CONFIG.markingYOffsetM
       })
     );
+  } else {
+    for (const dashCenterZM of getCenterDashCenterZMs(segment.lengthM)) {
+      group.add(
+        makeHorizontalPlaneMesh({
+          name: `CenterLineDash-${segment.id}`,
+          widthM: ROAD_CONFIG.centerLineWidthM,
+          lengthM: ROAD_CONFIG.centerDashLengthM,
+          color: ROAD_CONFIG.centerLineColor,
+          xM: ROAD_CONFIG.centerLineXM,
+          yM: ROAD_CONFIG.markingYOffsetM,
+          zM: dashCenterZM
+        })
+      );
+    }
   }
 
   return group;

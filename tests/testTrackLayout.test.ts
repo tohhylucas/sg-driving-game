@@ -69,15 +69,19 @@ describe('fixed test track layout', () => {
     );
   });
 
-  it('places static stop-line markings at useful junction approaches', () => {
+  it('places stop-line markings only where M8 enforces a stop rule', () => {
     const layout = getFixedTestTrackLayout();
-    const stopLineJunctionIds = new Set(
-      layout.stopLines.map((stopLine) => stopLine.junctionId)
-    );
 
-    expect(layout.stopLines.length).toBeGreaterThanOrEqual(5);
-    expect(stopLineJunctionIds.has('t-junction')).toBe(true);
-    expect(stopLineJunctionIds.has('cross-junction')).toBe(true);
+    expect(layout.stopLines).toEqual([
+      expect.objectContaining({
+        id: 't-junction-side-road-stop-line',
+        junctionId: 't-junction',
+        segmentId: 't-junction-side-road'
+      })
+    ]);
+    expect(
+      layout.stopLines.some((stopLine) => stopLine.junctionId === 'cross-junction')
+    ).toBe(false);
 
     for (const stopLine of layout.stopLines) {
       expect(stopLine.kind).toBe('stop-line');
@@ -87,5 +91,27 @@ describe('fixed test track layout', () => {
         layout.segments.some((segment) => segment.id === stopLine.segmentId)
       ).toBe(true);
     }
+  });
+
+  it('exposes the T-junction side-road stop line as a rule zone', () => {
+    const layout = getFixedTestTrackLayout();
+    const zone = layout.stopLineRuleZones.find(
+      (candidate) => candidate.junctionId === 't-junction'
+    );
+
+    expect(zone).toEqual(
+      expect.objectContaining({
+        id: 't-junction-side-road-stop-line-rule-zone',
+        kind: 'stop-line-rule-zone',
+        stopLineId: 't-junction-side-road-stop-line',
+        segmentId: 't-junction-side-road',
+        crossingDirection: -1
+      })
+    );
+    expect(zone?.approachDepthM).toBeGreaterThan(0);
+    expect(zone?.widthM).toBe(ROAD_CONFIG.roadWidthM);
+    expect(
+      layout.stopLines.some((stopLine) => stopLine.id === zone?.stopLineId)
+    ).toBe(true);
   });
 });

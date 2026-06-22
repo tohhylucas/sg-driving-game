@@ -9,7 +9,7 @@ import {
 } from './laneRules';
 import type { ScoredEvent } from './scoring';
 
-export type SessionEndReason = 'finish' | 'reset';
+export type SessionEndReason = 'finish' | 'failure' | 'reset';
 
 export interface RuleUpdateContext {
   readonly car: CarState;
@@ -68,7 +68,10 @@ export class KeepLeftRule {
   }
 
   /** Resets per-session keep-left state. */
-  startSession(_sessionId: number): void {
+  startSession(
+    _sessionId: number,
+    _track?: FixedTestTrackLayout
+  ): void {
     this.currentWrongLaneSegmentId = undefined;
     this.hasAnyViolation = false;
     this.hasPass = false;

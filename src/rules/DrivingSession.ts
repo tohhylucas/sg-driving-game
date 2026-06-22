@@ -8,22 +8,26 @@ import type {
   RuleUpdateContext,
   SessionEndReason
 } from './KeepLeftRule';
+import type { StopLineRuleDiagnostics } from './StopLineRule';
 import type { ScoredEvent, ScoredEventSummary } from './scoring';
 import { summarizeScoredEvents } from './scoring';
 
 export interface SessionRule {
   readonly id: string;
-  startSession(sessionId: number): void;
+  startSession(sessionId: number, track: FixedTestTrackLayout): void;
   update(context: RuleUpdateContext): ScoredEvent[];
   endSession(context: RuleEndContext): ScoredEvent[];
   getDiagnostics?(): SessionRuleDiagnostics;
   syncDiagnostics?(context: RuleDiagnosticsContext): void;
 }
 
-export type SessionRuleDiagnostics = KeepLeftRuleDiagnostics;
+export type SessionRuleDiagnostics =
+  | KeepLeftRuleDiagnostics
+  | StopLineRuleDiagnostics;
 
 export interface DrivingSessionState {
   readonly active: boolean;
+  readonly endReason: SessionEndReason | undefined;
   readonly elapsedSec: number;
   readonly sessionId: number;
 }
@@ -38,6 +42,7 @@ export class DrivingSession {
   private readonly track: FixedTestTrackLayout;
   private active = false;
   private elapsedSec = 0;
+  private endReason: SessionEndReason | undefined;
   private events: ScoredEvent[] = [];
   private sessionId = 0;
 
@@ -49,6 +54,7 @@ export class DrivingSession {
   get state(): DrivingSessionState {
     return {
       active: this.active,
+      endReason: this.endReason,
       elapsedSec: this.elapsedSec,
       sessionId: this.sessionId
     };
@@ -76,11 +82,12 @@ export class DrivingSession {
   start(_car: CarState): void {
     this.sessionId += 1;
     this.elapsedSec = 0;
+    this.endReason = undefined;
     this.events = [];
     this.active = true;
 
     for (const rule of this.rules) {
-      rule.startSession(this.sessionId);
+      rule.startSession(this.sessionId, this.track);
     }
   }
 
@@ -94,15 +101,19 @@ export class DrivingSession {
     this.elapsedSec += dtSec;
 
     for (const rule of this.rules) {
-      this.events.push(
-        ...rule.update({
-          car,
-          dtSec,
-          elapsedSec: this.elapsedSec,
-          sessionId: this.sessionId,
-          track: this.track
-        })
-      );
+      const events = rule.update({
+        car,
+        dtSec,
+        elapsedSec: this.elapsedSec,
+        sessionId: this.sessionId,
+        track: this.track
+      });
+      this.events.push(...events);
+
+      if (events.some(isTerminalFailureEvent)) {
+        this.end('failure', car);
+        return;
+      }
     }
 
     if (
@@ -143,6 +154,7 @@ export class DrivingSession {
     }
 
     this.active = false;
+    this.endReason = reason;
   }
 
   private syncRuleDiagnostics(car: CarState): void {
@@ -155,4 +167,8 @@ export class DrivingSession {
       });
     }
   }
+}
+
+function isTerminalFailureEvent(event: ScoredEvent): boolean {
+  return event.ruleId === 'stop-line' && event.outcome === 'violation';
 }

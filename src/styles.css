@@ -234,6 +234,17 @@ body {
   white-space: nowrap;
 }
 
+.cockpit__scoring-latest--failure {
+  max-width: 260px;
+  padding: 7px 8px;
+  color: #fee2e2;
+  background: rgba(127, 29, 29, 0.86);
+  border: 1px solid rgba(248, 113, 113, 0.78);
+  border-radius: 6px;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .cockpit__rule-debug {
   grid-column: 1 / -1;
   max-width: 260px;
@@ -268,6 +279,10 @@ body {
 
   .cockpit__scoring-latest {
     max-width: 154px;
+  }
+
+  .cockpit__scoring-latest--failure {
+    max-width: 190px;
   }
 
   .cockpit__rule-debug {

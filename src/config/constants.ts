@@ -11,7 +11,8 @@ export const LOOP_CONFIG = {
 } as const;
 
 export const RULE_CONFIG = {
-  keepLeftGracePeriodSec: 1.5
+  keepLeftGracePeriodSec: 1.5,
+  stopLineCompleteStopMaxSpeedMps: 0.1
 } as const;
 
 export const RENDER_CONFIG = {
@@ -44,9 +45,11 @@ export const ROAD_CONFIG = {
   centerLineColor: 0xffffff,
   centerDashLengthM: 4,
   centerDashGapM: 5,
+  sideRoadSolidLineWidthM: 0.28,
+  sideRoadSolidLineColor: 0xffffff,
   markingYOffsetM: 0.02,
   stopLineWidthM: 0.35,
-  stopLineColor: 0xffffff,
+  stopLineColor: 0xff0000,
   finishLineWidthM: 0.4,
   finishLineColor: 0x22c55e
 } as const;
@@ -72,6 +75,7 @@ export const TEST_TRACK_CONFIG = {
     junctionCenter: { xM: 0, zM: -14 }
   },
   stopLineSetbackM: 4,
+  stopLineRuleApproachDepthM: 8,
   finishZone: {
     center: { xM: 0, zM: 24 },
     depthM: 4
