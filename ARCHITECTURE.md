@@ -68,6 +68,9 @@ driving-game/
 |   |   |-- Game.ts
 |   |   |-- Loop.ts
 |   |   `-- Input.ts
+|   |-- instructor/
+|   |   |-- BrowserTtsAdapter.ts
+|   |   `-- InstructorInstructionQueue.ts
 |   |-- world/
 |   |   |-- World.ts
 |   |   |-- Ground.ts
@@ -124,9 +127,10 @@ driving-game/
 - `Engine.ts`: owns `WebGLRenderer`, root `Scene`, and `Clock`. Exposes
   main-scene rendering, mirror render-target rendering, and texture overlay
   compositing. No game logic.
-- `Game.ts`: composition root. Instantiates world, car, cameras, and UI as
-  milestones introduce them. Exposes read-only dev diagnostics for local
-  browser smoke verification; diagnostics must not mutate gameplay.
+- `Game.ts`: composition root. Instantiates world, car, cameras, instructor
+  audio queue, and UI as milestones introduce them. Exposes read-only dev
+  diagnostics for local browser smoke verification; diagnostics must not mutate
+  gameplay.
 - `Loop.ts`: fixed-timestep accumulator so movement is frame-rate independent.
 - `Input.ts`: tracks pressed keys and exposes normalized driving and
   blind-spot look input state plus session reset input.
@@ -150,6 +154,13 @@ driving-game/
   session end reason, including terminal failures, passes live moving-element
   state to observer rules, and exposes read-only rule diagnostics for debug
   HUDs without mutating gameplay.
+- `InstructorInstructionQueue.ts`: pure audio-only instructor prompt queue for
+  configured fixed route features. It starts and ends with the driving session,
+  serializes mockable TTS playback, suppresses duplicate feature triggers within
+  the configured cooldown, and does not consume scored events.
+- `BrowserTtsAdapter.ts`: browser Web Speech API adapter for instructor audio.
+  It is replaceable by tests and falls back to a resolved no-op when speech
+  synthesis is unavailable.
 - `KeepLeftRule.ts`: always-active Phase 2 keep-left rule. It observes car
   state, emits one violation per continuous wrong-lane episode after a
   configurable grace period, allows new episodes after returning left or
@@ -179,15 +190,16 @@ driving-game/
   car state.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame and
   reports the matching canvas viewport for compositing.
-- `InstructorAudio.ts`: audio-only instructor placeholder. It exposes no
-  instruction text or caption API in Phase 1.
+- `InstructorAudio.ts`: textless audio-only HUD indicator for instructor audio.
+  It exposes no instruction text or caption API.
 - `ScoringFeedback.ts`: minimal feedback HUD for scored pass/violation counts
   plus rule diagnostics such as keep-left grace period and lane-side debug
   state. It highlights terminal `IMMEDIATE FAILURE` messages and is separate
   from instructor audio.
 - `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
   helpers.
-- `config/constants.ts`: single source of truth for tunable numbers and colors.
+- `config/constants.ts`: single source of truth for tunable numbers, colors,
+  and instructor audio trigger/TTS settings.
 - `World.ts`: composes the static sky, ground, and fixed test track.
 - `Road.ts`: renders the earlier straight-road surface and markings. It remains
   available for milestone history but is not the active M5 world road.
@@ -208,8 +220,9 @@ driving-game/
   shared config, including deterministic loop segments, uncontrolled junction
   metadata, the single enforced M8 stop-line marker/rule zone, M9 side-hazard
   trigger/collision footprints, the M10 scripted lead vehicle as the first
-  tracked forward moving element, and a fixed finish zone. It contains no
-  scoring or instructor logic.
+  tracked forward moving element, M11 configured fixed-route instructor
+  instruction features, and a fixed finish zone. It contains no scoring or
+  queueing logic.
 
 ## Data Flow
 
@@ -218,6 +231,7 @@ Input -> CarController -> KinematicModel -> Car transform
    |                          |
    `-> BlindSpotCameraLook -> driver-seat camera follows Car
    |                          `-> DrivingSession -> Rule modules -> ScoringFeedback
+   |                          `-> InstructorInstructionQueue -> BrowserTtsAdapter
    |-> BlindSpotCameraLook -> driver-seat camera follows Car
    `-> reset session/car
 ScriptedMovingElementViews -> live MovingElementState -> DrivingSession

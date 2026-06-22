@@ -1,4 +1,8 @@
-import { ROAD_CONFIG, TEST_TRACK_CONFIG } from '../config/constants';
+import {
+  INSTRUCTOR_CONFIG,
+  ROAD_CONFIG,
+  TEST_TRACK_CONFIG
+} from '../config/constants';
 
 type DrivingLaneSide = typeof ROAD_CONFIG.defaultDrivingLaneSide;
 
@@ -114,6 +118,24 @@ export interface TrackMovingElement {
   readonly widthM: number;
 }
 
+export type TrackInstructorRouteFeatureKind = 'junction';
+export type TrackInstructorApproachDirection = -1 | 1;
+
+export interface TrackInstructorInstructionFeature {
+  readonly id: string;
+  readonly kind: 'instructor-instruction';
+  readonly routeFeatureKind: TrackInstructorRouteFeatureKind;
+  readonly routeFeatureId: string;
+  readonly segmentId: string;
+  readonly centerLocalXM: number;
+  readonly triggerLocalZM: number;
+  readonly approachDirection: TrackInstructorApproachDirection;
+  readonly triggerDistanceM: number;
+  readonly triggerWidthM: number;
+  readonly cooldownSec: number;
+  readonly utterance: string;
+}
+
 export interface FixedTestTrackLayout {
   readonly roadWidthM: number;
   readonly loopSegments: readonly TrackSegment[];
@@ -123,6 +145,7 @@ export interface FixedTestTrackLayout {
   readonly stopLineRuleZones: readonly TrackStopLineRuleZone[];
   readonly sideHazards: readonly TrackSideHazard[];
   readonly movingElements: readonly TrackMovingElement[];
+  readonly instructorInstructionFeatures: readonly TrackInstructorInstructionFeature[];
   readonly finishZone: TrackFinishZone;
   readonly defaultDrivingLane: TrackDrivingLaneLayout;
 }
@@ -395,6 +418,33 @@ function makeMovingElements(
   ];
 }
 
+function makeInstructorInstructionFeatures(
+  segments: readonly TrackSegment[]
+): TrackInstructorInstructionFeature[] {
+  const loopMain = findSegment(segments, 'loop-1');
+  const crossLocalZMOnLoop = getSegmentLocalZM(
+    loopMain,
+    TEST_TRACK_CONFIG.crossJunctionRoad.junctionCenter
+  );
+
+  return [
+    {
+      id: 'cross-junction-approach-instruction',
+      kind: 'instructor-instruction',
+      routeFeatureKind: 'junction',
+      routeFeatureId: 'cross-junction',
+      segmentId: loopMain.id,
+      centerLocalXM: ROAD_CONFIG.leftLaneCenterXM,
+      triggerLocalZM: crossLocalZMOnLoop,
+      approachDirection: -1,
+      triggerDistanceM: INSTRUCTOR_CONFIG.routeFeatureTriggerDistanceM,
+      triggerWidthM: INSTRUCTOR_CONFIG.routeFeatureTriggerWidthM,
+      cooldownSec: INSTRUCTOR_CONFIG.triggerCooldownSec,
+      utterance: 'Cross junction ahead. Ease off and scan both directions.'
+    }
+  ];
+}
+
 export function getFixedTestTrackLayout(): FixedTestTrackLayout {
   const loopSegments = makeLoopSegments();
   const featureSegments = makeFeatureSegments();
@@ -410,6 +460,7 @@ export function getFixedTestTrackLayout(): FixedTestTrackLayout {
     stopLineRuleZones: makeStopLineRuleZones(segments, stopLines),
     sideHazards: makeSideHazards(segments),
     movingElements: makeMovingElements(segments),
+    instructorInstructionFeatures: makeInstructorInstructionFeatures(segments),
     finishZone: makeFinishZone(),
     defaultDrivingLane: {
       side: ROAD_CONFIG.defaultDrivingLaneSide,

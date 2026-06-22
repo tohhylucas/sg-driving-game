@@ -60,6 +60,13 @@ export const ROAD_CONFIG = {
   finishLineColor: 0x22c55e
 } as const;
 
+export const INSTRUCTOR_CONFIG = {
+  routeFeatureTriggerDistanceM: 16,
+  routeFeatureTriggerWidthM: ROAD_CONFIG.laneWidthM,
+  triggerCooldownSec: 12,
+  ttsLanguage: 'en-SG'
+} as const;
+
 export const TEST_TRACK_CONFIG = {
   loopCenterlinePoints: [
     { xM: 0, zM: 28 },
