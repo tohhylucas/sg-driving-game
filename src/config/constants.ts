@@ -88,7 +88,9 @@ export const CHASE_CAMERA_CONFIG = {
 
 export const COCKPIT_CAMERA_CONFIG = {
   lateralOffsetM: 0.45,
-  viewLateralOffsetM: 0.6
+  viewLateralOffsetM: 0.6,
+  blindSpotMaxShiftM: 0.7,
+  blindSpotSmoothingRatePerSec: 8
 } as const;
 
 export const COCKPIT_UI_CONFIG = {
@@ -175,6 +177,7 @@ export const VEHICLE_CONFIG = {
   maxForwardSpeedMps: 18,
   maxReverseSpeedMps: 5,
   accelerationMps2: 4.5,
+  coastDecelerationMps2: 1.5,
   brakeDecelerationMps2: 8,
   reverseAccelerationMps2: 3,
   wheelBaseM: 2.6,

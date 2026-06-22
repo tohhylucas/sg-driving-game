@@ -82,6 +82,7 @@ driving-game/
 |   |   |-- KinematicModel.ts
 |   |   `-- CarController.ts
 |   |-- camera/
+|   |   |-- BlindSpotCameraShift.ts
 |   |   |-- ChaseCamera.ts
 |   |   `-- MirrorCamera.ts
 |   |-- ui/
@@ -114,14 +115,18 @@ driving-game/
   milestones introduce them. Exposes read-only dev diagnostics for local
   browser smoke verification; diagnostics must not mutate gameplay.
 - `Loop.ts`: fixed-timestep accumulator so movement is frame-rate independent.
-- `Input.ts`: tracks pressed keys and exposes normalized input state.
+- `Input.ts`: tracks pressed keys and exposes normalized driving and
+  blind-spot look input state.
 - `KinematicModel.ts`: pure logic for bicycle-model integration. No Three.js
   imports. Must be unit-tested when implemented.
 - `Car.ts`: renders the exterior placeholder car and syncs its scene transform
   from `CarState`.
 - `carState.ts`: pure initial parked-car state derived from shared car and road
   config, including the Singapore keep-left spawn convention.
-- `CarController.ts`: adapter from input to model to Three.js car transform.
+- `CarController.ts`: adapter from driving input to model to Three.js car
+  transform.
+- `BlindSpotCameraShift.ts`: pure, testable smoothing state for A/D lateral
+  camera shifts. It does not emit scoring events or affect vehicle motion.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
   car state.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame and
@@ -149,8 +154,8 @@ driving-game/
 
 ```text
 Input -> CarController -> KinematicModel -> Car transform
-                              |
-ChaseCamera follows Car <-----'
+   |                          |
+   `-> BlindSpotCameraShift -> ChaseCamera follows Car
 MirrorCameras follow Car -> render targets -> MirrorView
 Cockpit reads CarState/InputState
 Engine renders main pass + mirror passes; DOM HUD overlays on top

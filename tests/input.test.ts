@@ -35,27 +35,26 @@ class FakeInputTarget {
 }
 
 describe('Input', () => {
-  it('exposes accelerate and brake/reverse from shared control keys', () => {
+  it('maps W and S to acceleration and staged brake/reverse', () => {
     const target = new FakeInputTarget();
     const input = new Input(target);
     input.start();
 
-    for (const key of CONTROL_KEYS.accelerate) {
-      target.press(key);
-      expect(input.getState().throttle).toBe(1);
-      target.release(key);
-      expect(input.getState().throttle).toBe(0);
-    }
+    target.press('KeyW');
+    expect(input.getState().throttle).toBe(1);
+    target.release('KeyW');
+    expect(input.getState().throttle).toBe(0);
 
-    for (const key of CONTROL_KEYS.brake) {
-      target.press(key);
-      expect(input.getState().brake).toBe(1);
-      target.release(key);
-      expect(input.getState().brake).toBe(0);
-    }
+    target.press('KeyS');
+    expect(input.getState().brake).toBe(1);
+    target.release('KeyS');
+    expect(input.getState().brake).toBe(0);
+
+    expect(CONTROL_KEYS.accelerate).toEqual(['KeyW']);
+    expect(CONTROL_KEYS.brake).toEqual(['KeyS']);
   });
 
-  it('exposes left and right steering from shared control keys', () => {
+  it('maps only left and right arrows to steering', () => {
     const target = new FakeInputTarget();
     const input = new Input(target);
     input.start();
@@ -73,5 +72,29 @@ describe('Input', () => {
       target.release(key);
       expect(input.getState().steer).toBe(0);
     }
+
+    target.press('KeyA');
+    expect(input.getState().steer).toBe(0);
+    target.release('KeyA');
+
+    target.press('KeyD');
+    expect(input.getState().steer).toBe(0);
+    target.release('KeyD');
+  });
+
+  it('maps A and D to blind-spot camera look state', () => {
+    const target = new FakeInputTarget();
+    const input = new Input(target);
+    input.start();
+
+    target.press('KeyA');
+    expect(input.getState().look).toBe(-1);
+    target.release('KeyA');
+    expect(input.getState().look).toBe(0);
+
+    target.press('KeyD');
+    expect(input.getState().look).toBe(1);
+    target.release('KeyD');
+    expect(input.getState().look).toBe(0);
   });
 });

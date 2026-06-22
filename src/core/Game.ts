@@ -1,7 +1,8 @@
 import { ChaseCamera } from '../camera/ChaseCamera';
+import { BlindSpotCameraShift } from '../camera/BlindSpotCameraShift';
 import { MirrorCamera } from '../camera/MirrorCamera';
 import { COCKPIT_CAMERA_CONFIG, MIRROR_CONFIG } from '../config/constants';
-import type { CarState, MirrorId } from '../types';
+import type { CarState, MirrorId, Vec3 } from '../types';
 import { Cockpit } from '../ui/Cockpit';
 import { Car } from '../vehicle/Car';
 import { CarController } from '../vehicle/CarController';
@@ -22,12 +23,17 @@ interface GameMirror {
 
 export interface GameDiagnostics {
   readonly car: CarState;
+  readonly camera: {
+    readonly blindSpotShiftM: number;
+    readonly position: Vec3;
+  };
 }
 
 export class Game {
   private readonly canvas: HTMLCanvasElement;
   private readonly car: Car;
   private readonly carController: CarController;
+  private readonly blindSpotCameraShift = new BlindSpotCameraShift();
   private readonly chaseCamera: ChaseCamera;
   private readonly cockpit: Cockpit;
   private readonly engine: Engine;
@@ -68,7 +74,7 @@ export class Game {
     this.engine.scene.add(this.world.object);
     this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm5';
+    uiRoot.dataset.phase = 'm6';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -101,6 +107,14 @@ export class Game {
         position: { ...this.car.state.position },
         headingRad: this.car.state.headingRad,
         speedMps: this.car.state.speedMps
+      },
+      camera: {
+        blindSpotShiftM: this.blindSpotCameraShift.currentShiftM,
+        position: {
+          x: this.chaseCamera.camera.position.x,
+          y: this.chaseCamera.camera.position.y,
+          z: this.chaseCamera.camera.position.z
+        }
       }
     };
   }
@@ -115,8 +129,11 @@ export class Game {
   }
 
   private update(dtSec: number): void {
-    this.carController.update(this.input.getState(), dtSec);
-    this.chaseCamera.update(this.car.state);
+    const input = this.input.getState();
+
+    this.carController.update(input, dtSec);
+    const blindSpotShiftM = this.blindSpotCameraShift.update(input, dtSec);
+    this.chaseCamera.update(this.car.state, { lateralShiftM: blindSpotShiftM });
     this.cockpit.update({
       speedMps: this.car.state.speedMps,
       steer: this.carController.steerAmount

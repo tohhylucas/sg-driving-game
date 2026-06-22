@@ -75,15 +75,17 @@ blind-spot camera shift and M7's scoring foundation.
 
 ### M6 - Driver Controls and Blind-Spot Camera Shift
 
-- [ ] Normalize driving controls: W accelerates, S brakes/reverses, and
+- [DONE] Normalize driving controls: W accelerates, S brakes/reverses, and
   Left/Right arrows steer the wheel.
-- [ ] Use A and D to shift the right-hand-drive in-car viewpoint left and right
+- [DONE] Use A and D to shift the right-hand-drive in-car viewpoint left and right
   so the player can inspect blind spots.
-- [ ] Return the camera smoothly to the normal cockpit/chase viewpoint when the
+- [DONE] Return the camera smoothly to the normal cockpit/chase viewpoint when the
   look key is released.
-- [ ] Keep this visual only: do not score whether the player used the camera
+- [DONE] Keep this visual only: do not score whether the player used the camera
   shift.
-- [ ] Unit-test any extractable input mapping or camera-offset state logic.
+- [DONE] Unit-test any extractable input mapping or camera-offset state logic.
+- Delivery note: Implemented issue #12 with W/S driving, arrow steering, natural
+  coasting, visual-only A/D blind-spot camera shifting, and browser evidence.
 - **Test:** W/S control speed, Left/Right arrows steer, A/D shift the camera to
   inspect blind spots and return cleanly, and no scored events are emitted by
   camera-shift usage alone.

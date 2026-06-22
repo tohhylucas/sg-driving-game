@@ -1,0 +1,142 @@
+Chrome verification
+Timestamp: 2026-06-22T11:11:27.291Z
+Chrome: detected
+App URL: http://127.0.0.1:5175/
+Recording: artifacts/issue-12-chrome-recording.webm
+Recording source: Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M6 controls
+Recording duration ms: 9000
+Recording frames: 54
+Recording MIME type: video/webm
+Recording bytes: 156588
+
+Smoke result:
+{
+  "title": "Singapore Driving Game",
+  "canvasExists": true,
+  "overlayExists": true,
+  "canvasClientWidth": 758,
+  "canvasClientHeight": 482,
+  "viewportWidth": 758,
+  "viewportHeight": 482,
+  "overlayPhase": "m6",
+  "m4": {
+    "mirrorIds": [
+      "rearview",
+      "leftSide",
+      "rightSide"
+    ],
+    "steeringWheelExists": true,
+    "speedometerExists": true,
+    "instructorAudioExists": true,
+    "instructorCaptionExists": false,
+    "instructorAudioText": "",
+    "overlayText": "0\nKM/H"
+  }
+}
+
+Pre-recording acceptance sample:
+not run
+
+Recorded acceptance scenario:
+{
+  "initial": {
+    "available": true,
+    "speedKmh": 0,
+    "steer": 0,
+    "speedMps": 0,
+    "cameraShiftM": 0,
+    "cameraXM": -1.3
+  },
+  "accelerated": {
+    "available": true,
+    "speedKmh": 13.2,
+    "steer": 0,
+    "speedMps": 3.6750000000000034,
+    "cameraShiftM": 0,
+    "cameraXM": -1.3
+  },
+  "steering": {
+    "available": true,
+    "speedKmh": 21.1,
+    "steer": 0.982,
+    "speedMps": 5.8500000000000085,
+    "cameraShiftM": 0,
+    "cameraXM": 1.875838546202603
+  },
+  "beforeCoast": {
+    "available": true,
+    "speedKmh": 22.9,
+    "steer": 0.745,
+    "speedMps": 6.350000000000009,
+    "cameraShiftM": 0,
+    "cameraXM": 2.8501072417145625
+  },
+  "coasted": {
+    "available": true,
+    "speedKmh": 17.8,
+    "steer": 0,
+    "speedMps": 4.9499999999999895,
+    "cameraShiftM": 0,
+    "cameraXM": 0.24417091961600734
+  },
+  "reversed": {
+    "available": true,
+    "speedKmh": 3.2,
+    "steer": 0,
+    "speedMps": -0.9000000000000002,
+    "cameraShiftM": 0,
+    "cameraXM": -0.7121330340637346
+  },
+  "beforeLook": {
+    "available": true,
+    "speedKmh": 2.4,
+    "steer": 0,
+    "speedMps": -0.6749999999999999,
+    "cameraShiftM": 0,
+    "cameraXM": -0.5757257854402034
+  },
+  "leftLook": {
+    "available": true,
+    "speedKmh": 0,
+    "steer": 0,
+    "speedMps": 0,
+    "cameraShiftM": -0.6973616665917584,
+    "cameraXM": -1.0137804765415936
+  },
+  "returnedFromLeft": {
+    "available": true,
+    "speedKmh": 0,
+    "steer": 0,
+    "speedMps": 0,
+    "cameraShiftM": -0.0014836009452731476,
+    "cameraXM": -0.4824228387354002
+  },
+  "rightLook": {
+    "available": true,
+    "speedKmh": 0,
+    "steer": 0,
+    "speedMps": 0,
+    "cameraShiftM": 0.6953149060822896,
+    "cameraXM": 0.0496376284630865
+  },
+  "returnedFromRight": {
+    "available": true,
+    "speedKmh": 0,
+    "steer": 0,
+    "speedMps": 0,
+    "cameraShiftM": 0.0008348720517446926,
+    "cameraXM": -0.48065250224136463
+  }
+}
+
+Browser log entries:
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:1504001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x103400157600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x103400157600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x103400157600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x103400157600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+
+Console/runtime error result: none

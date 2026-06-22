@@ -48,4 +48,16 @@ describe('ChaseCamera', () => {
     expect(chaseCamera.camera.position.x).toBeGreaterThan(carState.position.x);
     expect(direction.x).toBeGreaterThan(0);
   });
+
+  it('applies runtime lateral shift for blind-spot camera movement', () => {
+    const centeredCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const shiftedCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+
+    centeredCamera.update(carState);
+    shiftedCamera.update(carState, { lateralShiftM: -0.5 });
+
+    expect(shiftedCamera.camera.position.x).toBeLessThan(
+      centeredCamera.camera.position.x
+    );
+  });
 });
