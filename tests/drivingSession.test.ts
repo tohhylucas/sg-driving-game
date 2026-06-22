@@ -101,6 +101,27 @@ describe('DrivingSession', () => {
       })
     ]);
   });
+
+  it('keeps diagnostics aligned with the car after the scoring session ends', () => {
+    const session = new DrivingSession({
+      rules: [new KeepLeftRule({ gracePeriodSec: 1 })],
+      track
+    });
+
+    session.start(createInitialCarState());
+    session.update(makeCarState(1.75, 0), 2.5);
+    session.end('finish', makeCarState(1.75, 0));
+    session.update(makeCarState(-1.75, 0), 0.1);
+
+    expect(session.state.active).toBe(false);
+    expect(session.ruleDiagnostics).toEqual([
+      expect.objectContaining({
+        laneSide: 'left',
+        outsideLaneSec: 0,
+        withinDefaultLane: true
+      })
+    ]);
+  });
 });
 
 class RecordingRule implements SessionRule {

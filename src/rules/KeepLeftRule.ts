@@ -27,6 +27,13 @@ export interface RuleEndContext {
   readonly track: FixedTestTrackLayout;
 }
 
+export interface RuleDiagnosticsContext {
+  readonly car: CarState;
+  readonly elapsedSec: number;
+  readonly sessionId: number;
+  readonly track: FixedTestTrackLayout;
+}
+
 interface KeepLeftRuleConfig {
   gracePeriodSec: number;
 }
@@ -76,12 +83,20 @@ export class KeepLeftRule {
     return { ...this.diagnostics };
   }
 
+  /** Refreshes read-only diagnostics without advancing scoring timers. */
+  syncDiagnostics(context: RuleDiagnosticsContext): void {
+    const lanePosition = this.getLanePosition(context);
+    const withinDefaultLane = isWithinDefaultDrivingLane(
+      lanePosition,
+      context.track
+    );
+
+    this.recordDiagnostics(lanePosition, withinDefaultLane, 0);
+  }
+
   /** Observes lane position and emits a violation after the grace period. */
   update(context: RuleUpdateContext): ScoredEvent[] {
-    const lanePosition = getNearestLanePosition(context.track, {
-      xM: context.car.position.x,
-      zM: context.car.position.z
-    });
+    const lanePosition = this.getLanePosition(context);
     const withinDefaultLane = isWithinDefaultDrivingLane(
       lanePosition,
       context.track
@@ -91,7 +106,11 @@ export class KeepLeftRule {
       this.currentWrongLaneSegmentId = undefined;
       this.outsideLaneSec = 0;
       this.violationEmittedForEpisode = false;
-      this.recordDiagnostics(lanePosition, withinDefaultLane);
+      this.recordDiagnostics(
+        lanePosition,
+        withinDefaultLane,
+        this.outsideLaneSec
+      );
       return [];
     }
 
@@ -102,7 +121,11 @@ export class KeepLeftRule {
     }
 
     this.outsideLaneSec += context.dtSec;
-    this.recordDiagnostics(lanePosition, withinDefaultLane);
+    this.recordDiagnostics(
+      lanePosition,
+      withinDefaultLane,
+      this.outsideLaneSec
+    );
 
     if (
       this.violationEmittedForEpisode ||
@@ -174,15 +197,25 @@ export class KeepLeftRule {
 
   private recordDiagnostics(
     lanePosition: TrackLanePosition,
-    withinDefaultLane: boolean
+    withinDefaultLane: boolean,
+    outsideLaneSec: number
   ): void {
     this.diagnostics = {
       ruleId: this.id,
       gracePeriodSec: this.config.gracePeriodSec,
       laneSide: lanePosition.side,
       segmentId: lanePosition.segmentId,
-      outsideLaneSec: this.outsideLaneSec,
+      outsideLaneSec,
       withinDefaultLane
     };
+  }
+
+  private getLanePosition(
+    context: Pick<RuleUpdateContext, 'car' | 'track'>
+  ): TrackLanePosition {
+    return getNearestLanePosition(context.track, {
+      xM: context.car.position.x,
+      zM: context.car.position.z
+    });
   }
 }

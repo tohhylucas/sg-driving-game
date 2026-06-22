@@ -1,13 +1,13 @@
 Chrome verification
-Timestamp: 2026-06-22T11:55:52.943Z
+Timestamp: 2026-06-22T12:10:36.575Z
 Chrome: detected
 App URL: http://127.0.0.1:5175/
 Recording: artifacts/issue-13-chrome-recording.webm
 Recording source: Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M7 scoring input
 Recording duration ms: 9000
-Recording frames: 82
+Recording frames: 83
 Recording MIME type: video/webm
-Recording bytes: 158056
+Recording bytes: 157843
 
 Smoke result:
 {
@@ -73,15 +73,15 @@ Recorded acceptance scenario:
     "diagnosticLaneSide": "right",
     "feedbackGracePeriodSec": 1.5,
     "feedbackLaneSide": "right",
-    "feedbackOutsideLaneSec": 1.6166666666666658,
+    "feedbackOutsideLaneSec": 1.5499999999999994,
     "feedbackWithinDefaultLane": "false",
-    "keepLeftDebugText": "Grace 1.5s | Side right | Correct no | Outside 1.62s",
+    "keepLeftDebugText": "Grace 1.5s | Side right | Correct no | Outside 1.55s",
     "latestOutcome": "violation",
     "passCount": 0,
     "sessionId": 1,
     "violationCount": 1,
-    "xM": 2.9318148607709067,
-    "zM": 4.165753620931871
+    "xM": 3.7828269642321306,
+    "zM": 3.979995863065359
   },
   "afterReset": {
     "available": true,
@@ -106,10 +106,10 @@ Browser log entries:
 console.debug: [vite] connecting...
 console.debug: [vite] connected.
 console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
-browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:2074001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
-browser.warning: [.WebGL-0x605c00152000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x605c00152000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x605c00152000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x605c00152000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:12C4001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x2b240015a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x2b240015a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x2b240015a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x2b240015a000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
 
 Console/runtime error result: none

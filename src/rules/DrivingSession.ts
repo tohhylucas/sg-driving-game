@@ -3,6 +3,7 @@ import type { FixedTestTrackLayout } from '../world/testTrackLayout';
 import { isInsideFinishZone } from './finishZone';
 import type {
   KeepLeftRuleDiagnostics,
+  RuleDiagnosticsContext,
   RuleEndContext,
   RuleUpdateContext,
   SessionEndReason
@@ -16,6 +17,7 @@ export interface SessionRule {
   update(context: RuleUpdateContext): ScoredEvent[];
   endSession(context: RuleEndContext): ScoredEvent[];
   getDiagnostics?(): SessionRuleDiagnostics;
+  syncDiagnostics?(context: RuleDiagnosticsContext): void;
 }
 
 export type SessionRuleDiagnostics = KeepLeftRuleDiagnostics;
@@ -85,6 +87,7 @@ export class DrivingSession {
   /** Advances active rules and ends the session when the finish gate is crossed. */
   update(car: CarState, dtSec: number): void {
     if (!this.active) {
+      this.syncRuleDiagnostics(car);
       return;
     }
 
@@ -140,5 +143,16 @@ export class DrivingSession {
     }
 
     this.active = false;
+  }
+
+  private syncRuleDiagnostics(car: CarState): void {
+    for (const rule of this.rules) {
+      rule.syncDiagnostics?.({
+        car,
+        elapsedSec: this.elapsedSec,
+        sessionId: this.sessionId,
+        track: this.track
+      });
+    }
   }
 }

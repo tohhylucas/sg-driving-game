@@ -216,6 +216,34 @@ describe('KeepLeftRule', () => {
       withinDefaultLane: true
     });
   });
+
+  it('clears outside-lane diagnostics after a long wrong-lane episode recovers', () => {
+    const rule = new KeepLeftRule({ gracePeriodSec: 1 });
+
+    rule.startSession(6);
+    rule.update({
+      car: rightLaneCar,
+      dtSec: 2.5,
+      elapsedSec: 2.5,
+      sessionId: 6,
+      track: layout
+    });
+    rule.update({
+      car: leftLaneCar,
+      dtSec: 0.1,
+      elapsedSec: 2.6,
+      sessionId: 6,
+      track: layout
+    });
+
+    expect(rule.getDiagnostics()).toEqual(
+      expect.objectContaining({
+        laneSide: 'left',
+        outsideLaneSec: 0,
+        withinDefaultLane: true
+      })
+    );
+  });
 });
 
 function makeCarState(x: number, z = 0): CarState {
