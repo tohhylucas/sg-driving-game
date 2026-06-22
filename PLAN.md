@@ -3,7 +3,7 @@
 Status legend: `[ ]` not started, `[WIP]` in progress, `[DONE]` complete.
 Agents must keep this file current. See `AGENTS.md` section 3.
 
-## PHASE 1 - Free Driving World (CURRENT)
+## PHASE 1 - Free Driving World (COMPLETE)
 
 Goal: A drivable car in a Singapore-style world with a working cockpit UI and
 real rendered mirror views. No rules, no scoring, and no procedural generation.
@@ -62,15 +62,160 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 - Delivery note: Implemented issue #10 fixed loop track with T-junction and uncontrolled cross junction, static stop-line markings, free-driving preservation, tests, and Chrome recording evidence.
 - **Test:** Car can be driven around the full track without falling off or glitching.
 
-## PHASE 2 - Rules & Scoring (NOT STARTED - DO NOT IMPLEMENT YET)
+## PHASE 2 - Controls, Rules & Scoring (PLANNED - DO NOT IMPLEMENT YET)
 
-Placeholder only, for context. Each rule should be an independent, toggleable
-module emitting scored events.
+Goal: Add comfortable driver controls, blind-spot camera shifting, and
+observer-style rule modules that are active for the full driving session and
+emit scored events without taking over free driving controls. Rules start when
+the driving session starts and remain active until the session ends; there is no
+practice settings UI or test mode for changing rule state. Draft issue bodies
+live in `issue-drafts/phase-2-rules-and-scoring.md`.
 
-- [ ] Mirror / blind-spot check detection (before turns and lane changes)
-- [ ] Keep-left enforcement
-- [ ] Stop-line detection (solid white line, side road to main road)
-- [ ] Safe following-distance with lead vehicles
-- [ ] Instructor TTS instruction system (queued audio tied to road features; no on-screen text)
-- [ ] Scoring / feedback loop
-- [ ] Procedural map generation (last)
+M6 and M7 can start independently after M5. M9 depends on both M6's visual
+blind-spot camera shift and M7's scoring foundation.
+
+### M6 - Driver Controls and Blind-Spot Camera Shift
+
+- [ ] Normalize driving controls: W accelerates, S brakes/reverses, and
+  Left/Right arrows steer the wheel.
+- [ ] Use A and D to shift the right-hand-drive in-car viewpoint left and right
+  so the player can inspect blind spots.
+- [ ] Return the camera smoothly to the normal cockpit/chase viewpoint when the
+  look key is released.
+- [ ] Keep this visual only: do not score whether the player used the camera
+  shift.
+- [ ] Unit-test any extractable input mapping or camera-offset state logic.
+- **Test:** W/S control speed, Left/Right arrows steer, A/D shift the camera to
+  inspect blind spots and return cleanly, and no scored events are emitted by
+  camera-shift usage alone.
+
+### M7 - Keep-Left Rule and Scoring Foundation
+
+- [ ] Define a small always-active rule-module contract and scored-event shape
+  with `pass` and `violation` outcomes.
+- [ ] Define driving session lifecycle: start/reset onto the practice track
+  starts a session; crossing a fixed finish zone or pressing reset ends it.
+- [ ] Add a fixed finish zone/gate to the hand-built test track for ending the
+  route.
+- [ ] Implement the first end-to-end rule using keep-left detection.
+- [ ] Add a minimal scoring event stream and feedback surface that records
+  successes and violations separately from instructor audio.
+- [ ] Unit-test lane-side detection, finish-zone crossing, always-active rule
+  startup, and scored-event aggregation within one session.
+- **Test:** Driving outside the correct left lane emits a scored keep-left
+  event after a configurable grace period; the rule is active for the full
+  session; car movement remains unconstrained.
+
+### M8 - Stop-Line Rule at the Hand-Built Junction
+
+- [ ] Add fixed stop-line rule zones to the M5 test track data.
+- [ ] Detect a complete stop before crossing the line from the side road.
+- [ ] Emit pass/violation scored events through the M7 rule foundation.
+- [ ] Unit-test the stop-line state machine, including rolling stops and reset.
+- **Test:** Stopping before the line passes; crossing without a full stop fails;
+  reversing and retrying behaves predictably.
+
+### M9 - Side-Hazard Accident Scenarios
+
+- [ ] Add visible, physically avoidable deterministic side hazards such as
+  passing bicycles or adjacent vehicles near turns and lane-change
+  opportunities.
+- [ ] Treat a collision or accident with a side hazard as the scored violation;
+  do not score whether the player performed a mirror or blind-spot check action.
+- [ ] Keep hazards scripted and fixed for Phase 2; random moving cars and
+  bicycles are Phase 3 scope.
+- [ ] Emit pass/violation side-hazard events through the M7 rule foundation.
+- [ ] Unit-test side-hazard trigger zones, collision/accident detection, and
+  repeated-event suppression.
+- **Test:** A player who turns or changes lane into a configured side hazard
+  receives an accident/violation event; avoiding the hazard passes; no
+  check-action input is required or scored.
+
+### M10 - Forward Moving Elements and Following Time-Gap Rule
+
+- [ ] Add a simple scripted lead vehicle as the first tracked forward moving
+  element on the fixed test track, not a traffic simulation.
+- [ ] Apply one global configurable safe time-gap threshold to all tracked
+  moving elements in the player's current lane in front of the car.
+- [ ] Score only against the nearest tracked moving element ahead in the
+  player's current lane.
+- [ ] Ignore farther current-lane objects, adjacent-lane objects, and
+  side-hazard objects for M10 following time-gap scoring.
+- [ ] Compute the relevant current-lane forward following gap as a time gap from
+  car state and moving-element state.
+- [ ] Start an encounter-based following segment when the nearest tracked moving
+  element is ahead in the player's current lane and within a configurable
+  forward detection range; do not wait until the player is already too close and
+  do not use fixed scoring zones for M10.
+- [ ] End the following segment when that moving element is no longer the
+  relevant current-lane object, or when the route/session ends.
+- [ ] Allow the same moving element to start a new independent following
+  encounter later if it again becomes the nearest current-lane object within the
+  forward detection range.
+- [ ] Emit pass/violation following time-gap events with a grace period and
+  hysteresis.
+- [ ] Once an encounter-based following segment emits a violation, keep that
+  segment marked as a violation even if the player later restores a safe gap
+  before the segment ends.
+- [ ] Emit at most one violation event per encounter-based following segment;
+  continued unsafe following after the first violation does not emit duplicate
+  M10 violations.
+- [ ] Emit a pass only when the player completes an encounter-based following
+  segment cleanly; do not emit continuous pass events while the time gap is
+  safe.
+- [ ] Require a configurable minimum encounter duration before a clean encounter
+  can emit a pass; too-short clean encounters emit no scored event.
+- [ ] Apply minimum encounter duration only to pass eligibility; violations can
+  still emit whenever the unsafe-gap grace period is exceeded.
+- [ ] Unit-test nearest current-lane forward-element selection, time-gap
+  calculation, detection-range encounter start/end, global-threshold usage,
+  same-object re-entry as a new encounter, violation lockout after recovery,
+  single-violation-per-encounter suppression, minimum-duration pass
+  eligibility, clean segment completion, and repeated-event suppression.
+- **Test:** Completing an encounter-based following segment behind the nearest
+  current-lane object without tailgating emits a pass; tailgating that nearest
+  object for longer than the grace period emits one scored violation event,
+  suppresses further violation events until a new encounter starts, and prevents
+  a later pass for that segment; an encounter can start from a safe gap within
+  the detection range; the same object can create a later independent encounter
+  after lane/speed/distance changes; a too-short clean encounter emits no event;
+  a short unsafe encounter still violates if the unsafe-gap grace period is
+  exceeded; farther and adjacent-lane objects do not trigger M10 events; the
+  lead vehicle remains deterministic.
+
+### M11 - Instructor TTS Instruction Queue
+
+- [ ] Add an audio-only instruction queue tied only to configured fixed road
+  features.
+- [ ] Keep instructor prompts separate from rule and scoring feedback; scored
+  pass/violation events must not queue instructor audio.
+- [ ] Use a small TTS adapter that can be mocked in tests.
+- [ ] Trigger instructions without adding on-screen instructional text or
+  transcripts.
+- [ ] Unit-test route-feature filtering, score-event non-enqueue behavior, queue
+  ordering, de-duplication, and trigger cooldown behavior.
+- **Test:** Approaching a configured feature queues and plays one audio
+  instruction; pass/violation events do not queue instructor audio; repeated
+  triggers do not overlap; no instruction text appears in the HUD.
+
+### M12 - Session Outcome Summary and Feedback Loop
+
+- [ ] Aggregate pass and violation events from always-active rule modules into a
+  deterministic session outcome summary, not a numeric score.
+- [ ] Show post-drive feedback grouped into rule-level `passes`, `violations`,
+  and `not encountered` sections when the player crosses the finish zone.
+- [ ] Treat missing rule events as `not encountered`, not as implicit passes.
+- [ ] Do not calculate or display a Phase 2 numeric score, percentage, stars, or
+  severity weighting.
+- [ ] Keep in-drive feedback lightweight and separate from instructor audio.
+- [ ] Unit-test outcome grouping, not-encountered handling, session finish, and
+  reset behavior.
+- **Test:** Crossing the finish zone produces a stable non-numeric session
+  summary from real rule events; resetting the run clears summary state without
+  reloading the app.
+
+## PHASE 3 - Dynamic Practice Worlds (FUTURE)
+
+Placeholder only. Future work may introduce procedural map generation and random
+moving agents such as simulated cars and bicycles after Phase 2's fixed,
+scripted hazards and scoring loop are proven.
