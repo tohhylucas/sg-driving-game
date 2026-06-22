@@ -1,5 +1,5 @@
 import { RULE_CONFIG } from '../config/constants';
-import type { CarState } from '../types';
+import type { CarState, MovingElementState } from '../types';
 import type { FixedTestTrackLayout } from '../world/testTrackLayout';
 import {
   getNearestLanePosition,
@@ -15,6 +15,7 @@ export interface RuleUpdateContext {
   readonly car: CarState;
   readonly dtSec: number;
   readonly elapsedSec: number;
+  readonly movingElements?: readonly MovingElementState[];
   readonly sessionId: number;
   readonly track: FixedTestTrackLayout;
 }

@@ -1,0 +1,179 @@
+Chrome verification
+Timestamp: 2026-06-22T17:28:59.508Z
+Chrome: detected
+App URL: http://127.0.0.1:5175/
+Recording: artifacts/issue-18-chrome-recording.webm
+Recording source: Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M12 session outcome acceptance
+Recording duration ms: 6000
+Recording frames: 56
+Recording MIME type: video/webm
+Recording bytes: 45117
+
+Smoke result:
+{
+  "title": "Singapore Driving Game",
+  "canvasExists": true,
+  "overlayExists": true,
+  "canvasClientWidth": 758,
+  "canvasClientHeight": 482,
+  "viewportWidth": 758,
+  "viewportHeight": 482,
+  "overlayPhase": "m12",
+  "m4": {
+    "mirrorIds": [
+      "rearview",
+      "leftSide",
+      "rightSide"
+    ],
+    "steeringWheelExists": true,
+    "speedometerExists": true,
+    "instructorAudioExists": true,
+    "instructorCaptionExists": false,
+    "instructorAudioText": "",
+    "overlayText": "0\nKM/H\n0\nPASSES\n0\nVIOLATIONS\nGrace 1.5s | Session active | Side left | Correct yes | Outside 0.00s"
+  },
+  "m7": {
+    "keepLeftDebugExists": true,
+    "keepLeftDebugText": "Grace 1.5s | Session active | Side left | Correct yes | Outside 0.00s",
+    "keepLeftGracePeriodSec": 1.5,
+    "keepLeftLaneSide": "left",
+    "keepLeftSessionActive": "true",
+    "scoringFeedbackExists": true,
+    "passCount": 0,
+    "violationCount": 0,
+    "latestOutcome": ""
+  },
+  "m8": {
+    "stopLineDiagnostics": {
+      "ruleId": "stop-line",
+      "activeZoneCount": 1,
+      "completeStopMaxSpeedMps": 0.1,
+      "passedZoneCount": 0,
+      "pendingZoneCount": 1,
+      "violationZoneCount": 0
+    }
+  },
+  "m9": {
+    "sideHazardDiagnostics": {
+      "ruleId": "side-hazard",
+      "activeHazardCount": 1,
+      "pendingHazardCount": 1,
+      "passedHazardCount": 0,
+      "triggeredHazardCount": 0,
+      "violationHazardCount": 0
+    }
+  },
+  "m10": {
+    "followingDiagnostics": {
+      "ruleId": "following-time-gap",
+      "activeEncounterDurationSec": 0.3833333333333333,
+      "activeEncounterElementId": "loop-1-scripted-lead-vehicle",
+      "detectionRangeM": 45,
+      "lastTimeGapSec": null,
+      "minimumEncounterDurationSec": 1,
+      "passEncounterCount": 0,
+      "recoveryHysteresisSec": 0.25,
+      "safeTimeGapSec": 2,
+      "unsafeDurationSec": 0,
+      "unsafeGracePeriodSec": 1,
+      "violationEncounterCount": 0
+    },
+    "movingElements": [
+      {
+        "id": "loop-1-scripted-lead-vehicle",
+        "kind": "lead-vehicle",
+        "segmentId": "loop-1",
+        "speedMps": 3
+      }
+    ]
+  },
+  "m11": {
+    "instructorAudio": {
+      "active": true,
+      "configuredFeatureCount": 1,
+      "pendingInstructionCount": 0,
+      "playing": false,
+      "triggeredInstructionIds": [
+        "cross-junction-approach-instruction"
+      ]
+    },
+    "instructorCaptionExists": false,
+    "instructorAudioText": "",
+    "scoringFeedbackExists": true
+  },
+  "m12": {
+    "outcomeSummary": null,
+    "scoringFeedbackExists": true,
+    "sessionActive": true,
+    "sessionOutcomeExists": false,
+    "sessionOutcomeVisible": "false"
+  }
+}
+
+Pre-recording acceptance sample:
+not run
+
+Recorded acceptance scenario:
+{
+  "available": true,
+  "allPassed": true,
+  "checks": {
+    "alwaysActiveRulesContribute": true,
+    "feedbackUsesRealEvents": true,
+    "finishShowsSummary": true,
+    "groupedSectionsVisible": true,
+    "noNumericSummary": true,
+    "notEncounteredFromSilentRules": true,
+    "resetClearsSummary": true,
+    "summarySeparatesInstructorAudio": true
+  },
+  "outcomeSummary": {
+    "passes": [
+      {
+        "ruleId": "stop-line",
+        "events": [
+          {
+            "id": "1:stop-line:t-junction-side-road-stop-line-rule-zone:pass",
+            "sessionId": 1,
+            "ruleId": "stop-line",
+            "outcome": "pass",
+            "message": "Stopped before the side-road stop line",
+            "occurredAtSec": 0.2
+          }
+        ]
+      }
+    ],
+    "violations": [
+      {
+        "ruleId": "keep-left",
+        "events": [
+          {
+            "id": "1:keep-left:violation:1",
+            "sessionId": 1,
+            "ruleId": "keep-left",
+            "outcome": "violation",
+            "message": "Keep left violation",
+            "occurredAtSec": 0.8
+          }
+        ]
+      }
+    ],
+    "notEncountered": [
+      "side-hazard",
+      "following-time-gap"
+    ]
+  },
+  "summaryText": "Session outcomePassesStop lineStopped before the side-road stop lineViolationsKeep leftKeep left violationNot encounteredSide hazardFollowing time gap"
+}
+
+Browser log entries:
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:3544001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x2fec00149400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x2fec00149400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x2fec00149400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x2fec00149400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+
+Console/runtime error result: none

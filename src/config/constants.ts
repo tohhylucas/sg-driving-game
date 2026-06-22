@@ -13,7 +13,12 @@ export const LOOP_CONFIG = {
 export const RULE_CONFIG = {
   keepLeftGracePeriodSec: 1.5,
   stopLineCompleteStopMaxSpeedMps: 0.1,
-  sideHazardCollisionPaddingM: 0.05
+  sideHazardCollisionPaddingM: 0.05,
+  followingSafeTimeGapSec: 2,
+  followingForwardDetectionRangeM: 45,
+  followingUnsafeGracePeriodSec: 1,
+  followingMinimumEncounterDurationSec: 1,
+  followingRecoveryHysteresisSec: 0.25
 } as const;
 
 export const RENDER_CONFIG = {
@@ -55,6 +60,13 @@ export const ROAD_CONFIG = {
   finishLineColor: 0x22c55e
 } as const;
 
+export const INSTRUCTOR_CONFIG = {
+  routeFeatureTriggerDistanceM: 16,
+  routeFeatureTriggerWidthM: ROAD_CONFIG.laneWidthM,
+  triggerCooldownSec: 12,
+  ttsLanguage: 'en-SG'
+} as const;
+
 export const TEST_TRACK_CONFIG = {
   loopCenterlinePoints: [
     { xM: 0, zM: 28 },
@@ -87,6 +99,15 @@ export const TEST_TRACK_CONFIG = {
     frameColor: 0xf97316,
     wheelColor: 0x111827,
     riderColor: 0xfacc15
+  },
+  leadVehicle: {
+    centerLocalXM: -ROAD_LANE_WIDTH_M / 2,
+    initialLocalZM: -18,
+    pathStartLocalZM: 22,
+    pathEndLocalZM: -24,
+    speedMps: 3,
+    lengthM: 4.2,
+    widthM: 1.7
   },
   finishZone: {
     center: { xM: 0, zM: 24 },

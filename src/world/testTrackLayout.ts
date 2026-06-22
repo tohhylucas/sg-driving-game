@@ -1,4 +1,8 @@
-import { ROAD_CONFIG, TEST_TRACK_CONFIG } from '../config/constants';
+import {
+  INSTRUCTOR_CONFIG,
+  ROAD_CONFIG,
+  TEST_TRACK_CONFIG
+} from '../config/constants';
 
 type DrivingLaneSide = typeof ROAD_CONFIG.defaultDrivingLaneSide;
 
@@ -100,6 +104,38 @@ export interface TrackSideHazard {
   readonly triggerZone: TrackSideHazardTriggerZone;
 }
 
+export interface TrackMovingElement {
+  readonly id: string;
+  readonly kind: 'lead-vehicle';
+  readonly tracked: true;
+  readonly segmentId: string;
+  readonly centerLocalXM: number;
+  readonly initialLocalZM: number;
+  readonly pathStartLocalZM: number;
+  readonly pathEndLocalZM: number;
+  readonly speedMps: number;
+  readonly lengthM: number;
+  readonly widthM: number;
+}
+
+export type TrackInstructorRouteFeatureKind = 'junction';
+export type TrackInstructorApproachDirection = -1 | 1;
+
+export interface TrackInstructorInstructionFeature {
+  readonly id: string;
+  readonly kind: 'instructor-instruction';
+  readonly routeFeatureKind: TrackInstructorRouteFeatureKind;
+  readonly routeFeatureId: string;
+  readonly segmentId: string;
+  readonly centerLocalXM: number;
+  readonly triggerLocalZM: number;
+  readonly approachDirection: TrackInstructorApproachDirection;
+  readonly triggerDistanceM: number;
+  readonly triggerWidthM: number;
+  readonly cooldownSec: number;
+  readonly utterance: string;
+}
+
 export interface FixedTestTrackLayout {
   readonly roadWidthM: number;
   readonly loopSegments: readonly TrackSegment[];
@@ -108,6 +144,8 @@ export interface FixedTestTrackLayout {
   readonly stopLines: readonly TrackStopLine[];
   readonly stopLineRuleZones: readonly TrackStopLineRuleZone[];
   readonly sideHazards: readonly TrackSideHazard[];
+  readonly movingElements: readonly TrackMovingElement[];
+  readonly instructorInstructionFeatures: readonly TrackInstructorInstructionFeature[];
   readonly finishZone: TrackFinishZone;
   readonly defaultDrivingLane: TrackDrivingLaneLayout;
 }
@@ -204,7 +242,7 @@ function getSegmentPointAtLocalZM(
   return getSegmentPointAtLocalPosition(segment, 0, localZM);
 }
 
-function getSegmentPointAtLocalPosition(
+export function getSegmentPointAtLocalPosition(
   segment: TrackSegment,
   localXM: number,
   localZM: number
@@ -357,6 +395,56 @@ function makeSideHazards(
   ];
 }
 
+function makeMovingElements(
+  segments: readonly TrackSegment[]
+): TrackMovingElement[] {
+  const segment = findSegment(segments, 'loop-1');
+  const config = TEST_TRACK_CONFIG.leadVehicle;
+
+  return [
+    {
+      id: 'loop-1-scripted-lead-vehicle',
+      kind: 'lead-vehicle',
+      tracked: true,
+      segmentId: segment.id,
+      centerLocalXM: config.centerLocalXM,
+      initialLocalZM: config.initialLocalZM,
+      pathStartLocalZM: config.pathStartLocalZM,
+      pathEndLocalZM: config.pathEndLocalZM,
+      speedMps: config.speedMps,
+      lengthM: config.lengthM,
+      widthM: config.widthM
+    }
+  ];
+}
+
+function makeInstructorInstructionFeatures(
+  segments: readonly TrackSegment[]
+): TrackInstructorInstructionFeature[] {
+  const loopMain = findSegment(segments, 'loop-1');
+  const crossLocalZMOnLoop = getSegmentLocalZM(
+    loopMain,
+    TEST_TRACK_CONFIG.crossJunctionRoad.junctionCenter
+  );
+
+  return [
+    {
+      id: 'cross-junction-approach-instruction',
+      kind: 'instructor-instruction',
+      routeFeatureKind: 'junction',
+      routeFeatureId: 'cross-junction',
+      segmentId: loopMain.id,
+      centerLocalXM: ROAD_CONFIG.leftLaneCenterXM,
+      triggerLocalZM: crossLocalZMOnLoop,
+      approachDirection: -1,
+      triggerDistanceM: INSTRUCTOR_CONFIG.routeFeatureTriggerDistanceM,
+      triggerWidthM: INSTRUCTOR_CONFIG.routeFeatureTriggerWidthM,
+      cooldownSec: INSTRUCTOR_CONFIG.triggerCooldownSec,
+      utterance: 'Cross junction ahead. Ease off and scan both directions.'
+    }
+  ];
+}
+
 export function getFixedTestTrackLayout(): FixedTestTrackLayout {
   const loopSegments = makeLoopSegments();
   const featureSegments = makeFeatureSegments();
@@ -371,6 +459,8 @@ export function getFixedTestTrackLayout(): FixedTestTrackLayout {
     stopLines,
     stopLineRuleZones: makeStopLineRuleZones(segments, stopLines),
     sideHazards: makeSideHazards(segments),
+    movingElements: makeMovingElements(segments),
+    instructorInstructionFeatures: makeInstructorInstructionFeatures(segments),
     finishZone: makeFinishZone(),
     defaultDrivingLane: {
       side: ROAD_CONFIG.defaultDrivingLaneSide,

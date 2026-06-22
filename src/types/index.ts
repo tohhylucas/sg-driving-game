@@ -15,6 +15,17 @@ export interface CarState {
   speedMps: number;
 }
 
+export interface MovingElementState {
+  id: string;
+  kind: 'lead-vehicle';
+  segmentId: string;
+  position: Vec3;
+  headingRad: number;
+  speedMps: number;
+  lengthM: number;
+  widthM: number;
+}
+
 export interface DriveInputState {
   throttle: number;
   brake: number;

@@ -140,4 +140,50 @@ describe('fixed test track layout', () => {
       layout.segments.some((segment) => segment.id === hazard?.segmentId)
     ).toBe(true);
   });
+
+  it('exposes one deterministic lead vehicle as the first tracked forward moving element', () => {
+    const layout = getFixedTestTrackLayout();
+    const leadVehicle = layout.movingElements[0];
+
+    expect(layout.movingElements).toHaveLength(1);
+    expect(leadVehicle).toEqual(
+      expect.objectContaining({
+        id: 'loop-1-scripted-lead-vehicle',
+        kind: 'lead-vehicle',
+        segmentId: 'loop-1',
+        tracked: true
+      })
+    );
+    expect(leadVehicle.centerLocalXM).toBe(layout.defaultDrivingLane.centerOffsetM);
+    expect(leadVehicle.speedMps).toBeGreaterThan(0);
+    expect(leadVehicle.pathStartLocalZM).toBeGreaterThan(
+      leadVehicle.pathEndLocalZM
+    );
+    expect(
+      layout.segments.some((segment) => segment.id === leadVehicle.segmentId)
+    ).toBe(true);
+  });
+
+  it('exposes a configured instructor instruction feature for the fixed route', () => {
+    const layout = getFixedTestTrackLayout();
+    const feature = layout.instructorInstructionFeatures[0];
+
+    expect(layout.instructorInstructionFeatures).toHaveLength(1);
+    expect(feature).toEqual(
+      expect.objectContaining({
+        id: 'cross-junction-approach-instruction',
+        kind: 'instructor-instruction',
+        routeFeatureKind: 'junction',
+        routeFeatureId: 'cross-junction',
+        segmentId: 'loop-1'
+      })
+    );
+    expect(feature.triggerDistanceM).toBeGreaterThan(0);
+    expect(feature.triggerWidthM).toBe(ROAD_CONFIG.laneWidthM);
+    expect(feature.cooldownSec).toBeGreaterThan(0);
+    expect(feature.utterance.trim().length).toBeGreaterThan(0);
+    expect(
+      layout.junctions.some((junction) => junction.id === feature.routeFeatureId)
+    ).toBe(true);
+  });
 });

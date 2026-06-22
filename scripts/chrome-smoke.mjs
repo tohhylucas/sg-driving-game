@@ -30,6 +30,9 @@ const M6_RECORDING_DURATION_MS = 9_000;
 const M7_RECORDING_DURATION_MS = 9_000;
 const M8_RECORDING_DURATION_MS = 7_000;
 const M9_RECORDING_DURATION_MS = 7_000;
+const M10_RECORDING_DURATION_MS = 7_000;
+const M11_RECORDING_DURATION_MS = 6_000;
+const M12_RECORDING_DURATION_MS = 6_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -163,6 +166,25 @@ async function main() {
             sideHazardDiagnostics: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.ruleDiagnostics.find(
               (entry) => entry.ruleId === 'side-hazard'
             ) ?? null
+          } : null,
+          m10: window.__SG_DRIVING_GAME_DEV__ ? {
+            followingDiagnostics: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.ruleDiagnostics.find(
+              (entry) => entry.ruleId === 'following-time-gap'
+            ) ?? null,
+            movingElements: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().movingElements
+          } : null,
+          m11: window.__SG_DRIVING_GAME_DEV__ && overlay instanceof HTMLDivElement ? {
+            instructorAudio: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().instructorAudio,
+            instructorCaptionExists: overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') !== null,
+            instructorAudioText: overlay.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? null,
+            scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null
+          } : null,
+          m12: window.__SG_DRIVING_GAME_DEV__ && overlay instanceof HTMLDivElement ? {
+            outcomeSummary: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.outcomeSummary ?? null,
+            scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null,
+            sessionActive: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.active,
+            sessionOutcomeExists: overlay.querySelector('[data-instrument="session-outcome-summary"]') !== null,
+            sessionOutcomeVisible: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.sessionOutcomeVisible ?? null
           } : null
         };
       })()`,
@@ -465,7 +487,10 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm6' ||
     expectedPhase === 'm7' ||
     expectedPhase === 'm8' ||
-    expectedPhase === 'm9'
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
   ) {
     assertM4SmokeResult(smoke.m4);
   }
@@ -473,17 +498,47 @@ function assertSmokeResult(smoke, expectedPhase) {
   if (
     expectedPhase === 'm7' ||
     expectedPhase === 'm8' ||
-    expectedPhase === 'm9'
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
   ) {
     assertM7SmokeResult(smoke.m7);
   }
 
-  if (expectedPhase === 'm8' || expectedPhase === 'm9') {
+  if (
+    expectedPhase === 'm8' ||
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
+  ) {
     assertM8SmokeResult(smoke.m8);
   }
 
-  if (expectedPhase === 'm9') {
+  if (
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
+  ) {
     assertM9SmokeResult(smoke.m9);
+  }
+
+  if (
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
+  ) {
+    assertM10SmokeResult(smoke.m10);
+  }
+
+  if (expectedPhase === 'm11' || expectedPhase === 'm12') {
+    assertM11SmokeResult(smoke.m11);
+  }
+
+  if (expectedPhase === 'm12') {
+    assertM12SmokeResult(smoke.m12);
   }
 }
 
@@ -579,6 +634,82 @@ function assertM9SmokeResult(m9) {
   }
 }
 
+function assertM10SmokeResult(m10) {
+  const followingDiagnostics = m10?.followingDiagnostics;
+
+  if (!followingDiagnostics) {
+    throw new Error('Expected M10 following time-gap diagnostics to exist.');
+  }
+
+  if (!(followingDiagnostics.safeTimeGapSec > 0)) {
+    throw new Error('Expected M10 to expose a safe time-gap threshold.');
+  }
+
+  if (!(followingDiagnostics.detectionRangeM > 0)) {
+    throw new Error('Expected M10 to expose a forward detection range.');
+  }
+
+  if (m10.movingElements?.length !== 1) {
+    throw new Error('Expected M10 to start with one tracked moving element.');
+  }
+
+  if (m10.movingElements[0]?.kind !== 'lead-vehicle') {
+    throw new Error('Expected M10 tracked moving element to be a lead vehicle.');
+  }
+}
+
+function assertM11SmokeResult(m11) {
+  if (!m11?.instructorAudio?.active) {
+    throw new Error('Expected M11 instructor audio queue to start active.');
+  }
+
+  if (m11.instructorAudio.configuredFeatureCount !== 1) {
+    throw new Error('Expected M11 to expose one configured instructor feature.');
+  }
+
+  if (
+    !m11.instructorAudio.triggeredInstructionIds.includes(
+      'cross-junction-approach-instruction'
+    )
+  ) {
+    throw new Error('Expected M11 to trigger the configured route feature.');
+  }
+
+  if ((m11.instructorAudioText ?? '').trim() !== '') {
+    throw new Error('Expected M11 instructor audio HUD to contain no text.');
+  }
+
+  if (m11.instructorCaptionExists) {
+    throw new Error('Expected M11 to render no instructor caption/transcript.');
+  }
+
+  if (!m11.scoringFeedbackExists) {
+    throw new Error('Expected M11 scoring feedback to remain separate.');
+  }
+}
+
+function assertM12SmokeResult(m12) {
+  if (!m12?.scoringFeedbackExists) {
+    throw new Error('Expected M12 scoring feedback surface to exist.');
+  }
+
+  if (m12.sessionActive !== true) {
+    throw new Error('Expected M12 live game session to start active.');
+  }
+
+  if (m12.sessionOutcomeExists) {
+    throw new Error('Expected M12 post-drive summary to stay hidden before finish.');
+  }
+
+  if (m12.sessionOutcomeVisible !== 'false') {
+    throw new Error('Expected M12 scoring feedback to report no visible summary before finish.');
+  }
+
+  if (m12.outcomeSummary !== null) {
+    throw new Error('Expected M12 diagnostics to omit outcome summary before finish.');
+  }
+}
+
 function getRecordingDurationMs(expectedPhase) {
   if (expectedPhase === 'm4') {
     return M4_RECORDING_DURATION_MS;
@@ -602,6 +733,18 @@ function getRecordingDurationMs(expectedPhase) {
 
   if (expectedPhase === 'm9') {
     return M9_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm10') {
+    return M10_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm11') {
+    return M11_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm12') {
+    return M12_RECORDING_DURATION_MS;
   }
 
   return RECORDING_DURATION_MS;
@@ -1382,6 +1525,895 @@ async function runM9SideHazardScenario(cdp) {
   return value;
 }
 
+async function runM10FollowingScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        {
+          FollowingTimeGapRule,
+          computeFollowingTimeGapSec,
+          selectNearestForwardMovingElement
+        },
+        { getScriptedMovingElementStates },
+        { getFixedTestTrackLayout }
+      ] = await Promise.all([
+        import('/src/rules/FollowingTimeGapRule.ts'),
+        import('/src/world/scriptedMovingElements.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const layout = getFixedTestTrackLayout();
+      const leadVehicle = layout.movingElements[0];
+      const segment = layout.segments.find(
+        (candidate) => candidate.id === leadVehicle?.segmentId
+      );
+      const api = window.__SG_DRIVING_GAME_DEV__;
+
+      if (!leadVehicle || !segment || !api) {
+        return { available: false };
+      }
+
+      const laneXM = layout.defaultDrivingLane.centerOffsetM;
+      const makeCarState = (localXM, localZM, speedMps) => ({
+        position: {
+          x:
+            segment.center.xM +
+            localXM * Math.cos(segment.headingRad) +
+            localZM * Math.sin(segment.headingRad),
+          y: 0.01,
+          z:
+            segment.center.zM -
+            localXM * Math.sin(segment.headingRad) +
+            localZM * Math.cos(segment.headingRad)
+        },
+        headingRad: segment.headingRad,
+        speedMps
+      });
+      const makeElement = (id, localXM, localZM, speedMps = leadVehicle.speedMps) => {
+        const state = makeCarState(localXM, localZM, speedMps);
+
+        return {
+          id,
+          kind: 'lead-vehicle',
+          segmentId: segment.id,
+          position: state.position,
+          headingRad: state.headingRad,
+          speedMps,
+          lengthM: leadVehicle.lengthM,
+          widthM: leadVehicle.widthM
+        };
+      };
+      const runRule = (sessionId, config, steps) => {
+        const rule = new FollowingTimeGapRule(config);
+        const events = [];
+        let elapsedSec = 0;
+
+        rule.startSession(sessionId, layout);
+
+        for (const step of steps) {
+          elapsedSec += step.dtSec;
+          events.push(
+            ...rule.update({
+              car: makeCarState(step.carLocalXM, step.carLocalZM, step.carSpeedMps),
+              dtSec: step.dtSec,
+              elapsedSec,
+              movingElements: step.elements.map((element) =>
+                makeElement(
+                  element.id,
+                  element.localXM,
+                  element.localZM,
+                  element.speedMps
+                )
+              ),
+              sessionId,
+              track: layout
+            })
+          );
+        }
+
+        return {
+          diagnostics: rule.getDiagnostics(),
+          events: events.map((event) => ({
+            message: event.message,
+            outcome: event.outcome,
+            ruleId: event.ruleId
+          }))
+        };
+      };
+      const liveDiagnostics = api.readDiagnostics();
+      const followingDiagnostics = liveDiagnostics.session.ruleDiagnostics.find(
+        (entry) => entry.ruleId === 'following-time-gap'
+      );
+      const scriptedAtStart = getScriptedMovingElementStates(layout, 0)[0];
+      const scriptedAfterOneSecond = getScriptedMovingElementStates(layout, 1)[0];
+      const car = makeCarState(laneXM, 0, 10);
+      const nearest = makeElement('nearest', laneXM, -12);
+      const selected = selectNearestForwardMovingElement(layout, car, [
+        makeElement('farther', laneXM, -24),
+        makeElement('adjacent', -laneXM, -6),
+        nearest,
+        makeElement('behind', laneXM, 6)
+      ]);
+      const timeGapSec = computeFollowingTimeGapSec(
+        car,
+        selected?.forwardDistanceM ?? 0,
+        selected?.element ?? nearest
+      );
+      const safeCompletion = runRule(1001, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 1
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.5,
+          elements: []
+        }
+      ]);
+      const shortClean = runRule(1002, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.4,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.1,
+          elements: []
+        }
+      ]);
+      const unsafe = runRule(1003, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -10 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -10 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.1,
+          elements: []
+        }
+      ]);
+      const strictThreshold = runRule(1004, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 3,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -27 }]
+        }
+      ]);
+      const lenientThreshold = runRule(1005, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -27 }]
+        }
+      ]);
+      const reentry = runRule(1006, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 0.5,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.1,
+          elements: []
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -10 }]
+        }
+      ]);
+      const hysteresis = runRule(1007, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 1,
+        recoveryHysteresisSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -22 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.5,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -26 }]
+        }
+      ]);
+      const noSideHazardFollowing = runRule(1008, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 1,
+          elements: []
+        }
+      ]);
+      const outsideRange = runRule(1009, {
+        detectionRangeM: 8,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 1,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -20 }]
+        }
+      ]);
+      const checks = {
+        activeAtSessionStart:
+          followingDiagnostics?.safeTimeGapSec > 0 &&
+          followingDiagnostics?.detectionRangeM > 0,
+        cleanCompletionPasses:
+          safeCompletion.events.length === 1 &&
+          safeCompletion.events[0].outcome === 'pass',
+        deterministicLeadVehicle:
+          layout.movingElements.length === 1 &&
+          leadVehicle.kind === 'lead-vehicle' &&
+          leadVehicle.tracked === true &&
+          scriptedAtStart.id === leadVehicle.id &&
+          scriptedAfterOneSecond.position.z !== scriptedAtStart.position.z,
+        detectionRangeRequired:
+          outsideRange.events.length === 0 &&
+          outsideRange.diagnostics.activeEncounterElementId === undefined,
+        globalThresholdUsed:
+          strictThreshold.events.length === 1 &&
+          strictThreshold.events[0].outcome === 'violation' &&
+          lenientThreshold.events.length === 0,
+        hysteresisMaintainsUnsafeState:
+          hysteresis.events.length === 1 &&
+          hysteresis.events[0].outcome === 'violation',
+        liveGameTracksLeadVehicle:
+          liveDiagnostics.movingElements.length === 1 &&
+          liveDiagnostics.movingElements[0].kind === 'lead-vehicle',
+        nearestCurrentLaneOnly:
+          selected?.element.id === 'nearest',
+        noContinuousSafePass:
+          safeCompletion.events.length === 1,
+        noPassAfterViolationAndNoDuplicates:
+          unsafe.events.length === 1 &&
+          unsafe.events[0].outcome === 'violation' &&
+          unsafe.diagnostics.violationEncounterCount === 1,
+        sameObjectReentryIsIndependent:
+          reentry.events.length === 2 &&
+          reentry.events[0].outcome === 'pass' &&
+          reentry.events[1].outcome === 'violation',
+        sideHazardIgnored:
+          layout.sideHazards.length === 1 &&
+          noSideHazardFollowing.events.length === 0,
+        shortCleanEncounterUnscored:
+          shortClean.events.length === 0,
+        timeGapFromLiveState:
+          Number.isFinite(timeGapSec) &&
+          timeGapSec > 0 &&
+          selected?.forwardDistanceM > 0,
+        unsafeGraceViolates:
+          unsafe.events.length === 1 &&
+          unsafe.events[0].ruleId === 'following-time-gap'
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm10-following-time-gap';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:640px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M10 following time-gap acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        allPassed,
+        checks,
+        cleanCompletion: safeCompletion,
+        followingDiagnostics,
+        hysteresis,
+        reentry,
+        unsafe
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M10 browser acceptance requires dev diagnostics and rule modules.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M10 following time-gap browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
+async function runM11InstructorScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        { InstructorInstructionQueue },
+        { DrivingSession },
+        { KeepLeftRule },
+        {
+          getFixedTestTrackLayout,
+          getSegmentPointAtLocalPosition
+        }
+      ] = await Promise.all([
+        import('/src/instructor/InstructorInstructionQueue.ts'),
+        import('/src/rules/DrivingSession.ts'),
+        import('/src/rules/KeepLeftRule.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const api = window.__SG_DRIVING_GAME_DEV__;
+      const overlay = document.querySelector('#ui-overlay');
+      const layout = getFixedTestTrackLayout();
+      const feature = layout.instructorInstructionFeatures[0];
+      const segment = layout.segments.find(
+        (candidate) => candidate.id === feature?.segmentId
+      );
+
+      if (!api || !overlay || !feature || !segment) {
+        return { available: false };
+      }
+
+      const makeRecordingTts = () => ({
+        startedUtterances: [],
+        speak(utterance) {
+          this.startedUtterances.push(utterance);
+          return Promise.resolve();
+        }
+      });
+      const makeDeferredTts = () => ({
+        finishCallbacks: [],
+        startedUtterances: [],
+        speak(utterance) {
+          this.startedUtterances.push(utterance);
+          return new Promise((resolve) => {
+            this.finishCallbacks.push(resolve);
+          });
+        },
+        finishNext() {
+          const finish = this.finishCallbacks.shift();
+
+          if (finish) {
+            finish();
+          }
+        }
+      });
+      const withInstructionFeatures = (baseLayout, features) => ({
+        ...baseLayout,
+        instructorInstructionFeatures: features
+      });
+      const makeCarApproachingFeature = (
+        currentLayout,
+        currentFeature,
+        distanceAheadM
+      ) => {
+        const currentSegment = currentLayout.segments.find(
+          (candidate) => candidate.id === currentFeature.segmentId
+        );
+        const localZM =
+          currentFeature.triggerLocalZM -
+          currentFeature.approachDirection * distanceAheadM;
+        const point = getSegmentPointAtLocalPosition(
+          currentSegment,
+          currentFeature.centerLocalXM,
+          localZM
+        );
+
+        return {
+          position: { x: point.xM, y: 0.01, z: point.zM },
+          headingRad: currentSegment.headingRad,
+          speedMps: 6
+        };
+      };
+      const wrongLaneCar = {
+        position: { x: 1.75, y: 0.01, z: 0 },
+        headingRad: 0,
+        speedMps: 0
+      };
+
+      const triggeredTts = makeRecordingTts();
+      const triggeredQueue = new InstructorInstructionQueue({
+        tts: triggeredTts
+      });
+      triggeredQueue.startSession(1);
+      triggeredQueue.update({
+        car: makeCarApproachingFeature(layout, feature, 4),
+        elapsedSec: 0.25,
+        track: layout
+      });
+      await Promise.resolve();
+
+      const emptyLayout = withInstructionFeatures(layout, []);
+      const filteredTts = makeRecordingTts();
+      const filteredQueue = new InstructorInstructionQueue({
+        tts: filteredTts
+      });
+      filteredQueue.startSession(1);
+      filteredQueue.update({
+        car: makeCarApproachingFeature(layout, feature, 4),
+        elapsedSec: 0.25,
+        track: emptyLayout
+      });
+      await Promise.resolve();
+
+      const lifecycleTts = makeRecordingTts();
+      const lifecycleQueue = new InstructorInstructionQueue({
+        tts: lifecycleTts
+      });
+      lifecycleQueue.startSession(1);
+      const activeAfterStart = lifecycleQueue.diagnostics.active;
+      lifecycleQueue.endSession();
+      lifecycleQueue.update({
+        car: makeCarApproachingFeature(layout, feature, 4),
+        elapsedSec: 0.25,
+        track: layout
+      });
+
+      const scoredTts = makeRecordingTts();
+      const scoredQueue = new InstructorInstructionQueue({ tts: scoredTts });
+      const scoringSession = new DrivingSession({
+        rules: [new KeepLeftRule({ gracePeriodSec: 1 })],
+        track: emptyLayout
+      });
+      scoringSession.start(wrongLaneCar);
+      scoredQueue.startSession(scoringSession.state.sessionId);
+      scoringSession.update(wrongLaneCar, 1.1);
+      scoringSession.update(wrongLaneCar, 1.1);
+      scoredQueue.update({
+        car: wrongLaneCar,
+        elapsedSec: scoringSession.state.elapsedSec,
+        track: emptyLayout
+      });
+      await Promise.resolve();
+
+      const secondFeature = {
+        ...feature,
+        id: 'second-cross-junction-approach-instruction',
+        triggerLocalZM: feature.triggerLocalZM - 2,
+        utterance: 'Second route feature ahead.'
+      };
+      const orderedLayout = withInstructionFeatures(layout, [
+        feature,
+        secondFeature
+      ]);
+      const orderedTts = makeDeferredTts();
+      const orderedQueue = new InstructorInstructionQueue({
+        tts: orderedTts
+      });
+      orderedQueue.startSession(1);
+      orderedQueue.update({
+        car: makeCarApproachingFeature(orderedLayout, feature, 4),
+        elapsedSec: 0.25,
+        track: orderedLayout
+      });
+      const secondPendingBeforeFirstFinished =
+        orderedTts.startedUtterances.length === 1 &&
+        orderedQueue.diagnostics.pendingInstructionCount === 1;
+      orderedTts.finishNext();
+      await Promise.resolve();
+
+      const cooldownFeature = {
+        ...feature,
+        cooldownSec: 0.5
+      };
+      const cooldownLayout = withInstructionFeatures(layout, [cooldownFeature]);
+      const cooldownTts = makeRecordingTts();
+      const cooldownQueue = new InstructorInstructionQueue({
+        tts: cooldownTts
+      });
+      cooldownQueue.startSession(1);
+      cooldownQueue.update({
+        car: makeCarApproachingFeature(cooldownLayout, cooldownFeature, 4),
+        elapsedSec: 1,
+        track: cooldownLayout
+      });
+      await Promise.resolve();
+      cooldownQueue.update({
+        car: makeCarApproachingFeature(cooldownLayout, cooldownFeature, 4),
+        elapsedSec: 1.25,
+        track: cooldownLayout
+      });
+      await Promise.resolve();
+      cooldownQueue.update({
+        car: makeCarApproachingFeature(cooldownLayout, cooldownFeature, 4),
+        elapsedSec: 1.6,
+        track: cooldownLayout
+      });
+      await Promise.resolve();
+
+      const liveDiagnostics = api.readDiagnostics();
+      const instructorAudioElement = overlay.querySelector(
+        '[data-instrument="instructor-audio"]'
+      );
+      const checks = {
+        activeUntilSessionEnd:
+          activeAfterStart === true &&
+          lifecycleQueue.diagnostics.active === false &&
+          lifecycleTts.startedUtterances.length === 0,
+        configuredFeatureQueuesOneInstruction:
+          triggeredTts.startedUtterances.length === 1 &&
+          triggeredQueue.diagnostics.triggeredInstructionIds[0] === feature.id,
+        cooldownSuppressesDuplicates:
+          cooldownTts.startedUtterances.length === 2 &&
+          cooldownQueue.diagnostics.triggeredInstructionIds.length === 2,
+        noHudTranscript:
+          (instructorAudioElement?.textContent ?? '').trim() === '' &&
+          overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') === null,
+        queueOrderingNoOverlap:
+          secondPendingBeforeFirstFinished &&
+          orderedTts.startedUtterances.length === 2 &&
+          orderedTts.startedUtterances[0] === feature.utterance &&
+          orderedTts.startedUtterances[1] === secondFeature.utterance,
+        routeFeatureFiltering:
+          filteredTts.startedUtterances.length === 0 &&
+          filteredQueue.diagnostics.configuredFeatureCount === 0,
+        scoreEventsDoNotEnqueue:
+          scoringSession.summary.violationCount === 1 &&
+          scoredTts.startedUtterances.length === 0,
+        scoringFeedbackSeparate:
+          overlay.querySelector('[data-instrument="scoring-feedback"]') !== null &&
+          !triggeredTts.startedUtterances.includes(
+            scoringSession.summary.events[0]?.message
+          ),
+        liveGameInstructorQueue:
+          liveDiagnostics.instructorAudio.active === true &&
+          liveDiagnostics.instructorAudio.configuredFeatureCount === 1 &&
+          liveDiagnostics.instructorAudio.triggeredInstructionIds.includes(
+            feature.id
+          )
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm11-instructor-tts';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:640px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M11 instructor TTS acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        allPassed,
+        checks,
+        liveInstructorAudio: liveDiagnostics.instructorAudio,
+        scoredEventCount: scoringSession.summary.events.length
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M11 browser acceptance requires dev diagnostics and instructor modules.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M11 instructor TTS browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
+async function runM12SessionOutcomeScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        { DrivingSession },
+        { FollowingTimeGapRule },
+        { KeepLeftRule },
+        { SideHazardRule },
+        { StopLineRule },
+        { ScoringFeedback },
+        {
+          getFixedTestTrackLayout,
+          getSegmentPointAtLocalPosition
+        }
+      ] = await Promise.all([
+        import('/src/rules/DrivingSession.ts'),
+        import('/src/rules/FollowingTimeGapRule.ts'),
+        import('/src/rules/KeepLeftRule.ts'),
+        import('/src/rules/SideHazardRule.ts'),
+        import('/src/rules/StopLineRule.ts'),
+        import('/src/ui/ScoringFeedback.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const api = window.__SG_DRIVING_GAME_DEV__;
+      const overlay = document.querySelector('#ui-overlay');
+      const layout = getFixedTestTrackLayout();
+      const stopZone = layout.stopLineRuleZones[0];
+      const stopSegment = layout.segments.find(
+        (candidate) => candidate.id === stopZone?.segmentId
+      );
+
+      if (!api || !overlay || !stopZone || !stopSegment) {
+        return { available: false };
+      }
+
+      const makeRules = () => [
+        new KeepLeftRule({ gracePeriodSec: 0.5 }),
+        new StopLineRule({ completeStopMaxSpeedMps: 0.1 }),
+        new SideHazardRule(),
+        new FollowingTimeGapRule()
+      ];
+      const makeCar = (x, z, headingRad = 0, speedMps = 0) => ({
+        position: { x, y: 0.01, z },
+        headingRad,
+        speedMps
+      });
+      const makeStopLineCar = (signedApproachDistanceM, speedMps) => {
+        const localZM =
+          stopZone.stopLineLocalZM +
+          signedApproachDistanceM *
+            (stopZone.crossingDirection === -1 ? 1 : -1);
+        const point = getSegmentPointAtLocalPosition(stopSegment, 0, localZM);
+
+        return makeCar(point.xM, point.zM, stopSegment.headingRad, speedMps);
+      };
+
+      const session = new DrivingSession({
+        rules: makeRules(),
+        track: layout
+      });
+      session.start(makeCar(-1.75, 0));
+      session.update(makeStopLineCar(1, 0), 0.1);
+      session.update(makeStopLineCar(-0.2, 1), 0.1);
+      session.update(makeCar(1.75, 0, 0, 4), 0.6);
+      session.update(makeCar(-1.75, layout.finishZone.center.zM), 0.1);
+
+      const fixture = document.createElement('div');
+      fixture.dataset.smokeFixture = 'm12-session-outcome';
+      fixture.style.cssText = [
+        'position:fixed',
+        'right:18px',
+        'bottom:18px',
+        'z-index:9998',
+        'width:min(380px,calc(100vw - 36px))',
+        'min-height:320px',
+        'pointer-events:none'
+      ].join(';');
+      document.body.append(fixture);
+
+      const feedback = new ScoringFeedback(fixture);
+      feedback.root.style.position = 'relative';
+      feedback.root.style.inset = 'auto';
+      feedback.root.style.width = '100%';
+      feedback.update(
+        session.summary,
+        session.ruleDiagnostics,
+        session.state.active,
+        session.outcomeSummary
+      );
+
+      const summaryElement = fixture.querySelector(
+        '[data-instrument="session-outcome-summary"]'
+      );
+      const passSection = fixture.querySelector(
+        '[data-outcome-section="passes"]'
+      );
+      const violationSection = fixture.querySelector(
+        '[data-outcome-section="violations"]'
+      );
+      const notEncounteredSection = fixture.querySelector(
+        '[data-outcome-section="not-encountered"]'
+      );
+      const summaryText = summaryElement?.textContent ?? '';
+      const outcomeSummary = session.outcomeSummary;
+      const emittedMessages = session.summary.events.map((event) => event.message);
+
+      const resetSession = new DrivingSession({
+        rules: makeRules(),
+        track: layout
+      });
+      resetSession.start(makeCar(-1.75, 0));
+      resetSession.update(makeCar(-1.75, layout.finishZone.center.zM), 0.1);
+      const hadSummaryBeforeReset = resetSession.outcomeSummary !== undefined;
+      resetSession.reset(makeCar(-1.75, 0));
+
+      const instructorAudioElement = overlay.querySelector(
+        '[data-instrument="instructor-audio"]'
+      );
+      const checks = {
+        alwaysActiveRulesContribute:
+          session.summary.events.some(
+            (event) => event.ruleId === 'stop-line' && event.outcome === 'pass'
+          ) &&
+          session.summary.events.some(
+            (event) => event.ruleId === 'keep-left' && event.outcome === 'violation'
+          ),
+        feedbackUsesRealEvents:
+          emittedMessages.every((message) => summaryText.includes(message)),
+        finishShowsSummary:
+          session.state.active === false &&
+          feedback.root.dataset.sessionOutcomeVisible === 'true' &&
+          summaryElement !== null,
+        groupedSectionsVisible:
+          passSection?.textContent?.includes('Stop line') === true &&
+          violationSection?.textContent?.includes('Keep left') === true &&
+          notEncounteredSection?.textContent?.includes('Side hazard') === true &&
+          notEncounteredSection?.textContent?.includes('Following time gap') === true,
+        noNumericSummary:
+          !/[0-9%★☆]/u.test(summaryText) &&
+          !/score|severity|stars|percent/i.test(summaryText),
+        notEncounteredFromSilentRules:
+          outcomeSummary?.notEncountered.includes('side-hazard') === true &&
+          outcomeSummary?.notEncountered.includes('following-time-gap') === true,
+        resetClearsSummary:
+          hadSummaryBeforeReset &&
+          resetSession.state.active === true &&
+          resetSession.summary.events.length === 0 &&
+          resetSession.outcomeSummary === undefined,
+        summarySeparatesInstructorAudio:
+          (instructorAudioElement?.textContent ?? '').trim() === '' &&
+          overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') === null
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm12-session-outcome';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:660px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M12 session outcome acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        allPassed,
+        checks,
+        outcomeSummary,
+        summaryText
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M12 browser acceptance requires dev diagnostics, rule modules, and scoring feedback.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M12 session outcome browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
 async function readM7State(cdp) {
   const result = await cdp.send('Runtime.evaluate', {
     returnByValue: true,
@@ -1639,6 +2671,18 @@ async function writeArtifacts({
     errors.push('M9 side-hazard acceptance scenario did not pass every check.');
   }
 
+  if (expectedPhase === 'm10' && !recording.acceptance?.allPassed) {
+    errors.push('M10 following time-gap acceptance scenario did not pass every check.');
+  }
+
+  if (expectedPhase === 'm11' && !recording.acceptance?.allPassed) {
+    errors.push('M11 instructor TTS acceptance scenario did not pass every check.');
+  }
+
+  if (expectedPhase === 'm12' && !recording.acceptance?.allPassed) {
+    errors.push('M12 session outcome acceptance scenario did not pass every check.');
+  }
+
   await writeFile(
     logsPath,
     formatArtifactLog({
@@ -1687,6 +2731,18 @@ async function captureChromeRecording({
 
   if (expectedPhase === 'm9') {
     return captureM9SideHazardRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm10') {
+    return captureM10FollowingRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm11') {
+    return captureM11InstructorRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm12') {
+    return captureM12SessionOutcomeRecording({ cdp, durationMs, outputPath });
   }
 
   try {
@@ -1785,6 +2841,64 @@ async function captureM9SideHazardRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M9 side-hazard acceptance'
+  };
+}
+
+async function captureM10FollowingRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM10FollowingScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M10 records the following time-gap acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M10 following time-gap acceptance'
+  };
+}
+
+async function captureM11InstructorRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM11InstructorScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M11 records the instructor TTS acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M11 instructor TTS acceptance'
+  };
+}
+
+async function captureM12SessionOutcomeRecording({
+  cdp,
+  durationMs,
+  outputPath
+}) {
+  const scenario = runM12SessionOutcomeScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M12 records the session outcome summary acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M12 session outcome acceptance'
   };
 }
 
