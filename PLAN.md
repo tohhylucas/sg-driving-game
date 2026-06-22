@@ -213,15 +213,19 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M11 - Instructor TTS Instruction Queue
 
-- [ ] Add an audio-only instruction queue tied only to configured fixed road
+- [DONE] Add an audio-only instruction queue tied only to configured fixed road
   features.
-- [ ] Keep instructor prompts separate from rule and scoring feedback; scored
+- [DONE] Keep instructor prompts separate from rule and scoring feedback; scored
   pass/violation events must not queue instructor audio.
-- [ ] Use a small TTS adapter that can be mocked in tests.
-- [ ] Trigger instructions without adding on-screen instructional text or
+- [DONE] Use a small TTS adapter that can be mocked in tests.
+- [DONE] Trigger instructions without adding on-screen instructional text or
   transcripts.
-- [ ] Unit-test route-feature filtering, score-event non-enqueue behavior, queue
+- [DONE] Unit-test route-feature filtering, score-event non-enqueue behavior, queue
   ordering, de-duplication, and trigger cooldown behavior.
+- Delivery note: Implemented issue #17 with a fixed-route instructor instruction
+  feature, an audio-only queue, mockable browser TTS adapter, session lifecycle
+  wiring, duplicate trigger cooldowns, and M11 Chrome evidence support without
+  HUD transcripts.
 - **Test:** Approaching a configured feature queues and plays one audio
   instruction; pass/violation events do not queue instructor audio; repeated
   triggers do not overlap; no instruction text appears in the HUD.

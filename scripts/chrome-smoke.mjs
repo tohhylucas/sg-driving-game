@@ -31,6 +31,7 @@ const M7_RECORDING_DURATION_MS = 9_000;
 const M8_RECORDING_DURATION_MS = 7_000;
 const M9_RECORDING_DURATION_MS = 7_000;
 const M10_RECORDING_DURATION_MS = 7_000;
+const M11_RECORDING_DURATION_MS = 6_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -170,6 +171,12 @@ async function main() {
               (entry) => entry.ruleId === 'following-time-gap'
             ) ?? null,
             movingElements: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().movingElements
+          } : null,
+          m11: window.__SG_DRIVING_GAME_DEV__ && overlay instanceof HTMLDivElement ? {
+            instructorAudio: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().instructorAudio,
+            instructorCaptionExists: overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') !== null,
+            instructorAudioText: overlay.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? null,
+            scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null
           } : null
         };
       })()`,
@@ -473,7 +480,8 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm7' ||
     expectedPhase === 'm8' ||
     expectedPhase === 'm9' ||
-    expectedPhase === 'm10'
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11'
   ) {
     assertM4SmokeResult(smoke.m4);
   }
@@ -482,7 +490,8 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm7' ||
     expectedPhase === 'm8' ||
     expectedPhase === 'm9' ||
-    expectedPhase === 'm10'
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11'
   ) {
     assertM7SmokeResult(smoke.m7);
   }
@@ -490,17 +499,26 @@ function assertSmokeResult(smoke, expectedPhase) {
   if (
     expectedPhase === 'm8' ||
     expectedPhase === 'm9' ||
-    expectedPhase === 'm10'
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11'
   ) {
     assertM8SmokeResult(smoke.m8);
   }
 
-  if (expectedPhase === 'm9' || expectedPhase === 'm10') {
+  if (
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11'
+  ) {
     assertM9SmokeResult(smoke.m9);
   }
 
-  if (expectedPhase === 'm10') {
+  if (expectedPhase === 'm10' || expectedPhase === 'm11') {
     assertM10SmokeResult(smoke.m10);
+  }
+
+  if (expectedPhase === 'm11') {
+    assertM11SmokeResult(smoke.m11);
   }
 }
 
@@ -620,6 +638,36 @@ function assertM10SmokeResult(m10) {
   }
 }
 
+function assertM11SmokeResult(m11) {
+  if (!m11?.instructorAudio?.active) {
+    throw new Error('Expected M11 instructor audio queue to start active.');
+  }
+
+  if (m11.instructorAudio.configuredFeatureCount !== 1) {
+    throw new Error('Expected M11 to expose one configured instructor feature.');
+  }
+
+  if (
+    !m11.instructorAudio.triggeredInstructionIds.includes(
+      'cross-junction-approach-instruction'
+    )
+  ) {
+    throw new Error('Expected M11 to trigger the configured route feature.');
+  }
+
+  if ((m11.instructorAudioText ?? '').trim() !== '') {
+    throw new Error('Expected M11 instructor audio HUD to contain no text.');
+  }
+
+  if (m11.instructorCaptionExists) {
+    throw new Error('Expected M11 to render no instructor caption/transcript.');
+  }
+
+  if (!m11.scoringFeedbackExists) {
+    throw new Error('Expected M11 scoring feedback to remain separate.');
+  }
+}
+
 function getRecordingDurationMs(expectedPhase) {
   if (expectedPhase === 'm4') {
     return M4_RECORDING_DURATION_MS;
@@ -647,6 +695,10 @@ function getRecordingDurationMs(expectedPhase) {
 
   if (expectedPhase === 'm10') {
     return M10_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm11') {
+    return M11_RECORDING_DURATION_MS;
   }
 
   return RECORDING_DURATION_MS;
@@ -1827,6 +1879,293 @@ async function runM10FollowingScenario(cdp) {
   return value;
 }
 
+async function runM11InstructorScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        { InstructorInstructionQueue },
+        { DrivingSession },
+        { KeepLeftRule },
+        {
+          getFixedTestTrackLayout,
+          getSegmentPointAtLocalPosition
+        }
+      ] = await Promise.all([
+        import('/src/instructor/InstructorInstructionQueue.ts'),
+        import('/src/rules/DrivingSession.ts'),
+        import('/src/rules/KeepLeftRule.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const api = window.__SG_DRIVING_GAME_DEV__;
+      const overlay = document.querySelector('#ui-overlay');
+      const layout = getFixedTestTrackLayout();
+      const feature = layout.instructorInstructionFeatures[0];
+      const segment = layout.segments.find(
+        (candidate) => candidate.id === feature?.segmentId
+      );
+
+      if (!api || !overlay || !feature || !segment) {
+        return { available: false };
+      }
+
+      const makeRecordingTts = () => ({
+        startedUtterances: [],
+        speak(utterance) {
+          this.startedUtterances.push(utterance);
+          return Promise.resolve();
+        }
+      });
+      const makeDeferredTts = () => ({
+        finishCallbacks: [],
+        startedUtterances: [],
+        speak(utterance) {
+          this.startedUtterances.push(utterance);
+          return new Promise((resolve) => {
+            this.finishCallbacks.push(resolve);
+          });
+        },
+        finishNext() {
+          const finish = this.finishCallbacks.shift();
+
+          if (finish) {
+            finish();
+          }
+        }
+      });
+      const withInstructionFeatures = (baseLayout, features) => ({
+        ...baseLayout,
+        instructorInstructionFeatures: features
+      });
+      const makeCarApproachingFeature = (
+        currentLayout,
+        currentFeature,
+        distanceAheadM
+      ) => {
+        const currentSegment = currentLayout.segments.find(
+          (candidate) => candidate.id === currentFeature.segmentId
+        );
+        const localZM =
+          currentFeature.triggerLocalZM -
+          currentFeature.approachDirection * distanceAheadM;
+        const point = getSegmentPointAtLocalPosition(
+          currentSegment,
+          currentFeature.centerLocalXM,
+          localZM
+        );
+
+        return {
+          position: { x: point.xM, y: 0.01, z: point.zM },
+          headingRad: currentSegment.headingRad,
+          speedMps: 6
+        };
+      };
+      const wrongLaneCar = {
+        position: { x: 1.75, y: 0.01, z: 0 },
+        headingRad: 0,
+        speedMps: 0
+      };
+
+      const triggeredTts = makeRecordingTts();
+      const triggeredQueue = new InstructorInstructionQueue({
+        tts: triggeredTts
+      });
+      triggeredQueue.startSession(1);
+      triggeredQueue.update({
+        car: makeCarApproachingFeature(layout, feature, 4),
+        elapsedSec: 0.25,
+        track: layout
+      });
+      await Promise.resolve();
+
+      const emptyLayout = withInstructionFeatures(layout, []);
+      const filteredTts = makeRecordingTts();
+      const filteredQueue = new InstructorInstructionQueue({
+        tts: filteredTts
+      });
+      filteredQueue.startSession(1);
+      filteredQueue.update({
+        car: makeCarApproachingFeature(layout, feature, 4),
+        elapsedSec: 0.25,
+        track: emptyLayout
+      });
+      await Promise.resolve();
+
+      const lifecycleTts = makeRecordingTts();
+      const lifecycleQueue = new InstructorInstructionQueue({
+        tts: lifecycleTts
+      });
+      lifecycleQueue.startSession(1);
+      const activeAfterStart = lifecycleQueue.diagnostics.active;
+      lifecycleQueue.endSession();
+      lifecycleQueue.update({
+        car: makeCarApproachingFeature(layout, feature, 4),
+        elapsedSec: 0.25,
+        track: layout
+      });
+
+      const scoredTts = makeRecordingTts();
+      const scoredQueue = new InstructorInstructionQueue({ tts: scoredTts });
+      const scoringSession = new DrivingSession({
+        rules: [new KeepLeftRule({ gracePeriodSec: 1 })],
+        track: emptyLayout
+      });
+      scoringSession.start(wrongLaneCar);
+      scoredQueue.startSession(scoringSession.state.sessionId);
+      scoringSession.update(wrongLaneCar, 1.1);
+      scoringSession.update(wrongLaneCar, 1.1);
+      scoredQueue.update({
+        car: wrongLaneCar,
+        elapsedSec: scoringSession.state.elapsedSec,
+        track: emptyLayout
+      });
+      await Promise.resolve();
+
+      const secondFeature = {
+        ...feature,
+        id: 'second-cross-junction-approach-instruction',
+        triggerLocalZM: feature.triggerLocalZM - 2,
+        utterance: 'Second route feature ahead.'
+      };
+      const orderedLayout = withInstructionFeatures(layout, [
+        feature,
+        secondFeature
+      ]);
+      const orderedTts = makeDeferredTts();
+      const orderedQueue = new InstructorInstructionQueue({
+        tts: orderedTts
+      });
+      orderedQueue.startSession(1);
+      orderedQueue.update({
+        car: makeCarApproachingFeature(orderedLayout, feature, 4),
+        elapsedSec: 0.25,
+        track: orderedLayout
+      });
+      const secondPendingBeforeFirstFinished =
+        orderedTts.startedUtterances.length === 1 &&
+        orderedQueue.diagnostics.pendingInstructionCount === 1;
+      orderedTts.finishNext();
+      await Promise.resolve();
+
+      const cooldownFeature = {
+        ...feature,
+        cooldownSec: 0.5
+      };
+      const cooldownLayout = withInstructionFeatures(layout, [cooldownFeature]);
+      const cooldownTts = makeRecordingTts();
+      const cooldownQueue = new InstructorInstructionQueue({
+        tts: cooldownTts
+      });
+      cooldownQueue.startSession(1);
+      cooldownQueue.update({
+        car: makeCarApproachingFeature(cooldownLayout, cooldownFeature, 4),
+        elapsedSec: 1,
+        track: cooldownLayout
+      });
+      await Promise.resolve();
+      cooldownQueue.update({
+        car: makeCarApproachingFeature(cooldownLayout, cooldownFeature, 4),
+        elapsedSec: 1.25,
+        track: cooldownLayout
+      });
+      await Promise.resolve();
+      cooldownQueue.update({
+        car: makeCarApproachingFeature(cooldownLayout, cooldownFeature, 4),
+        elapsedSec: 1.6,
+        track: cooldownLayout
+      });
+      await Promise.resolve();
+
+      const liveDiagnostics = api.readDiagnostics();
+      const instructorAudioElement = overlay.querySelector(
+        '[data-instrument="instructor-audio"]'
+      );
+      const checks = {
+        activeUntilSessionEnd:
+          activeAfterStart === true &&
+          lifecycleQueue.diagnostics.active === false &&
+          lifecycleTts.startedUtterances.length === 0,
+        configuredFeatureQueuesOneInstruction:
+          triggeredTts.startedUtterances.length === 1 &&
+          triggeredQueue.diagnostics.triggeredInstructionIds[0] === feature.id,
+        cooldownSuppressesDuplicates:
+          cooldownTts.startedUtterances.length === 2 &&
+          cooldownQueue.diagnostics.triggeredInstructionIds.length === 2,
+        noHudTranscript:
+          (instructorAudioElement?.textContent ?? '').trim() === '' &&
+          overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') === null,
+        queueOrderingNoOverlap:
+          secondPendingBeforeFirstFinished &&
+          orderedTts.startedUtterances.length === 2 &&
+          orderedTts.startedUtterances[0] === feature.utterance &&
+          orderedTts.startedUtterances[1] === secondFeature.utterance,
+        routeFeatureFiltering:
+          filteredTts.startedUtterances.length === 0 &&
+          filteredQueue.diagnostics.configuredFeatureCount === 0,
+        scoreEventsDoNotEnqueue:
+          scoringSession.summary.violationCount === 1 &&
+          scoredTts.startedUtterances.length === 0,
+        scoringFeedbackSeparate:
+          overlay.querySelector('[data-instrument="scoring-feedback"]') !== null &&
+          !triggeredTts.startedUtterances.includes(
+            scoringSession.summary.events[0]?.message
+          ),
+        liveGameInstructorQueue:
+          liveDiagnostics.instructorAudio.active === true &&
+          liveDiagnostics.instructorAudio.configuredFeatureCount === 1 &&
+          liveDiagnostics.instructorAudio.triggeredInstructionIds.includes(
+            feature.id
+          )
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm11-instructor-tts';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:640px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M11 instructor TTS acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        allPassed,
+        checks,
+        liveInstructorAudio: liveDiagnostics.instructorAudio,
+        scoredEventCount: scoringSession.summary.events.length
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M11 browser acceptance requires dev diagnostics and instructor modules.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M11 instructor TTS browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
 async function readM7State(cdp) {
   const result = await cdp.send('Runtime.evaluate', {
     returnByValue: true,
@@ -2088,6 +2427,10 @@ async function writeArtifacts({
     errors.push('M10 following time-gap acceptance scenario did not pass every check.');
   }
 
+  if (expectedPhase === 'm11' && !recording.acceptance?.allPassed) {
+    errors.push('M11 instructor TTS acceptance scenario did not pass every check.');
+  }
+
   await writeFile(
     logsPath,
     formatArtifactLog({
@@ -2140,6 +2483,10 @@ async function captureChromeRecording({
 
   if (expectedPhase === 'm10') {
     return captureM10FollowingRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm11') {
+    return captureM11InstructorRecording({ cdp, durationMs, outputPath });
   }
 
   try {
@@ -2256,6 +2603,24 @@ async function captureM10FollowingRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M10 following time-gap acceptance'
+  };
+}
+
+async function captureM11InstructorRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM11InstructorScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M11 records the instructor TTS acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M11 instructor TTS acceptance'
   };
 }
 
