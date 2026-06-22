@@ -96,6 +96,7 @@ export class Game {
     this.cockpit.update({
       ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
+      sessionActive: this.drivingSession.state.active,
       speedMps: this.car.state.speedMps,
       steer: this.carController.steerAmount
     });
@@ -196,6 +197,7 @@ export class Game {
     this.cockpit.update({
       ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
+      sessionActive: this.drivingSession.state.active,
       speedMps: this.car.state.speedMps,
       steer: this.carController.steerAmount
     });

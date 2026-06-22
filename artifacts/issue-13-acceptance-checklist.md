@@ -10,7 +10,8 @@
 | Continuous rules do not emit noisy per-frame pass events. | `tests/keepLeftRule.test.ts`; repeated right-lane updates in the same wrong-lane episode emit one violation. |
 | Separate keep-left episodes can emit separate violations after returning left or entering a new road segment. | `tests/keepLeftRule.test.ts`; `tests/drivingSession.test.ts`. |
 | Scored events flow into a minimal feedback surface separate from instructor audio. | `src/ui/ScoringFeedback.ts`; `src/ui/Cockpit.ts`; M7 browser smoke asserts scoring feedback and empty instructor caption/text. |
-| The keep-left debug HUD shows the configured grace period and live lane-side classification. | `src/rules/KeepLeftRule.ts`; `src/ui/ScoringFeedback.ts`; `tests/keepLeftRule.test.ts`; M7 browser smoke asserts the DOM readout matches diagnostics. |
+| The keep-left debug HUD shows the configured grace period, live lane-side classification, and active/finished session state. | `src/rules/KeepLeftRule.ts`; `src/ui/ScoringFeedback.ts`; `tests/keepLeftRule.test.ts`; `tests/scoringFeedback.test.ts`; M7 browser smoke asserts the DOM readout matches diagnostics. |
+| Active new-road wrong-lane episodes start the outside timer. | `tests/keepLeftRule.test.ts` covers the t-junction side-road wrong-lane timer while the session is active. |
 | Lane-side detection, finish-zone crossing, always-active rule startup, session reset, and scored-event aggregation are unit-tested. | `tests/laneRules.test.ts`; `tests/finishZone.test.ts`; `tests/drivingSession.test.ts`; `tests/keepLeftRule.test.ts`. |
 | Free driving remains unconstrained: no lane snapping, blocking, or steering correction. | Rule modules observe `CarState`; movement still flows through `CarController` and `KinematicModel` without lane correction. |
 | `PLAN.md` is updated with the M7 delivery note after implementation. | `PLAN.md` M7 is marked `[DONE]` with delivery note. |

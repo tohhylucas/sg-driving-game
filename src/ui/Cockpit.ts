@@ -11,6 +11,7 @@ import { SteeringWheel } from './SteeringWheel';
 interface CockpitState {
   ruleDiagnostics: readonly SessionRuleDiagnostics[];
   score: ScoredEventSummary;
+  sessionActive: boolean;
   speedMps: number;
   steer: number;
 }
@@ -42,7 +43,11 @@ export class Cockpit {
   update(state: CockpitState): void {
     this.steeringWheel.setRotation(state.steer);
     this.speedometer.setSpeed(state.speedMps);
-    this.scoringFeedback.update(state.score, state.ruleDiagnostics);
+    this.scoringFeedback.update(
+      state.score,
+      state.ruleDiagnostics,
+      state.sessionActive
+    );
   }
 
   dispose(): void {

@@ -146,6 +146,7 @@ async function main() {
             keepLeftDebugText: overlay.querySelector('[data-rule-debug="keep-left"]')?.textContent ?? null,
             keepLeftGracePeriodSec: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftGracePeriodSec ?? -1),
             keepLeftLaneSide: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftLaneSide ?? null,
+            keepLeftSessionActive: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftSessionActive ?? null,
             scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null,
             passCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.passCount ?? -1),
             violationCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.violationCount ?? -1),
@@ -509,6 +510,10 @@ function assertM7SmokeResult(m7) {
 
   if (!['left', 'right'].includes(m7.keepLeftLaneSide)) {
     throw new Error('Expected M7 keep-left debug to expose lane side.');
+  }
+
+  if (m7.keepLeftSessionActive !== 'true') {
+    throw new Error('Expected M7 keep-left debug to expose active session state.');
   }
 }
 
@@ -917,6 +922,7 @@ async function readM7State(cdp) {
         feedbackGracePeriodSec: Number(feedback.dataset.keepLeftGracePeriodSec ?? -1),
         feedbackLaneSide: feedback.dataset.keepLeftLaneSide ?? null,
         feedbackOutsideLaneSec: Number(feedback.dataset.keepLeftOutsideLaneSec ?? -1),
+        feedbackSessionActive: feedback.dataset.keepLeftSessionActive ?? null,
         feedbackWithinDefaultLane: feedback.dataset.keepLeftWithinDefaultLane ?? null,
         keepLeftDebugText: keepLeftDebug?.textContent ?? null,
         latestOutcome: feedback.dataset.latestOutcome ?? '',
@@ -983,8 +989,16 @@ function assertM7DebugState(state, label) {
     throw new Error(`Expected ${label} M7 debug lane side to match diagnostics.`);
   }
 
+  if (state.feedbackSessionActive !== String(state.active)) {
+    throw new Error(`Expected ${label} M7 debug session state to match diagnostics.`);
+  }
+
   if (!state.keepLeftDebugText?.includes(`Side ${state.feedbackLaneSide}`)) {
     throw new Error(`Expected ${label} M7 debug text to include lane side.`);
+  }
+
+  if (!state.keepLeftDebugText?.includes(`Session ${state.active ? 'active' : 'finished'}`)) {
+    throw new Error(`Expected ${label} M7 debug text to include session state.`);
   }
 }
 

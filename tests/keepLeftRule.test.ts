@@ -137,16 +137,42 @@ describe('KeepLeftRule', () => {
     expect(newRoadViolation[0].id).not.toBe(loopViolation[0].id);
   });
 
+  it('starts the outside timer on a new wrong-lane road while active', () => {
+    const rule = new KeepLeftRule({ gracePeriodSec: 1 });
+
+    if (!sideRoadSegment) {
+      throw new Error('Expected t-junction side road segment in test layout.');
+    }
+
+    rule.startSession(4);
+    rule.update({
+      car: makeCarStateFromSegment(sideRoadSegment, 1.75, 0),
+      dtSec: 0.4,
+      elapsedSec: 0.4,
+      sessionId: 4,
+      track: layout
+    });
+
+    expect(rule.getDiagnostics()).toEqual(
+      expect.objectContaining({
+        laneSide: 'right',
+        outsideLaneSec: 0.4,
+        segmentId: sideRoadSegment.id,
+        withinDefaultLane: false
+      })
+    );
+  });
+
   it('emits a pass only when a clean session finishes', () => {
     const rule = new KeepLeftRule({ gracePeriodSec: 1 });
 
-    rule.startSession(4);
+    rule.startSession(5);
     expect(
       rule.update({
         car: leftLaneCar,
         dtSec: 2,
         elapsedSec: 2,
-        sessionId: 4,
+        sessionId: 5,
         track: layout
       })
     ).toEqual([]);
@@ -156,14 +182,14 @@ describe('KeepLeftRule', () => {
         car: leftLaneCar,
         elapsedSec: 3,
         reason: 'finish',
-        sessionId: 4,
+        sessionId: 5,
         track: layout
       })
     ).toEqual([
       expect.objectContaining({
         outcome: 'pass',
         ruleId: 'keep-left',
-        sessionId: 4
+        sessionId: 5
       })
     ]);
   });
@@ -171,7 +197,7 @@ describe('KeepLeftRule', () => {
   it('exposes current grace period and lane side diagnostics', () => {
     const rule = new KeepLeftRule({ gracePeriodSec: 1.25 });
 
-    rule.startSession(5);
+    rule.startSession(6);
 
     expect(rule.getDiagnostics()).toEqual({
       ruleId: 'keep-left',
@@ -186,7 +212,7 @@ describe('KeepLeftRule', () => {
       car: rightLaneCar,
       dtSec: 0.5,
       elapsedSec: 0.5,
-      sessionId: 5,
+      sessionId: 6,
       track: layout
     });
 
@@ -203,7 +229,7 @@ describe('KeepLeftRule', () => {
       car: leftLaneCar,
       dtSec: 0.2,
       elapsedSec: 0.7,
-      sessionId: 5,
+      sessionId: 6,
       track: layout
     });
 
@@ -220,19 +246,19 @@ describe('KeepLeftRule', () => {
   it('clears outside-lane diagnostics after a long wrong-lane episode recovers', () => {
     const rule = new KeepLeftRule({ gracePeriodSec: 1 });
 
-    rule.startSession(6);
+    rule.startSession(7);
     rule.update({
       car: rightLaneCar,
       dtSec: 2.5,
       elapsedSec: 2.5,
-      sessionId: 6,
+      sessionId: 7,
       track: layout
     });
     rule.update({
       car: leftLaneCar,
       dtSec: 0.1,
       elapsedSec: 2.6,
-      sessionId: 6,
+      sessionId: 7,
       track: layout
     });
 

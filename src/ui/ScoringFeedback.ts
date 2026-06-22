@@ -15,7 +15,8 @@ export class ScoringFeedback {
   /** Renders current pass, violation, and rule diagnostic values. */
   update(
     summary: ScoredEventSummary,
-    ruleDiagnostics: readonly SessionRuleDiagnostics[] = []
+    ruleDiagnostics: readonly SessionRuleDiagnostics[] = [],
+    sessionActive = true
   ): void {
     const latestEvent = summary.events.at(-1);
     const keepLeftDiagnostics = ruleDiagnostics.find(
@@ -23,16 +24,17 @@ export class ScoringFeedback {
     );
 
     this.root.dataset.passCount = String(summary.passCount);
+    this.root.dataset.sessionActive = String(sessionActive);
     this.root.dataset.violationCount = String(summary.violationCount);
     this.root.dataset.latestOutcome = latestEvent?.outcome ?? '';
-    syncKeepLeftDataset(this.root, keepLeftDiagnostics);
+    syncKeepLeftDataset(this.root, keepLeftDiagnostics, sessionActive);
     this.root.replaceChildren(
       createMetric('Passes', summary.passCount),
       createMetric('Violations', summary.violationCount)
     );
 
     if (keepLeftDiagnostics) {
-      this.root.append(createKeepLeftDebug(keepLeftDiagnostics));
+      this.root.append(createKeepLeftDebug(keepLeftDiagnostics, sessionActive));
     }
 
     if (latestEvent) {
@@ -61,7 +63,8 @@ function createMetric(label: string, value: number): HTMLElement {
 }
 
 function createKeepLeftDebug(
-  diagnostics: SessionRuleDiagnostics
+  diagnostics: SessionRuleDiagnostics,
+  sessionActive: boolean
 ): HTMLElement {
   const debug = document.createElement('div');
   debug.className = 'cockpit__rule-debug';
@@ -70,25 +73,23 @@ function createKeepLeftDebug(
   debug.dataset.laneSide = diagnostics.laneSide;
   debug.dataset.segmentId = diagnostics.segmentId;
   debug.dataset.outsideLaneSec = String(diagnostics.outsideLaneSec);
+  debug.dataset.sessionActive = String(sessionActive);
   debug.dataset.withinDefaultLane = String(diagnostics.withinDefaultLane);
-  debug.textContent = [
-    `Grace ${diagnostics.gracePeriodSec}s`,
-    `Side ${diagnostics.laneSide}`,
-    `Correct ${diagnostics.withinDefaultLane ? 'yes' : 'no'}`,
-    `Outside ${diagnostics.outsideLaneSec.toFixed(2)}s`
-  ].join(' | ');
+  debug.textContent = formatKeepLeftDebugText(diagnostics, sessionActive);
   return debug;
 }
 
 function syncKeepLeftDataset(
   root: HTMLElement,
-  diagnostics: SessionRuleDiagnostics | undefined
+  diagnostics: SessionRuleDiagnostics | undefined,
+  sessionActive: boolean
 ): void {
   if (!diagnostics) {
     delete root.dataset.keepLeftGracePeriodSec;
     delete root.dataset.keepLeftLaneSide;
     delete root.dataset.keepLeftSegmentId;
     delete root.dataset.keepLeftOutsideLaneSec;
+    delete root.dataset.keepLeftSessionActive;
     delete root.dataset.keepLeftWithinDefaultLane;
     return;
   }
@@ -97,7 +98,25 @@ function syncKeepLeftDataset(
   root.dataset.keepLeftLaneSide = diagnostics.laneSide;
   root.dataset.keepLeftSegmentId = diagnostics.segmentId;
   root.dataset.keepLeftOutsideLaneSec = String(diagnostics.outsideLaneSec);
+  root.dataset.keepLeftSessionActive = String(sessionActive);
   root.dataset.keepLeftWithinDefaultLane = String(
     diagnostics.withinDefaultLane
   );
+}
+
+export function formatKeepLeftDebugText(
+  diagnostics: SessionRuleDiagnostics,
+  sessionActive: boolean
+): string {
+  const outsideText = sessionActive
+    ? `Outside ${diagnostics.outsideLaneSec.toFixed(2)}s`
+    : 'Outside paused';
+
+  return [
+    `Grace ${diagnostics.gracePeriodSec}s`,
+    `Session ${sessionActive ? 'active' : 'finished'}`,
+    `Side ${diagnostics.laneSide}`,
+    `Correct ${diagnostics.withinDefaultLane ? 'yes' : 'no'}`,
+    outsideText
+  ].join(' | ');
 }
