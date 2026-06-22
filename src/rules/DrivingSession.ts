@@ -97,15 +97,19 @@ export class DrivingSession {
     this.elapsedSec += dtSec;
 
     for (const rule of this.rules) {
-      this.events.push(
-        ...rule.update({
-          car,
-          dtSec,
-          elapsedSec: this.elapsedSec,
-          sessionId: this.sessionId,
-          track: this.track
-        })
-      );
+      const events = rule.update({
+        car,
+        dtSec,
+        elapsedSec: this.elapsedSec,
+        sessionId: this.sessionId,
+        track: this.track
+      });
+      this.events.push(...events);
+
+      if (events.some(isTerminalFailureEvent)) {
+        this.end('failure', car);
+        return;
+      }
     }
 
     if (
@@ -158,4 +162,8 @@ export class DrivingSession {
       });
     }
   }
+}
+
+function isTerminalFailureEvent(event: ScoredEvent): boolean {
+  return event.ruleId === 'stop-line' && event.outcome === 'violation';
 }

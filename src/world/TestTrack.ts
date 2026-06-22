@@ -68,7 +68,7 @@ function createRoadSegmentGroup(segment: TrackSegment): THREE.Group {
         name: `SideRoadSolidLine-${segment.id}`,
         widthM: ROAD_CONFIG.sideRoadSolidLineWidthM,
         lengthM: segment.lengthM,
-        color: ROAD_CONFIG.stopLineColor,
+        color: ROAD_CONFIG.sideRoadSolidLineColor,
         xM: ROAD_CONFIG.centerLineXM,
         yM: ROAD_CONFIG.markingYOffsetM
       })

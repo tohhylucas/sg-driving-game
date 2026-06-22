@@ -62,7 +62,7 @@ describe('DrivingSession', () => {
     ]);
   });
 
-  it('aggregates stop-line scored events through the session event stream', () => {
+  it('ends the session immediately when the side-road stop line is crossed without stopping', () => {
     const session = new DrivingSession({
       rules: [new StopLineRule({ completeStopMaxSpeedMps: 0.1 })],
       track
@@ -74,7 +74,7 @@ describe('DrivingSession', () => {
     session.update(makeCarStateAtZone(segment, zone, 1, 1), 0.1);
     session.update(makeCarStateAtZone(segment, zone, -0.2, 1), 0.1);
 
-    expect(session.state.active).toBe(true);
+    expect(session.state.active).toBe(false);
     expect(session.summary.violationCount).toBe(1);
     expect(session.summary.passCount).toBe(0);
     expect(session.summary.events).toEqual([

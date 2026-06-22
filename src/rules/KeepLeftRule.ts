@@ -9,7 +9,7 @@ import {
 } from './laneRules';
 import type { ScoredEvent } from './scoring';
 
-export type SessionEndReason = 'finish' | 'reset';
+export type SessionEndReason = 'finish' | 'failure' | 'reset';
 
 export interface RuleUpdateContext {
   readonly car: CarState;

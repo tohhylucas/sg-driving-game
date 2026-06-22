@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import { ROAD_CONFIG } from '../src/config/constants';
 import { TestTrack } from '../src/world/TestTrack';
+import { getFixedTestTrackLayout } from '../src/world/testTrackLayout';
 
 describe('TestTrack rendering', () => {
   it('renders the T-junction side road with an obvious solid white floor line', () => {
@@ -34,6 +35,34 @@ describe('TestTrack rendering', () => {
     expect(mesh.geometry.parameters.height).toBeGreaterThan(
       ROAD_CONFIG.roadWidthM
     );
-    expect(mesh.material.color.getHex()).toBe(ROAD_CONFIG.stopLineColor);
+    expect(mesh.material.color.getHex()).toBe(
+      ROAD_CONFIG.sideRoadSolidLineColor
+    );
+  });
+
+  it('renders every stop-line marking in red', () => {
+    const layout = getFixedTestTrackLayout();
+    const track = new TestTrack();
+
+    expect(ROAD_CONFIG.stopLineColor).toBe(0xff0000);
+
+    for (const stopLine of layout.stopLines) {
+      const stopLineGroup = track.object.getObjectByName(
+        `StopLine-${stopLine.id}`
+      );
+      const stopLineMarking = stopLineGroup?.getObjectByName(
+        `StopLineMarking-${stopLine.id}`
+      );
+
+      expect(stopLineGroup).toBeInstanceOf(THREE.Group);
+      expect(stopLineMarking).toBeInstanceOf(THREE.Mesh);
+
+      const mesh = stopLineMarking as THREE.Mesh<
+        THREE.PlaneGeometry,
+        THREE.MeshBasicMaterial
+      >;
+
+      expect(mesh.material.color.getHex()).toBe(ROAD_CONFIG.stopLineColor);
+    }
   });
 });
