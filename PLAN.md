@@ -68,8 +68,7 @@ Goal: Add comfortable driver controls, blind-spot camera shifting, and
 observer-style rule modules that are active for the full driving session and
 emit scored events without taking over free driving controls. Rules start when
 the driving session starts and remain active until the session ends; there is no
-practice settings UI or test mode for changing rule state. Draft issue bodies
-live in `issue-drafts/phase-2-rules-and-scoring.md`.
+practice settings UI or test mode for changing rule state.
 
 M6 and M7 can start independently after M5. M9 depends on both M6's visual
 blind-spot camera shift and M7's scoring foundation.
