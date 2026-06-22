@@ -207,6 +207,9 @@ async function findChrome() {
 }
 
 function launchChrome(chromePath, userDataDir) {
+  // These reduced-isolation flags are only for this temporary smoke-test Chrome
+  // profile. They keep headless WebGL and recording stable on Windows CI/local
+  // runners and should not be copied into user-facing browser launches.
   return spawn(chromePath, [
     '--headless=new',
     '--disable-background-networking',
@@ -234,7 +237,9 @@ async function readDevToolsPort(userDataDir) {
 
   while (Date.now() - start < WAIT_TIMEOUT_MS) {
     try {
-      const [port] = (await readFile(activePortFile, 'utf8')).trim().split(/\r?\n/);
+      const [port] = (await readFile(activePortFile, 'utf8'))
+        .trim()
+        .split(/\r?\n/);
       return Number(port);
     } catch {
       await delay(100);
@@ -295,7 +300,16 @@ function connectCdp(webSocketDebuggerUrl) {
                 resolveSend(value);
               }
             });
-            ws.send(JSON.stringify({ id, method, params }));
+
+            try {
+              ws.send(JSON.stringify({ id, method, params }));
+            } catch (error) {
+              const callback = pending.get(id);
+              pending.delete(id);
+              callback?.reject(
+                error instanceof Error ? error : new Error(String(error))
+              );
+            }
           });
         }
       });
