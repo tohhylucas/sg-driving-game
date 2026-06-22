@@ -95,17 +95,20 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M7 - Keep-Left Rule and Scoring Foundation
 
-- [ ] Define a small always-active rule-module contract and scored-event shape
+- [DONE] Define a small always-active rule-module contract and scored-event shape
   with `pass` and `violation` outcomes.
-- [ ] Define driving session lifecycle: start/reset onto the practice track
+- [DONE] Define driving session lifecycle: start/reset onto the practice track
   starts a session; crossing a fixed finish zone or pressing reset ends it.
-- [ ] Add a fixed finish zone/gate to the hand-built test track for ending the
+- [DONE] Add a fixed finish zone/gate to the hand-built test track for ending the
   route.
-- [ ] Implement the first end-to-end rule using keep-left detection.
-- [ ] Add a minimal scoring event stream and feedback surface that records
+- [DONE] Implement the first end-to-end rule using keep-left detection.
+- [DONE] Add a minimal scoring event stream and feedback surface that records
   successes and violations separately from instructor audio.
-- [ ] Unit-test lane-side detection, finish-zone crossing, always-active rule
+- [DONE] Unit-test lane-side detection, finish-zone crossing, always-active rule
   startup, and scored-event aggregation within one session.
+- Delivery note: Implemented issue #13 with a session-scoped scoring event
+  stream, keep-left pass/violation rule, fixed finish gate, R reset, and
+  separate feedback HUD.
 - **Test:** Driving outside the correct left lane emits a scored keep-left
   event after a configurable grace period; the rule is active for the full
   session; car movement remains unconstrained.

@@ -184,6 +184,56 @@ body {
   opacity: 0.82;
 }
 
+.cockpit__scoring-feedback {
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(72px, max-content));
+  gap: 8px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  color: #f8fafc;
+  background: rgba(2, 6, 23, 0.72);
+  border: 1px solid rgba(226, 232, 240, 0.42);
+  border-radius: 8px;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.32);
+}
+
+.cockpit__scoring-metric {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.cockpit__scoring-value {
+  min-width: 1.5ch;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.cockpit__scoring-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #cbd5e1;
+  text-transform: uppercase;
+}
+
+.cockpit__scoring-latest {
+  grid-column: 1 / -1;
+  max-width: 210px;
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 720px) {
   .cockpit__speedometer {
     min-width: 94px;
@@ -197,5 +247,16 @@ body {
 
   .cockpit__speedometer-unit {
     font-size: 0.66rem;
+  }
+
+  .cockpit__scoring-feedback {
+    right: 10px;
+    top: 10px;
+    grid-template-columns: repeat(2, minmax(58px, max-content));
+    padding: 8px 9px;
+  }
+
+  .cockpit__scoring-latest {
+    max-width: 154px;
   }
 }

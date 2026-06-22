@@ -49,12 +49,21 @@ export interface TrackStopLine {
   readonly widthM: number;
 }
 
+export interface TrackFinishZone {
+  readonly id: string;
+  readonly kind: 'finish-zone';
+  readonly center: TrackPoint;
+  readonly widthM: number;
+  readonly depthM: number;
+}
+
 export interface FixedTestTrackLayout {
   readonly roadWidthM: number;
   readonly loopSegments: readonly TrackSegment[];
   readonly segments: readonly TrackSegment[];
   readonly junctions: readonly TrackJunction[];
   readonly stopLines: readonly TrackStopLine[];
+  readonly finishZone: TrackFinishZone;
   readonly defaultDrivingLane: TrackDrivingLaneLayout;
 }
 
@@ -236,6 +245,16 @@ function makeStopLines(segments: readonly TrackSegment[]): TrackStopLine[] {
   ];
 }
 
+function makeFinishZone(): TrackFinishZone {
+  return {
+    id: 'loop-finish-gate',
+    kind: 'finish-zone',
+    center: TEST_TRACK_CONFIG.finishZone.center,
+    widthM: ROAD_CONFIG.roadWidthM,
+    depthM: TEST_TRACK_CONFIG.finishZone.depthM
+  };
+}
+
 export function getFixedTestTrackLayout(): FixedTestTrackLayout {
   const loopSegments = makeLoopSegments();
   const featureSegments = makeFeatureSegments();
@@ -247,6 +266,7 @@ export function getFixedTestTrackLayout(): FixedTestTrackLayout {
     segments,
     junctions: makeJunctions(),
     stopLines: makeStopLines(segments),
+    finishZone: makeFinishZone(),
     defaultDrivingLane: {
       side: ROAD_CONFIG.defaultDrivingLaneSide,
       centerOffsetM: -ROAD_CONFIG.laneWidthM / 2

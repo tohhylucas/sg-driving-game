@@ -23,6 +23,7 @@ export interface DriveInputState {
 
 export interface InputState extends DriveInputState {
   look: number;
+  reset: boolean;
 }
 
 export type MirrorId = 'rearview' | 'leftSide' | 'rightSide';

@@ -4,5 +4,6 @@ export const CONTROL_KEYS = {
   steerLeft: ['ArrowLeft'],
   steerRight: ['ArrowRight'],
   lookLeft: ['KeyA'],
-  lookRight: ['KeyD']
+  lookRight: ['KeyD'],
+  reset: ['KeyR']
 } as const;
