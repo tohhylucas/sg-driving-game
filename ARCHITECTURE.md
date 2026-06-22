@@ -74,6 +74,7 @@ driving-game/
 |   |   |-- Road.ts
 |   |   |-- RoadMarkings.ts
 |   |   |-- roadLayout.ts
+|   |   |-- testTrackLayout.ts
 |   |   `-- TestTrack.ts
 |   |-- vehicle/
 |   |   |-- Car.ts
@@ -110,7 +111,8 @@ driving-game/
   main-scene rendering, mirror render-target rendering, and texture overlay
   compositing. No game logic.
 - `Game.ts`: composition root. Instantiates world, car, cameras, and UI as
-  milestones introduce them.
+  milestones introduce them. Exposes read-only dev diagnostics for local
+  browser smoke verification; diagnostics must not mutate gameplay.
 - `Loop.ts`: fixed-timestep accumulator so movement is frame-rate independent.
 - `Input.ts`: tracks pressed keys and exposes normalized input state.
 - `KinematicModel.ts`: pure logic for bicycle-model integration. No Three.js
@@ -129,9 +131,19 @@ driving-game/
 - `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
   helpers.
 - `config/constants.ts`: single source of truth for tunable numbers and colors.
+- `World.ts`: composes the static sky, ground, and M5 fixed test track.
+- `Road.ts`: renders the earlier straight-road surface and markings. It remains
+  available for milestone history but is not the active M5 world road.
+- `TestTrack.ts`: renders the M5 fixed test track from pure layout data:
+  loop road segments, a T-junction side road, a cross junction, lane markings,
+  and static stop-line markings only.
 - `roadLayout.ts`: pure, testable straight-road layout derived from shared
   road config, including the Singapore keep-left default lane and marking
-  positions.
+  positions. Also provides shared center-dash cadence helpers.
+- `testTrackLayout.ts`: pure, testable fixed-track layout data derived from
+  shared config, including deterministic loop segments, uncontrolled junction
+  metadata, and static stop-line marker geometry. It contains no rule,
+  scoring, collision, or instructor logic.
 
 ## Data Flow
 

@@ -1,7 +1,7 @@
 import { ChaseCamera } from '../camera/ChaseCamera';
 import { MirrorCamera } from '../camera/MirrorCamera';
 import { COCKPIT_CAMERA_CONFIG, MIRROR_CONFIG } from '../config/constants';
-import type { MirrorId } from '../types';
+import type { CarState, MirrorId } from '../types';
 import { Cockpit } from '../ui/Cockpit';
 import { Car } from '../vehicle/Car';
 import { CarController } from '../vehicle/CarController';
@@ -18,6 +18,10 @@ interface GameOptions {
 interface GameMirror {
   id: MirrorId;
   camera: MirrorCamera;
+}
+
+export interface GameDiagnostics {
+  readonly car: CarState;
 }
 
 export class Game {
@@ -64,7 +68,7 @@ export class Game {
     this.engine.scene.add(this.world.object);
     this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm4';
+    uiRoot.dataset.phase = 'm5';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -88,6 +92,17 @@ export class Game {
     }
     this.cockpit.dispose();
     this.engine.dispose();
+  }
+
+  /** Returns read-only state for local browser smoke verification. */
+  readDiagnostics(): GameDiagnostics {
+    return {
+      car: {
+        position: { ...this.car.state.position },
+        headingRad: this.car.state.headingRad,
+        speedMps: this.car.state.speedMps
+      }
+    };
   }
 
   private resize(canvas: HTMLCanvasElement): void {

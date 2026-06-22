@@ -58,7 +58,8 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 
 ### M5 - Hand-Built Test Track
 
-- [ ] Extend straight road into a small fixed track with a couple of turns and a junction to serve as a stable environment for Phase 2 rule testing.
+- [DONE] Extend straight road into a small fixed track with a couple of turns and a junction to serve as a stable environment for Phase 2 rule testing.
+- Delivery note: Implemented issue #10 fixed loop track with T-junction and uncontrolled cross junction, static stop-line markings, free-driving preservation, tests, and Chrome recording evidence.
 - **Test:** Car can be driven around the full track without falling off or glitching.
 
 ## PHASE 2 - Rules & Scoring (NOT STARTED - DO NOT IMPLEMENT YET)

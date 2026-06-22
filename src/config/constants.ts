@@ -40,7 +40,32 @@ export const ROAD_CONFIG = {
   centerLineColor: 0xffffff,
   centerDashLengthM: 4,
   centerDashGapM: 5,
-  markingYOffsetM: 0.02
+  markingYOffsetM: 0.02,
+  stopLineWidthM: 0.35,
+  stopLineColor: 0xffffff
+} as const;
+
+export const TEST_TRACK_CONFIG = {
+  loopCenterlinePoints: [
+    { xM: 0, zM: 28 },
+    { xM: 0, zM: -28 },
+    { xM: -14, zM: -40 },
+    { xM: -32, zM: -28 },
+    { xM: -32, zM: 28 },
+    { xM: -14, zM: 40 },
+    { xM: 0, zM: 28 }
+  ],
+  tJunctionSideRoad: {
+    start: { xM: 24, zM: 14 },
+    end: { xM: 0, zM: 14 },
+    junctionCenter: { xM: 0, zM: 14 }
+  },
+  crossJunctionRoad: {
+    start: { xM: -20, zM: -14 },
+    end: { xM: 20, zM: -14 },
+    junctionCenter: { xM: 0, zM: -14 }
+  },
+  stopLineSetbackM: 4
 } as const;
 
 export const FIXED_CAMERA_CONFIG = {
