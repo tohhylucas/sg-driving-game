@@ -167,6 +167,55 @@ describe('KeepLeftRule', () => {
       })
     ]);
   });
+
+  it('exposes current grace period and lane side diagnostics', () => {
+    const rule = new KeepLeftRule({ gracePeriodSec: 1.25 });
+
+    rule.startSession(5);
+
+    expect(rule.getDiagnostics()).toEqual({
+      ruleId: 'keep-left',
+      gracePeriodSec: 1.25,
+      laneSide: 'left',
+      segmentId: '',
+      outsideLaneSec: 0,
+      withinDefaultLane: true
+    });
+
+    rule.update({
+      car: rightLaneCar,
+      dtSec: 0.5,
+      elapsedSec: 0.5,
+      sessionId: 5,
+      track: layout
+    });
+
+    expect(rule.getDiagnostics()).toEqual({
+      ruleId: 'keep-left',
+      gracePeriodSec: 1.25,
+      laneSide: 'right',
+      segmentId: loopSegment.id,
+      outsideLaneSec: 0.5,
+      withinDefaultLane: false
+    });
+
+    rule.update({
+      car: leftLaneCar,
+      dtSec: 0.2,
+      elapsedSec: 0.7,
+      sessionId: 5,
+      track: layout
+    });
+
+    expect(rule.getDiagnostics()).toEqual({
+      ruleId: 'keep-left',
+      gracePeriodSec: 1.25,
+      laneSide: 'left',
+      segmentId: loopSegment.id,
+      outsideLaneSec: 0,
+      withinDefaultLane: true
+    });
+  });
 });
 
 function makeCarState(x: number, z = 0): CarState {

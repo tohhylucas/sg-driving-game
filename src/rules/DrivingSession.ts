@@ -2,6 +2,7 @@ import type { CarState } from '../types';
 import type { FixedTestTrackLayout } from '../world/testTrackLayout';
 import { isInsideFinishZone } from './finishZone';
 import type {
+  KeepLeftRuleDiagnostics,
   RuleEndContext,
   RuleUpdateContext,
   SessionEndReason
@@ -14,7 +15,10 @@ export interface SessionRule {
   startSession(sessionId: number): void;
   update(context: RuleUpdateContext): ScoredEvent[];
   endSession(context: RuleEndContext): ScoredEvent[];
+  getDiagnostics?(): SessionRuleDiagnostics;
 }
+
+export type SessionRuleDiagnostics = KeepLeftRuleDiagnostics;
 
 export interface DrivingSessionState {
   readonly active: boolean;
@@ -50,6 +54,20 @@ export class DrivingSession {
 
   get summary(): ScoredEventSummary {
     return summarizeScoredEvents(this.events);
+  }
+
+  get ruleDiagnostics(): readonly SessionRuleDiagnostics[] {
+    const diagnostics: SessionRuleDiagnostics[] = [];
+
+    for (const rule of this.rules) {
+      const ruleDiagnostics = rule.getDiagnostics?.();
+
+      if (ruleDiagnostics) {
+        diagnostics.push(ruleDiagnostics);
+      }
+    }
+
+    return diagnostics;
   }
 
   /** Starts a new scored driving session from the current car state. */

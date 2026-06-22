@@ -234,6 +234,16 @@ body {
   white-space: nowrap;
 }
 
+.cockpit__rule-debug {
+  grid-column: 1 / -1;
+  max-width: 260px;
+  color: #bae6fd;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 720px) {
   .cockpit__speedometer {
     min-width: 94px;
@@ -258,5 +268,10 @@ body {
 
   .cockpit__scoring-latest {
     max-width: 154px;
+  }
+
+  .cockpit__rule-debug {
+    max-width: 154px;
+    font-size: 0.62rem;
   }
 }

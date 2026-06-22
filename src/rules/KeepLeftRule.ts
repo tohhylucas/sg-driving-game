@@ -3,7 +3,9 @@ import type { CarState } from '../types';
 import type { FixedTestTrackLayout } from '../world/testTrackLayout';
 import {
   getNearestLanePosition,
-  isWithinDefaultDrivingLane
+  isWithinDefaultDrivingLane,
+  type LaneSide,
+  type TrackLanePosition
 } from './laneRules';
 import type { ScoredEvent } from './scoring';
 
@@ -29,11 +31,21 @@ interface KeepLeftRuleConfig {
   gracePeriodSec: number;
 }
 
+export interface KeepLeftRuleDiagnostics {
+  readonly ruleId: 'keep-left';
+  readonly gracePeriodSec: number;
+  readonly laneSide: LaneSide;
+  readonly segmentId: string;
+  readonly outsideLaneSec: number;
+  readonly withinDefaultLane: boolean;
+}
+
 export class KeepLeftRule {
-  readonly id = 'keep-left';
+  readonly id = 'keep-left' as const;
 
   private readonly config: KeepLeftRuleConfig;
   private currentWrongLaneSegmentId: string | undefined;
+  private diagnostics: KeepLeftRuleDiagnostics;
   private hasAnyViolation = false;
   private hasPass = false;
   private outsideLaneSec = 0;
@@ -45,6 +57,7 @@ export class KeepLeftRule {
       gracePeriodSec: RULE_CONFIG.keepLeftGracePeriodSec,
       ...config
     };
+    this.diagnostics = this.createDefaultDiagnostics();
   }
 
   /** Resets per-session keep-left state. */
@@ -55,6 +68,12 @@ export class KeepLeftRule {
     this.outsideLaneSec = 0;
     this.violationCount = 0;
     this.violationEmittedForEpisode = false;
+    this.diagnostics = this.createDefaultDiagnostics();
+  }
+
+  /** Returns the current keep-left debug state for HUD diagnostics. */
+  getDiagnostics(): KeepLeftRuleDiagnostics {
+    return { ...this.diagnostics };
   }
 
   /** Observes lane position and emits a violation after the grace period. */
@@ -63,11 +82,16 @@ export class KeepLeftRule {
       xM: context.car.position.x,
       zM: context.car.position.z
     });
+    const withinDefaultLane = isWithinDefaultDrivingLane(
+      lanePosition,
+      context.track
+    );
 
-    if (isWithinDefaultDrivingLane(lanePosition, context.track)) {
+    if (withinDefaultLane) {
       this.currentWrongLaneSegmentId = undefined;
       this.outsideLaneSec = 0;
       this.violationEmittedForEpisode = false;
+      this.recordDiagnostics(lanePosition, withinDefaultLane);
       return [];
     }
 
@@ -78,6 +102,7 @@ export class KeepLeftRule {
     }
 
     this.outsideLaneSec += context.dtSec;
+    this.recordDiagnostics(lanePosition, withinDefaultLane);
 
     if (
       this.violationEmittedForEpisode ||
@@ -133,6 +158,31 @@ export class KeepLeftRule {
       outcome,
       message,
       occurredAtSec
+    };
+  }
+
+  private createDefaultDiagnostics(): KeepLeftRuleDiagnostics {
+    return {
+      ruleId: this.id,
+      gracePeriodSec: this.config.gracePeriodSec,
+      laneSide: 'left',
+      segmentId: '',
+      outsideLaneSec: 0,
+      withinDefaultLane: true
+    };
+  }
+
+  private recordDiagnostics(
+    lanePosition: TrackLanePosition,
+    withinDefaultLane: boolean
+  ): void {
+    this.diagnostics = {
+      ruleId: this.id,
+      gracePeriodSec: this.config.gracePeriodSec,
+      laneSide: lanePosition.side,
+      segmentId: lanePosition.segmentId,
+      outsideLaneSec: this.outsideLaneSec,
+      withinDefaultLane
     };
   }
 }

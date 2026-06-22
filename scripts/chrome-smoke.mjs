@@ -142,6 +142,10 @@ async function main() {
             overlayText: overlay.innerText
           } : null,
           m7: overlay instanceof HTMLDivElement ? {
+            keepLeftDebugExists: overlay.querySelector('[data-rule-debug="keep-left"]') !== null,
+            keepLeftDebugText: overlay.querySelector('[data-rule-debug="keep-left"]')?.textContent ?? null,
+            keepLeftGracePeriodSec: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftGracePeriodSec ?? -1),
+            keepLeftLaneSide: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftLaneSide ?? null,
             scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null,
             passCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.passCount ?? -1),
             violationCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.violationCount ?? -1),
@@ -493,6 +497,18 @@ function assertM7SmokeResult(m7) {
 
   if (m7.passCount !== 0 || m7.violationCount !== 0) {
     throw new Error('Expected M7 scoring feedback to start with zero events.');
+  }
+
+  if (!m7.keepLeftDebugExists) {
+    throw new Error('Expected M7 keep-left debug readout to exist.');
+  }
+
+  if (!(m7.keepLeftGracePeriodSec > 0)) {
+    throw new Error('Expected M7 keep-left debug to expose grace period.');
+  }
+
+  if (!['left', 'right'].includes(m7.keepLeftLaneSide)) {
+    throw new Error('Expected M7 keep-left debug to expose lane side.');
   }
 }
 
@@ -888,9 +904,21 @@ async function readM7State(cdp) {
       }
 
       const diagnostics = api.readDiagnostics();
+      const keepLeftDiagnostics = diagnostics.session.ruleDiagnostics.find(
+        (entry) => entry.ruleId === 'keep-left'
+      );
+      const keepLeftDebug = feedback.querySelector('[data-rule-debug="keep-left"]');
+
       return {
         available: true,
         active: diagnostics.session.active,
+        diagnosticGracePeriodSec: keepLeftDiagnostics?.gracePeriodSec ?? null,
+        diagnosticLaneSide: keepLeftDiagnostics?.laneSide ?? null,
+        feedbackGracePeriodSec: Number(feedback.dataset.keepLeftGracePeriodSec ?? -1),
+        feedbackLaneSide: feedback.dataset.keepLeftLaneSide ?? null,
+        feedbackOutsideLaneSec: Number(feedback.dataset.keepLeftOutsideLaneSec ?? -1),
+        feedbackWithinDefaultLane: feedback.dataset.keepLeftWithinDefaultLane ?? null,
+        keepLeftDebugText: keepLeftDebug?.textContent ?? null,
         latestOutcome: feedback.dataset.latestOutcome ?? '',
         passCount: Number(feedback.dataset.passCount ?? 0),
         sessionId: diagnostics.session.sessionId,
@@ -910,6 +938,10 @@ async function readM7State(cdp) {
 }
 
 function assertM7Scenario(sample) {
+  assertM7DebugState(sample.initial, 'initial');
+  assertM7DebugState(sample.violation, 'violation');
+  assertM7DebugState(sample.afterReset, 'after reset');
+
   if (sample.violation.violationCount !== 1) {
     throw new Error('Expected one M7 keep-left violation in feedback.');
   }
@@ -931,6 +963,28 @@ function assertM7Scenario(sample) {
 
   if (!sample.afterReset.active) {
     throw new Error('Expected reset to leave a new M7 session active.');
+  }
+}
+
+function assertM7DebugState(state, label) {
+  if (!(state.feedbackGracePeriodSec > 0)) {
+    throw new Error(`Expected ${label} M7 debug grace period to be visible.`);
+  }
+
+  if (state.feedbackGracePeriodSec !== state.diagnosticGracePeriodSec) {
+    throw new Error(`Expected ${label} M7 debug grace period to match diagnostics.`);
+  }
+
+  if (!['left', 'right'].includes(state.feedbackLaneSide)) {
+    throw new Error(`Expected ${label} M7 debug lane side to be visible.`);
+  }
+
+  if (state.feedbackLaneSide !== state.diagnosticLaneSide) {
+    throw new Error(`Expected ${label} M7 debug lane side to match diagnostics.`);
+  }
+
+  if (!state.keepLeftDebugText?.includes(`Side ${state.feedbackLaneSide}`)) {
+    throw new Error(`Expected ${label} M7 debug text to include lane side.`);
   }
 }
 

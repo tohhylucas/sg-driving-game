@@ -108,7 +108,8 @@ blind-spot camera look controls and M7's scoring foundation.
   startup, and scored-event aggregation within one session.
 - Delivery note: Implemented issue #13 with a session-scoped scoring event
   stream, episode-based keep-left pass/violation rule, fixed finish gate, R
-  reset, and separate feedback HUD.
+  reset, separate feedback HUD, and keep-left debug readout for grace period
+  and lane-side diagnostics.
 - **Test:** Driving outside the correct left lane emits a scored keep-left
   event after a configurable grace period; returning left or entering a new
   road segment allows a later separate keep-left violation; the rule is active

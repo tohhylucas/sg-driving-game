@@ -81,6 +81,26 @@ describe('DrivingSession', () => {
     expect(session.state.sessionId).toBe(2);
     expect(session.summary.events).toEqual([]);
   });
+
+  it('exposes rule diagnostics for debug HUDs', () => {
+    const session = new DrivingSession({
+      rules: [new KeepLeftRule({ gracePeriodSec: 1.25 })],
+      track
+    });
+
+    session.start(createInitialCarState());
+    session.update(makeCarState(1.75, 0), 0.5);
+
+    expect(session.ruleDiagnostics).toEqual([
+      expect.objectContaining({
+        ruleId: 'keep-left',
+        gracePeriodSec: 1.25,
+        laneSide: 'right',
+        outsideLaneSec: 0.5,
+        withinDefaultLane: false
+      })
+    ]);
+  });
 });
 
 class RecordingRule implements SessionRule {

@@ -4,7 +4,10 @@ import { ChaseCamera } from '../camera/ChaseCamera';
 import { MirrorCamera } from '../camera/MirrorCamera';
 import { COCKPIT_CAMERA_CONFIG, MIRROR_CONFIG } from '../config/constants';
 import type { CarState, MirrorId, Vec3 } from '../types';
-import { DrivingSession } from '../rules/DrivingSession';
+import {
+  DrivingSession,
+  type SessionRuleDiagnostics
+} from '../rules/DrivingSession';
 import { KeepLeftRule } from '../rules/KeepLeftRule';
 import { Cockpit } from '../ui/Cockpit';
 import { Car } from '../vehicle/Car';
@@ -41,6 +44,7 @@ export interface GameDiagnostics {
       readonly ruleId: string;
     }[];
     readonly passCount: number;
+    readonly ruleDiagnostics: readonly SessionRuleDiagnostics[];
     readonly sessionId: number;
     readonly violationCount: number;
   };
@@ -90,6 +94,7 @@ export class Game {
     this.drivingSession.start(this.car.state);
     this.chaseCamera.update(this.car.state);
     this.cockpit.update({
+      ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
       speedMps: this.car.state.speedMps,
       steer: this.carController.steerAmount
@@ -157,6 +162,7 @@ export class Game {
           ruleId: event.ruleId
         })),
         passCount: summary.passCount,
+        ruleDiagnostics: this.drivingSession.ruleDiagnostics,
         violationCount: summary.violationCount
       }
     };
@@ -188,6 +194,7 @@ export class Game {
       lookYawRad: blindSpotLookYawRad
     });
     this.cockpit.update({
+      ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
       speedMps: this.car.state.speedMps,
       steer: this.carController.steerAmount

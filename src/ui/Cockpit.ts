@@ -1,4 +1,5 @@
 import { MIRROR_CONFIG } from '../config/constants';
+import type { SessionRuleDiagnostics } from '../rules/DrivingSession';
 import type { ScoredEventSummary } from '../rules/scoring';
 import type { MirrorId } from '../types';
 import { InstructorAudio } from './InstructorAudio';
@@ -8,6 +9,7 @@ import { Speedometer } from './Speedometer';
 import { SteeringWheel } from './SteeringWheel';
 
 interface CockpitState {
+  ruleDiagnostics: readonly SessionRuleDiagnostics[];
   score: ScoredEventSummary;
   speedMps: number;
   steer: number;
@@ -40,7 +42,7 @@ export class Cockpit {
   update(state: CockpitState): void {
     this.steeringWheel.setRotation(state.steer);
     this.speedometer.setSpeed(state.speedMps);
-    this.scoringFeedback.update(state.score);
+    this.scoringFeedback.update(state.score, state.ruleDiagnostics);
   }
 
   dispose(): void {

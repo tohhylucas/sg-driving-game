@@ -141,7 +141,8 @@ driving-game/
   scoring events or affect vehicle motion.
 - `DrivingSession.ts`: pure session lifecycle and scored-event aggregation.
   Sessions start when the game starts or resets, end at the finish zone, and
-  keep rule modules active only while the session is active.
+  keep rule modules active only while the session is active. It also exposes
+  read-only rule diagnostics for debug HUDs without mutating gameplay.
 - `KeepLeftRule.ts`: always-active Phase 2 keep-left rule. It observes car
   state, emits one violation per continuous wrong-lane episode after a
   configurable grace period, allows new episodes after returning left or
@@ -157,8 +158,9 @@ driving-game/
   reports the matching canvas viewport for compositing.
 - `InstructorAudio.ts`: audio-only instructor placeholder. It exposes no
   instruction text or caption API in Phase 1.
-- `ScoringFeedback.ts`: minimal feedback HUD for scored pass/violation counts.
-  It is separate from instructor audio.
+- `ScoringFeedback.ts`: minimal feedback HUD for scored pass/violation counts
+  plus rule diagnostics such as keep-left grace period and lane-side debug
+  state. It is separate from instructor audio.
 - `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
   helpers.
 - `config/constants.ts`: single source of truth for tunable numbers and colors.
