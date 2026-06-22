@@ -45,6 +45,7 @@ export const ROAD_CONFIG = {
   centerLineColor: 0xffffff,
   centerDashLengthM: 4,
   centerDashGapM: 5,
+  sideRoadSolidLineWidthM: 0.28,
   markingYOffsetM: 0.02,
   stopLineWidthM: 0.35,
   stopLineColor: 0xffffff,

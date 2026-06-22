@@ -174,7 +174,8 @@ driving-game/
   available for milestone history but is not the active M5 world road.
 - `TestTrack.ts`: renders the M5 fixed test track from pure layout data:
   loop road segments, a T-junction side road, a cross junction, lane markings,
-  and static stop-line markings only.
+  an obvious solid white T-junction side-road guide line, and static stop-line
+  markings only.
 - `roadLayout.ts`: pure, testable straight-road layout derived from shared
   road config, including the Singapore keep-left default lane and marking
   positions. Also provides shared center-dash cadence helpers.
