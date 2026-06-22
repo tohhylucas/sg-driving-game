@@ -32,6 +32,7 @@ const M8_RECORDING_DURATION_MS = 7_000;
 const M9_RECORDING_DURATION_MS = 7_000;
 const M10_RECORDING_DURATION_MS = 7_000;
 const M11_RECORDING_DURATION_MS = 6_000;
+const M12_RECORDING_DURATION_MS = 6_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -177,6 +178,13 @@ async function main() {
             instructorCaptionExists: overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') !== null,
             instructorAudioText: overlay.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? null,
             scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null
+          } : null,
+          m12: window.__SG_DRIVING_GAME_DEV__ && overlay instanceof HTMLDivElement ? {
+            outcomeSummary: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.outcomeSummary ?? null,
+            scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null,
+            sessionActive: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.active,
+            sessionOutcomeExists: overlay.querySelector('[data-instrument="session-outcome-summary"]') !== null,
+            sessionOutcomeVisible: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.sessionOutcomeVisible ?? null
           } : null
         };
       })()`,
@@ -481,7 +489,8 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm8' ||
     expectedPhase === 'm9' ||
     expectedPhase === 'm10' ||
-    expectedPhase === 'm11'
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
   ) {
     assertM4SmokeResult(smoke.m4);
   }
@@ -491,7 +500,8 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm8' ||
     expectedPhase === 'm9' ||
     expectedPhase === 'm10' ||
-    expectedPhase === 'm11'
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
   ) {
     assertM7SmokeResult(smoke.m7);
   }
@@ -500,7 +510,8 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm8' ||
     expectedPhase === 'm9' ||
     expectedPhase === 'm10' ||
-    expectedPhase === 'm11'
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
   ) {
     assertM8SmokeResult(smoke.m8);
   }
@@ -508,17 +519,26 @@ function assertSmokeResult(smoke, expectedPhase) {
   if (
     expectedPhase === 'm9' ||
     expectedPhase === 'm10' ||
-    expectedPhase === 'm11'
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
   ) {
     assertM9SmokeResult(smoke.m9);
   }
 
-  if (expectedPhase === 'm10' || expectedPhase === 'm11') {
+  if (
+    expectedPhase === 'm10' ||
+    expectedPhase === 'm11' ||
+    expectedPhase === 'm12'
+  ) {
     assertM10SmokeResult(smoke.m10);
   }
 
-  if (expectedPhase === 'm11') {
+  if (expectedPhase === 'm11' || expectedPhase === 'm12') {
     assertM11SmokeResult(smoke.m11);
+  }
+
+  if (expectedPhase === 'm12') {
+    assertM12SmokeResult(smoke.m12);
   }
 }
 
@@ -668,6 +688,28 @@ function assertM11SmokeResult(m11) {
   }
 }
 
+function assertM12SmokeResult(m12) {
+  if (!m12?.scoringFeedbackExists) {
+    throw new Error('Expected M12 scoring feedback surface to exist.');
+  }
+
+  if (m12.sessionActive !== true) {
+    throw new Error('Expected M12 live game session to start active.');
+  }
+
+  if (m12.sessionOutcomeExists) {
+    throw new Error('Expected M12 post-drive summary to stay hidden before finish.');
+  }
+
+  if (m12.sessionOutcomeVisible !== 'false') {
+    throw new Error('Expected M12 scoring feedback to report no visible summary before finish.');
+  }
+
+  if (m12.outcomeSummary !== null) {
+    throw new Error('Expected M12 diagnostics to omit outcome summary before finish.');
+  }
+}
+
 function getRecordingDurationMs(expectedPhase) {
   if (expectedPhase === 'm4') {
     return M4_RECORDING_DURATION_MS;
@@ -699,6 +741,10 @@ function getRecordingDurationMs(expectedPhase) {
 
   if (expectedPhase === 'm11') {
     return M11_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm12') {
+    return M12_RECORDING_DURATION_MS;
   }
 
   return RECORDING_DURATION_MS;
@@ -2166,6 +2212,208 @@ async function runM11InstructorScenario(cdp) {
   return value;
 }
 
+async function runM12SessionOutcomeScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        { DrivingSession },
+        { FollowingTimeGapRule },
+        { KeepLeftRule },
+        { SideHazardRule },
+        { StopLineRule },
+        { ScoringFeedback },
+        {
+          getFixedTestTrackLayout,
+          getSegmentPointAtLocalPosition
+        }
+      ] = await Promise.all([
+        import('/src/rules/DrivingSession.ts'),
+        import('/src/rules/FollowingTimeGapRule.ts'),
+        import('/src/rules/KeepLeftRule.ts'),
+        import('/src/rules/SideHazardRule.ts'),
+        import('/src/rules/StopLineRule.ts'),
+        import('/src/ui/ScoringFeedback.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const api = window.__SG_DRIVING_GAME_DEV__;
+      const overlay = document.querySelector('#ui-overlay');
+      const layout = getFixedTestTrackLayout();
+      const stopZone = layout.stopLineRuleZones[0];
+      const stopSegment = layout.segments.find(
+        (candidate) => candidate.id === stopZone?.segmentId
+      );
+
+      if (!api || !overlay || !stopZone || !stopSegment) {
+        return { available: false };
+      }
+
+      const makeRules = () => [
+        new KeepLeftRule({ gracePeriodSec: 0.5 }),
+        new StopLineRule({ completeStopMaxSpeedMps: 0.1 }),
+        new SideHazardRule(),
+        new FollowingTimeGapRule()
+      ];
+      const makeCar = (x, z, headingRad = 0, speedMps = 0) => ({
+        position: { x, y: 0.01, z },
+        headingRad,
+        speedMps
+      });
+      const makeStopLineCar = (signedApproachDistanceM, speedMps) => {
+        const localZM =
+          stopZone.stopLineLocalZM +
+          signedApproachDistanceM *
+            (stopZone.crossingDirection === -1 ? 1 : -1);
+        const point = getSegmentPointAtLocalPosition(stopSegment, 0, localZM);
+
+        return makeCar(point.xM, point.zM, stopSegment.headingRad, speedMps);
+      };
+
+      const session = new DrivingSession({
+        rules: makeRules(),
+        track: layout
+      });
+      session.start(makeCar(-1.75, 0));
+      session.update(makeStopLineCar(1, 0), 0.1);
+      session.update(makeStopLineCar(-0.2, 1), 0.1);
+      session.update(makeCar(1.75, 0, 0, 4), 0.6);
+      session.update(makeCar(-1.75, layout.finishZone.center.zM), 0.1);
+
+      const fixture = document.createElement('div');
+      fixture.dataset.smokeFixture = 'm12-session-outcome';
+      fixture.style.cssText = [
+        'position:fixed',
+        'right:18px',
+        'bottom:18px',
+        'z-index:9998',
+        'width:min(380px,calc(100vw - 36px))',
+        'min-height:320px',
+        'pointer-events:none'
+      ].join(';');
+      document.body.append(fixture);
+
+      const feedback = new ScoringFeedback(fixture);
+      feedback.root.style.position = 'relative';
+      feedback.root.style.inset = 'auto';
+      feedback.root.style.width = '100%';
+      feedback.update(
+        session.summary,
+        session.ruleDiagnostics,
+        session.state.active,
+        session.outcomeSummary
+      );
+
+      const summaryElement = fixture.querySelector(
+        '[data-instrument="session-outcome-summary"]'
+      );
+      const passSection = fixture.querySelector(
+        '[data-outcome-section="passes"]'
+      );
+      const violationSection = fixture.querySelector(
+        '[data-outcome-section="violations"]'
+      );
+      const notEncounteredSection = fixture.querySelector(
+        '[data-outcome-section="not-encountered"]'
+      );
+      const summaryText = summaryElement?.textContent ?? '';
+      const outcomeSummary = session.outcomeSummary;
+      const emittedMessages = session.summary.events.map((event) => event.message);
+
+      const resetSession = new DrivingSession({
+        rules: makeRules(),
+        track: layout
+      });
+      resetSession.start(makeCar(-1.75, 0));
+      resetSession.update(makeCar(-1.75, layout.finishZone.center.zM), 0.1);
+      const hadSummaryBeforeReset = resetSession.outcomeSummary !== undefined;
+      resetSession.reset(makeCar(-1.75, 0));
+
+      const instructorAudioElement = overlay.querySelector(
+        '[data-instrument="instructor-audio"]'
+      );
+      const checks = {
+        alwaysActiveRulesContribute:
+          session.summary.events.some(
+            (event) => event.ruleId === 'stop-line' && event.outcome === 'pass'
+          ) &&
+          session.summary.events.some(
+            (event) => event.ruleId === 'keep-left' && event.outcome === 'violation'
+          ),
+        feedbackUsesRealEvents:
+          emittedMessages.every((message) => summaryText.includes(message)),
+        finishShowsSummary:
+          session.state.active === false &&
+          feedback.root.dataset.sessionOutcomeVisible === 'true' &&
+          summaryElement !== null,
+        groupedSectionsVisible:
+          passSection?.textContent?.includes('Stop line') === true &&
+          violationSection?.textContent?.includes('Keep left') === true &&
+          notEncounteredSection?.textContent?.includes('Side hazard') === true &&
+          notEncounteredSection?.textContent?.includes('Following time gap') === true,
+        noNumericSummary:
+          !/[0-9%★☆]/u.test(summaryText) &&
+          !/score|severity|stars|percent/i.test(summaryText),
+        notEncounteredFromSilentRules:
+          outcomeSummary?.notEncountered.includes('side-hazard') === true &&
+          outcomeSummary?.notEncountered.includes('following-time-gap') === true,
+        resetClearsSummary:
+          hadSummaryBeforeReset &&
+          resetSession.state.active === true &&
+          resetSession.summary.events.length === 0 &&
+          resetSession.outcomeSummary === undefined,
+        summarySeparatesInstructorAudio:
+          (instructorAudioElement?.textContent ?? '').trim() === '' &&
+          overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') === null
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm12-session-outcome';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:660px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M12 session outcome acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        allPassed,
+        checks,
+        outcomeSummary,
+        summaryText
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M12 browser acceptance requires dev diagnostics, rule modules, and scoring feedback.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M12 session outcome browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
 async function readM7State(cdp) {
   const result = await cdp.send('Runtime.evaluate', {
     returnByValue: true,
@@ -2431,6 +2679,10 @@ async function writeArtifacts({
     errors.push('M11 instructor TTS acceptance scenario did not pass every check.');
   }
 
+  if (expectedPhase === 'm12' && !recording.acceptance?.allPassed) {
+    errors.push('M12 session outcome acceptance scenario did not pass every check.');
+  }
+
   await writeFile(
     logsPath,
     formatArtifactLog({
@@ -2487,6 +2739,10 @@ async function captureChromeRecording({
 
   if (expectedPhase === 'm11') {
     return captureM11InstructorRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm12') {
+    return captureM12SessionOutcomeRecording({ cdp, durationMs, outputPath });
   }
 
   try {
@@ -2621,6 +2877,28 @@ async function captureM11InstructorRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M11 instructor TTS acceptance'
+  };
+}
+
+async function captureM12SessionOutcomeRecording({
+  cdp,
+  durationMs,
+  outputPath
+}) {
+  const scenario = runM12SessionOutcomeScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M12 records the session outcome summary acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M12 session outcome acceptance'
   };
 }
 

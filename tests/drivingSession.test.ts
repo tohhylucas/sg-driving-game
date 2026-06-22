@@ -223,6 +223,36 @@ describe('DrivingSession', () => {
     expect(session.summary.violationCount).toBe(0);
   });
 
+  it('exposes a session outcome summary after crossing the finish zone', () => {
+    const session = new DrivingSession({
+      rules: [new KeepLeftRule({ gracePeriodSec: 1 }), new SilentRule('stop-line')],
+      track
+    });
+
+    session.start(createInitialCarState());
+
+    expect(session.outcomeSummary).toBeUndefined();
+
+    session.update(makeCarState(-1.75, track.finishZone.center.zM), 0.1);
+
+    expect(session.state.active).toBe(false);
+    expect(session.outcomeSummary).toEqual({
+      passes: [
+        {
+          ruleId: 'keep-left',
+          events: [
+            expect.objectContaining({
+              outcome: 'pass',
+              ruleId: 'keep-left'
+            })
+          ]
+        }
+      ],
+      violations: [],
+      notEncountered: ['stop-line']
+    });
+  });
+
   it('reset starts a fresh session and clears current scored events', () => {
     const session = new DrivingSession({
       rules: [new KeepLeftRule({ gracePeriodSec: 1 })],
@@ -231,11 +261,16 @@ describe('DrivingSession', () => {
 
     session.start(createInitialCarState());
     session.update(makeCarState(1.75, 0), 1.1);
+    session.end('finish', makeCarState(1.75, 0));
+
+    expect(session.outcomeSummary).toBeDefined();
+
     session.reset(createInitialCarState());
 
     expect(session.state.active).toBe(true);
     expect(session.state.sessionId).toBe(2);
     expect(session.summary.events).toEqual([]);
+    expect(session.outcomeSummary).toBeUndefined();
   });
 
   it('exposes rule diagnostics for debug HUDs', () => {
@@ -287,6 +322,20 @@ class RecordingRule implements SessionRule {
   startSession(sessionId: number): void {
     this.startedSessionIds.push(sessionId);
   }
+
+  update(): ScoredEvent[] {
+    return [];
+  }
+
+  endSession(): ScoredEvent[] {
+    return [];
+  }
+}
+
+class SilentRule implements SessionRule {
+  constructor(readonly id: string) {}
+
+  startSession(): void {}
 
   update(): ScoredEvent[] {
     return [];

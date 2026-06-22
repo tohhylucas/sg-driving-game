@@ -15,6 +15,7 @@ import {
 } from '../rules/DrivingSession';
 import { FollowingTimeGapRule } from '../rules/FollowingTimeGapRule';
 import { KeepLeftRule } from '../rules/KeepLeftRule';
+import type { SessionOutcomeSummary } from '../rules/scoring';
 import { SideHazardRule } from '../rules/SideHazardRule';
 import { StopLineRule } from '../rules/StopLineRule';
 import { Cockpit } from '../ui/Cockpit';
@@ -61,6 +62,7 @@ export interface GameDiagnostics {
       readonly ruleId: string;
     }[];
     readonly passCount: number;
+    readonly outcomeSummary?: SessionOutcomeSummary;
     readonly ruleDiagnostics: readonly SessionRuleDiagnostics[];
     readonly sessionId: number;
     readonly violationCount: number;
@@ -124,6 +126,7 @@ export class Game {
     );
     this.chaseCamera.update(this.car.state);
     this.cockpit.update({
+      outcomeSummary: this.drivingSession.outcomeSummary,
       ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
       sessionActive: this.drivingSession.state.active,
@@ -135,7 +138,7 @@ export class Game {
     this.engine.scene.add(this.movingElements.object);
     this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm11';
+    uiRoot.dataset.phase = 'm12';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -202,6 +205,7 @@ export class Game {
           ruleId: event.ruleId
         })),
         passCount: summary.passCount,
+        outcomeSummary: this.drivingSession.outcomeSummary,
         ruleDiagnostics: this.drivingSession.ruleDiagnostics,
         violationCount: summary.violationCount
       }
@@ -244,6 +248,7 @@ export class Game {
       lookYawRad: blindSpotLookYawRad
     });
     this.cockpit.update({
+      outcomeSummary: this.drivingSession.outcomeSummary,
       ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
       sessionActive: this.drivingSession.state.active,

@@ -153,7 +153,9 @@ driving-game/
   keep rule modules active only while the session is active. It records the
   session end reason, including terminal failures, passes live moving-element
   state to observer rules, and exposes read-only rule diagnostics for debug
-  HUDs without mutating gameplay.
+  HUDs without mutating gameplay. After a finish end, it exposes a deterministic
+  non-numeric session outcome summary grouped by rule-level pass, violation,
+  and not-encountered outcomes.
 - `InstructorInstructionQueue.ts`: pure audio-only instructor prompt queue for
   configured fixed route features. It starts and ends with the driving session,
   serializes mockable TTS playback, suppresses duplicate feature triggers within
@@ -185,17 +187,19 @@ driving-game/
   moving element ahead of the player, uses global time-gap config, and emits at
   most one pass or violation per encounter.
 - `finishZone.ts`: pure finish-gate containment helper.
-- `scoring.ts`: shared scored-event shape and pass/violation aggregation.
+- `scoring.ts`: shared scored-event shape, pass/violation aggregation, and
+  deterministic session outcome grouping.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
   car state.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame and
   reports the matching canvas viewport for compositing.
 - `InstructorAudio.ts`: textless audio-only HUD indicator for instructor audio.
   It exposes no instruction text or caption API.
-- `ScoringFeedback.ts`: minimal feedback HUD for scored pass/violation counts
-  plus rule diagnostics such as keep-left grace period and lane-side debug
-  state. It highlights terminal `IMMEDIATE FAILURE` messages and is separate
-  from instructor audio.
+- `ScoringFeedback.ts`: minimal in-drive feedback HUD for scored
+  pass/violation counts plus rule diagnostics such as keep-left grace period
+  and lane-side debug state. After a finish end, it switches to the non-numeric
+  post-drive session outcome summary. It highlights terminal `IMMEDIATE
+  FAILURE` messages and is separate from instructor audio.
 - `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
   helpers.
 - `config/constants.ts`: single source of truth for tunable numbers, colors,

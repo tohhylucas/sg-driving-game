@@ -12,8 +12,12 @@ import type { FollowingTimeGapRuleDiagnostics } from './FollowingTimeGapRule';
 import type { SideHazardRuleDiagnostics } from './SideHazardRule';
 import type { StopLineRuleDiagnostics } from './StopLineRule';
 import type { MovingElementState } from '../types';
-import type { ScoredEvent, ScoredEventSummary } from './scoring';
-import { summarizeScoredEvents } from './scoring';
+import type {
+  ScoredEvent,
+  ScoredEventSummary,
+  SessionOutcomeSummary
+} from './scoring';
+import { summarizeScoredEvents, summarizeSessionOutcomes } from './scoring';
 
 export interface SessionRule {
   readonly id: string;
@@ -67,6 +71,17 @@ export class DrivingSession {
 
   get summary(): ScoredEventSummary {
     return summarizeScoredEvents(this.events);
+  }
+
+  get outcomeSummary(): SessionOutcomeSummary | undefined {
+    if (this.active || this.endReason !== 'finish') {
+      return undefined;
+    }
+
+    return summarizeSessionOutcomes(
+      this.events,
+      this.rules.map((rule) => rule.id)
+    );
   }
 
   get ruleDiagnostics(): readonly SessionRuleDiagnostics[] {
