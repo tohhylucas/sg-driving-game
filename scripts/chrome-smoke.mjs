@@ -29,6 +29,7 @@ const M5_RECORDING_DURATION_MS = 35_000;
 const M6_RECORDING_DURATION_MS = 9_000;
 const M7_RECORDING_DURATION_MS = 9_000;
 const M8_RECORDING_DURATION_MS = 7_000;
+const M9_RECORDING_DURATION_MS = 7_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -156,6 +157,11 @@ async function main() {
           m8: window.__SG_DRIVING_GAME_DEV__ ? {
             stopLineDiagnostics: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.ruleDiagnostics.find(
               (entry) => entry.ruleId === 'stop-line'
+            ) ?? null
+          } : null,
+          m9: window.__SG_DRIVING_GAME_DEV__ ? {
+            sideHazardDiagnostics: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.ruleDiagnostics.find(
+              (entry) => entry.ruleId === 'side-hazard'
             ) ?? null
           } : null
         };
@@ -458,17 +464,26 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm5' ||
     expectedPhase === 'm6' ||
     expectedPhase === 'm7' ||
-    expectedPhase === 'm8'
+    expectedPhase === 'm8' ||
+    expectedPhase === 'm9'
   ) {
     assertM4SmokeResult(smoke.m4);
   }
 
-  if (expectedPhase === 'm7' || expectedPhase === 'm8') {
+  if (
+    expectedPhase === 'm7' ||
+    expectedPhase === 'm8' ||
+    expectedPhase === 'm9'
+  ) {
     assertM7SmokeResult(smoke.m7);
   }
 
-  if (expectedPhase === 'm8') {
+  if (expectedPhase === 'm8' || expectedPhase === 'm9') {
     assertM8SmokeResult(smoke.m8);
+  }
+
+  if (expectedPhase === 'm9') {
+    assertM9SmokeResult(smoke.m9);
   }
 }
 
@@ -548,6 +563,22 @@ function assertM8SmokeResult(m8) {
   }
 }
 
+function assertM9SmokeResult(m9) {
+  const sideHazardDiagnostics = m9?.sideHazardDiagnostics;
+
+  if (!sideHazardDiagnostics) {
+    throw new Error('Expected M9 side-hazard diagnostics to exist.');
+  }
+
+  if (sideHazardDiagnostics.activeHazardCount !== 1) {
+    throw new Error('Expected M9 to start with one active side hazard.');
+  }
+
+  if (sideHazardDiagnostics.pendingHazardCount !== 1) {
+    throw new Error('Expected M9 side hazard to start pending.');
+  }
+}
+
 function getRecordingDurationMs(expectedPhase) {
   if (expectedPhase === 'm4') {
     return M4_RECORDING_DURATION_MS;
@@ -567,6 +598,10 @@ function getRecordingDurationMs(expectedPhase) {
 
   if (expectedPhase === 'm8') {
     return M8_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm9') {
+    return M9_RECORDING_DURATION_MS;
   }
 
   return RECORDING_DURATION_MS;
@@ -1123,6 +1158,196 @@ async function runM8StopLineRuleScenario(cdp) {
   return value;
 }
 
+async function runM9SideHazardScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        {
+          SideHazardRule,
+          isCarCollidingWithSideHazard,
+          isCarInsideSideHazardTriggerZone
+        },
+        { getFixedTestTrackLayout }
+      ] = await Promise.all([
+        import('/src/rules/SideHazardRule.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const layout = getFixedTestTrackLayout();
+      const hazard = layout.sideHazards[0];
+      const segment = layout.segments.find(
+        (candidate) => candidate.id === hazard?.segmentId
+      );
+      const api = window.__SG_DRIVING_GAME_DEV__;
+
+      if (!hazard || !segment || !api) {
+        return { available: false };
+      }
+
+      const makeCarState = (localXM, localZM, speedMps) => ({
+        position: {
+          x:
+            segment.center.xM +
+            localXM * Math.cos(segment.headingRad) +
+            localZM * Math.sin(segment.headingRad),
+          y: 0.01,
+          z:
+            segment.center.zM -
+            localXM * Math.sin(segment.headingRad) +
+            localZM * Math.cos(segment.headingRad)
+        },
+        headingRad: segment.headingRad,
+        speedMps
+      });
+      const runScenario = (sessionId, steps) => {
+        const rule = new SideHazardRule();
+        const events = [];
+
+        rule.startSession(sessionId, layout);
+
+        for (let index = 0; index < steps.length; index += 1) {
+          const [localXM, localZM, speedMps] = steps[index];
+          events.push(
+            ...rule.update({
+              car: makeCarState(localXM, localZM, speedMps),
+              dtSec: 0.1,
+              elapsedSec: (index + 1) / 10,
+              sessionId,
+              track: layout
+            })
+          );
+        }
+
+        return {
+          diagnostics: rule.getDiagnostics(),
+          events: events.map((event) => ({
+            message: event.message,
+            outcome: event.outcome,
+            ruleId: event.ruleId
+          }))
+        };
+      };
+      const activeDiagnostics = api
+        .readDiagnostics()
+        .session.ruleDiagnostics.find((entry) => entry.ruleId === 'side-hazard');
+      const leftLaneAtTrigger = makeCarState(
+        layout.defaultDrivingLane.centerOffsetM,
+        hazard.triggerZone.centerLocalZM,
+        3
+      );
+      const leftLaneAtHazard = makeCarState(
+        layout.defaultDrivingLane.centerOffsetM,
+        hazard.collisionBox.centerLocalZM,
+        3
+      );
+      const collision = runScenario(901, [
+        [
+          hazard.collisionBox.centerLocalXM,
+          hazard.collisionBox.centerLocalZM,
+          3
+        ]
+      ]);
+      const duplicateCollision = runScenario(902, [
+        [
+          hazard.collisionBox.centerLocalXM,
+          hazard.collisionBox.centerLocalZM,
+          3
+        ],
+        [
+          hazard.collisionBox.centerLocalXM,
+          hazard.collisionBox.centerLocalZM,
+          3
+        ]
+      ]);
+      const safeClear = runScenario(903, [
+        [
+          layout.defaultDrivingLane.centerOffsetM,
+          hazard.triggerZone.centerLocalZM,
+          3
+        ],
+        [
+          layout.defaultDrivingLane.centerOffsetM,
+          hazard.clearanceLocalZM + hazard.clearanceDirection * 0.5,
+          3
+        ]
+      ]);
+      const checks = {
+        activeAtSessionStart:
+          activeDiagnostics?.activeHazardCount === 1 &&
+          activeDiagnostics?.pendingHazardCount === 1,
+        collisionViolates:
+          collision.events.length === 1 &&
+          collision.events[0].outcome === 'violation',
+        duplicateIncidentSuppressed:
+          duplicateCollision.events.length === 1 &&
+          duplicateCollision.diagnostics.violationHazardCount === 1,
+        fixedScriptedVisibleHazard:
+          layout.sideHazards.length === 1 &&
+          hazard.kind === 'side-hazard' &&
+          hazard.scenarioType === 'bicycle' &&
+          hazard.visible === true,
+        noCameraCheckScoring:
+          collision.events[0]?.ruleId === 'side-hazard' &&
+          !/mirror|blind|camera/i.test(collision.events[0]?.message ?? ''),
+        noInvisibleTriggerCollision:
+          isCarInsideSideHazardTriggerZone(layout, hazard, leftLaneAtTrigger) &&
+          !isCarCollidingWithSideHazard(layout, hazard, leftLaneAtHazard),
+        safeClearPasses:
+          safeClear.events.length === 1 &&
+          safeClear.events[0].outcome === 'pass'
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm9-side-hazard';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:560px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M9 side-hazard acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        activeDiagnostics,
+        allPassed,
+        checks,
+        collision,
+        duplicateCollision,
+        hazard,
+        safeClear
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M9 browser acceptance requires dev diagnostics and rule modules.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M9 side-hazard browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
 async function readM7State(cdp) {
   const result = await cdp.send('Runtime.evaluate', {
     returnByValue: true,
@@ -1376,6 +1601,10 @@ async function writeArtifacts({
     errors.push('M8 stop-line acceptance scenario did not pass every check.');
   }
 
+  if (expectedPhase === 'm9' && !recording.acceptance?.allPassed) {
+    errors.push('M9 side-hazard acceptance scenario did not pass every check.');
+  }
+
   await writeFile(
     logsPath,
     formatArtifactLog({
@@ -1420,6 +1649,10 @@ async function captureChromeRecording({
 
   if (expectedPhase === 'm8') {
     return captureM8StopLineRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm9') {
+    return captureM9SideHazardRecording({ cdp, durationMs, outputPath });
   }
 
   try {
@@ -1500,6 +1733,24 @@ async function captureM8StopLineRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M8 stop-line rule acceptance'
+  };
+}
+
+async function captureM9SideHazardRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM9SideHazardScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M9 records the side-hazard rule acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M9 side-hazard acceptance'
   };
 }
 

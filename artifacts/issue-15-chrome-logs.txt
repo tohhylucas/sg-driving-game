@@ -1,0 +1,182 @@
+Chrome verification
+Timestamp: 2026-06-22T15:10:31.391Z
+Chrome: detected
+App URL: http://127.0.0.1:5174/
+Recording: artifacts/issue-15-chrome-recording.webm
+Recording source: Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M9 side-hazard acceptance
+Recording duration ms: 7000
+Recording frames: 66
+Recording MIME type: video/webm
+Recording bytes: 34401
+
+Smoke result:
+{
+  "title": "Singapore Driving Game",
+  "canvasExists": true,
+  "overlayExists": true,
+  "canvasClientWidth": 758,
+  "canvasClientHeight": 482,
+  "viewportWidth": 758,
+  "viewportHeight": 482,
+  "overlayPhase": "m9",
+  "m4": {
+    "mirrorIds": [
+      "rearview",
+      "leftSide",
+      "rightSide"
+    ],
+    "steeringWheelExists": true,
+    "speedometerExists": true,
+    "instructorAudioExists": true,
+    "instructorCaptionExists": false,
+    "instructorAudioText": "",
+    "overlayText": "0\nKM/H\n0\nPASSES\n0\nVIOLATIONS\nGrace 1.5s | Session active | Side left | Correct yes | Outside 0.00s"
+  },
+  "m7": {
+    "keepLeftDebugExists": true,
+    "keepLeftDebugText": "Grace 1.5s | Session active | Side left | Correct yes | Outside 0.00s",
+    "keepLeftGracePeriodSec": 1.5,
+    "keepLeftLaneSide": "left",
+    "keepLeftSessionActive": "true",
+    "scoringFeedbackExists": true,
+    "passCount": 0,
+    "violationCount": 0,
+    "latestOutcome": ""
+  },
+  "m8": {
+    "stopLineDiagnostics": {
+      "ruleId": "stop-line",
+      "activeZoneCount": 1,
+      "completeStopMaxSpeedMps": 0.1,
+      "passedZoneCount": 0,
+      "pendingZoneCount": 1,
+      "violationZoneCount": 0
+    }
+  },
+  "m9": {
+    "sideHazardDiagnostics": {
+      "ruleId": "side-hazard",
+      "activeHazardCount": 1,
+      "pendingHazardCount": 1,
+      "passedHazardCount": 0,
+      "triggeredHazardCount": 0,
+      "violationHazardCount": 0
+    }
+  }
+}
+
+Pre-recording acceptance sample:
+not run
+
+Recorded acceptance scenario:
+{
+  "available": true,
+  "activeDiagnostics": {
+    "ruleId": "side-hazard",
+    "activeHazardCount": 1,
+    "pendingHazardCount": 1,
+    "passedHazardCount": 0,
+    "triggeredHazardCount": 0,
+    "violationHazardCount": 0
+  },
+  "allPassed": true,
+  "checks": {
+    "activeAtSessionStart": true,
+    "collisionViolates": true,
+    "duplicateIncidentSuppressed": true,
+    "fixedScriptedVisibleHazard": true,
+    "noCameraCheckScoring": true,
+    "noInvisibleTriggerCollision": true,
+    "safeClearPasses": true
+  },
+  "collision": {
+    "diagnostics": {
+      "ruleId": "side-hazard",
+      "activeHazardCount": 1,
+      "pendingHazardCount": 0,
+      "passedHazardCount": 0,
+      "triggeredHazardCount": 0,
+      "violationHazardCount": 1
+    },
+    "events": [
+      {
+        "message": "Side-hazard collision",
+        "outcome": "violation",
+        "ruleId": "side-hazard"
+      }
+    ]
+  },
+  "duplicateCollision": {
+    "diagnostics": {
+      "ruleId": "side-hazard",
+      "activeHazardCount": 1,
+      "pendingHazardCount": 0,
+      "passedHazardCount": 0,
+      "triggeredHazardCount": 0,
+      "violationHazardCount": 1
+    },
+    "events": [
+      {
+        "message": "Side-hazard collision",
+        "outcome": "violation",
+        "ruleId": "side-hazard"
+      }
+    ]
+  },
+  "hazard": {
+    "id": "loop-1-right-blind-spot-bicycle",
+    "kind": "side-hazard",
+    "scenarioType": "bicycle",
+    "segmentId": "loop-1",
+    "center": {
+      "xM": 1.75,
+      "zM": -16
+    },
+    "headingRad": 0,
+    "visible": true,
+    "visualHeightM": 1.15,
+    "clearanceDirection": -1,
+    "clearanceLocalZM": -27,
+    "collisionBox": {
+      "centerLocalXM": 1.75,
+      "centerLocalZM": -16,
+      "lengthM": 3.8,
+      "widthM": 0.8
+    },
+    "triggerZone": {
+      "centerLocalXM": 0,
+      "centerLocalZM": -16,
+      "lengthM": 22,
+      "widthM": 7
+    }
+  },
+  "safeClear": {
+    "diagnostics": {
+      "ruleId": "side-hazard",
+      "activeHazardCount": 1,
+      "pendingHazardCount": 0,
+      "passedHazardCount": 1,
+      "triggeredHazardCount": 0,
+      "violationHazardCount": 0
+    },
+    "events": [
+      {
+        "message": "Safely cleared side hazard",
+        "outcome": "pass",
+        "ruleId": "side-hazard"
+      }
+    ]
+  }
+}
+
+Browser log entries:
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:2F3C001840A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x50e400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x50e400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x50e400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x50e400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+
+Console/runtime error result: none

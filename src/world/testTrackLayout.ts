@@ -71,6 +71,35 @@ export interface TrackFinishZone {
   readonly depthM: number;
 }
 
+export interface TrackSideHazardFootprint {
+  readonly centerLocalXM: number;
+  readonly centerLocalZM: number;
+  readonly lengthM: number;
+  readonly widthM: number;
+}
+
+export interface TrackSideHazardTriggerZone {
+  readonly centerLocalXM: number;
+  readonly centerLocalZM: number;
+  readonly lengthM: number;
+  readonly widthM: number;
+}
+
+export interface TrackSideHazard {
+  readonly id: string;
+  readonly kind: 'side-hazard';
+  readonly scenarioType: 'bicycle' | 'vehicle';
+  readonly segmentId: string;
+  readonly center: TrackPoint;
+  readonly headingRad: number;
+  readonly visible: boolean;
+  readonly visualHeightM: number;
+  readonly clearanceDirection: -1 | 1;
+  readonly clearanceLocalZM: number;
+  readonly collisionBox: TrackSideHazardFootprint;
+  readonly triggerZone: TrackSideHazardTriggerZone;
+}
+
 export interface FixedTestTrackLayout {
   readonly roadWidthM: number;
   readonly loopSegments: readonly TrackSegment[];
@@ -78,6 +107,7 @@ export interface FixedTestTrackLayout {
   readonly junctions: readonly TrackJunction[];
   readonly stopLines: readonly TrackStopLine[];
   readonly stopLineRuleZones: readonly TrackStopLineRuleZone[];
+  readonly sideHazards: readonly TrackSideHazard[];
   readonly finishZone: TrackFinishZone;
   readonly defaultDrivingLane: TrackDrivingLaneLayout;
 }
@@ -171,9 +201,23 @@ function getSegmentPointAtLocalZM(
   segment: TrackSegment,
   localZM: number
 ): TrackPoint {
+  return getSegmentPointAtLocalPosition(segment, 0, localZM);
+}
+
+function getSegmentPointAtLocalPosition(
+  segment: TrackSegment,
+  localXM: number,
+  localZM: number
+): TrackPoint {
   return {
-    xM: segment.center.xM + localZM * Math.sin(segment.headingRad),
-    zM: segment.center.zM + localZM * Math.cos(segment.headingRad)
+    xM:
+      segment.center.xM +
+      localXM * Math.cos(segment.headingRad) +
+      localZM * Math.sin(segment.headingRad),
+    zM:
+      segment.center.zM -
+      localXM * Math.sin(segment.headingRad) +
+      localZM * Math.cos(segment.headingRad)
   };
 }
 
@@ -275,6 +319,44 @@ function makeFinishZone(): TrackFinishZone {
   };
 }
 
+function makeSideHazards(
+  segments: readonly TrackSegment[]
+): TrackSideHazard[] {
+  const segment = findSegment(segments, 'loop-1');
+  const config = TEST_TRACK_CONFIG.sideHazard;
+
+  return [
+    {
+      id: 'loop-1-right-blind-spot-bicycle',
+      kind: 'side-hazard',
+      scenarioType: 'bicycle',
+      segmentId: segment.id,
+      center: getSegmentPointAtLocalPosition(
+        segment,
+        config.centerLocalXM,
+        config.centerLocalZM
+      ),
+      headingRad: segment.headingRad,
+      visible: true,
+      visualHeightM: config.visualHeightM,
+      clearanceDirection: -1,
+      clearanceLocalZM: config.centerLocalZM - config.triggerLengthM / 2,
+      collisionBox: {
+        centerLocalXM: config.centerLocalXM,
+        centerLocalZM: config.centerLocalZM,
+        lengthM: config.collisionLengthM,
+        widthM: config.collisionWidthM
+      },
+      triggerZone: {
+        centerLocalXM: 0,
+        centerLocalZM: config.centerLocalZM,
+        lengthM: config.triggerLengthM,
+        widthM: ROAD_CONFIG.roadWidthM
+      }
+    }
+  ];
+}
+
 export function getFixedTestTrackLayout(): FixedTestTrackLayout {
   const loopSegments = makeLoopSegments();
   const featureSegments = makeFeatureSegments();
@@ -288,6 +370,7 @@ export function getFixedTestTrackLayout(): FixedTestTrackLayout {
     junctions: makeJunctions(),
     stopLines,
     stopLineRuleZones: makeStopLineRuleZones(segments, stopLines),
+    sideHazards: makeSideHazards(segments),
     finishZone: makeFinishZone(),
     defaultDrivingLane: {
       side: ROAD_CONFIG.defaultDrivingLaneSide,

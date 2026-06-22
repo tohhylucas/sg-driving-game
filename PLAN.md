@@ -135,16 +135,20 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M9 - Side-Hazard Accident Scenarios
 
-- [ ] Add visible, physically avoidable deterministic side hazards such as
+- [DONE] Add visible, physically avoidable deterministic side hazards such as
   passing bicycles or adjacent vehicles near turns and lane-change
   opportunities.
-- [ ] Treat a collision or accident with a side hazard as the scored violation;
+- [DONE] Treat a collision or accident with a side hazard as the scored violation;
   do not score whether the player performed a mirror or blind-spot check action.
-- [ ] Keep hazards scripted and fixed for Phase 2; random moving cars and
+- [DONE] Keep hazards scripted and fixed for Phase 2; random moving cars and
   bicycles are Phase 3 scope.
-- [ ] Emit pass/violation side-hazard events through the M7 rule foundation.
-- [ ] Unit-test side-hazard trigger zones, collision/accident detection, and
+- [DONE] Emit pass/violation side-hazard events through the M7 rule foundation.
+- [DONE] Unit-test side-hazard trigger zones, collision/accident detection, and
   repeated-event suppression.
+- Delivery note: Implemented issue #15 with a fixed visible right-lane bicycle
+  side hazard, trigger/clearance and collision footprints, always-active
+  side-hazard scoring through the M7 session stream, repeated-event
+  suppression, focused unit coverage, and M9 Chrome evidence.
 - **Test:** A player who turns or changes lane into a configured side hazard
   receives an accident/violation event; avoiding the hazard passes; no
   check-action input is required or scored.

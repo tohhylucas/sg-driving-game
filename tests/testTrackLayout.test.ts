@@ -114,4 +114,30 @@ describe('fixed test track layout', () => {
       layout.stopLines.some((stopLine) => stopLine.id === zone?.stopLineId)
     ).toBe(true);
   });
+
+  it('exposes a fixed visible side hazard with trigger and collision zones', () => {
+    const layout = getFixedTestTrackLayout();
+    const hazard = layout.sideHazards.find(
+      (candidate) => candidate.id === 'loop-1-right-blind-spot-bicycle'
+    );
+
+    expect(hazard).toEqual(
+      expect.objectContaining({
+        id: 'loop-1-right-blind-spot-bicycle',
+        kind: 'side-hazard',
+        scenarioType: 'bicycle',
+        segmentId: 'loop-1'
+      })
+    );
+    expect(hazard?.visible).toBe(true);
+    expect(hazard?.triggerZone.lengthM).toBeGreaterThan(
+      hazard?.collisionBox.lengthM ?? 0
+    );
+    expect(hazard?.triggerZone.widthM).toBe(ROAD_CONFIG.roadWidthM);
+    expect(hazard?.collisionBox.centerLocalXM).toBeGreaterThan(0);
+    expect(hazard?.collisionBox.widthM).toBeGreaterThan(0);
+    expect(
+      layout.segments.some((segment) => segment.id === hazard?.segmentId)
+    ).toBe(true);
+  });
 });

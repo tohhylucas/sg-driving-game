@@ -12,7 +12,8 @@ export const LOOP_CONFIG = {
 
 export const RULE_CONFIG = {
   keepLeftGracePeriodSec: 1.5,
-  stopLineCompleteStopMaxSpeedMps: 0.1
+  stopLineCompleteStopMaxSpeedMps: 0.1,
+  sideHazardCollisionPaddingM: 0.05
 } as const;
 
 export const RENDER_CONFIG = {
@@ -76,6 +77,17 @@ export const TEST_TRACK_CONFIG = {
   },
   stopLineSetbackM: 4,
   stopLineRuleApproachDepthM: 8,
+  sideHazard: {
+    centerLocalXM: ROAD_LANE_WIDTH_M / 2,
+    centerLocalZM: -16,
+    triggerLengthM: 22,
+    collisionLengthM: 3.8,
+    collisionWidthM: 0.8,
+    visualHeightM: 1.15,
+    frameColor: 0xf97316,
+    wheelColor: 0x111827,
+    riderColor: 0xfacc15
+  },
   finishZone: {
     center: { xM: 0, zM: 24 },
     depthM: 4
