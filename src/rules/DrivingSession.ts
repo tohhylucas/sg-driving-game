@@ -8,8 +8,10 @@ import type {
   RuleUpdateContext,
   SessionEndReason
 } from './KeepLeftRule';
+import type { FollowingTimeGapRuleDiagnostics } from './FollowingTimeGapRule';
 import type { SideHazardRuleDiagnostics } from './SideHazardRule';
 import type { StopLineRuleDiagnostics } from './StopLineRule';
+import type { MovingElementState } from '../types';
 import type { ScoredEvent, ScoredEventSummary } from './scoring';
 import { summarizeScoredEvents } from './scoring';
 
@@ -23,6 +25,7 @@ export interface SessionRule {
 }
 
 export type SessionRuleDiagnostics =
+  | FollowingTimeGapRuleDiagnostics
   | KeepLeftRuleDiagnostics
   | SideHazardRuleDiagnostics
   | StopLineRuleDiagnostics;
@@ -94,7 +97,11 @@ export class DrivingSession {
   }
 
   /** Advances active rules and ends the session when the finish gate is crossed. */
-  update(car: CarState, dtSec: number): void {
+  update(
+    car: CarState,
+    dtSec: number,
+    movingElements: readonly MovingElementState[] = []
+  ): void {
     if (!this.active) {
       this.syncRuleDiagnostics(car);
       return;
@@ -107,6 +114,7 @@ export class DrivingSession {
         car,
         dtSec,
         elapsedSec: this.elapsedSec,
+        movingElements,
         sessionId: this.sessionId,
         track: this.track
       });

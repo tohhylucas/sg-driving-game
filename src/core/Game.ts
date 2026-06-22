@@ -8,6 +8,7 @@ import {
   DrivingSession,
   type SessionRuleDiagnostics
 } from '../rules/DrivingSession';
+import { FollowingTimeGapRule } from '../rules/FollowingTimeGapRule';
 import { KeepLeftRule } from '../rules/KeepLeftRule';
 import { SideHazardRule } from '../rules/SideHazardRule';
 import { StopLineRule } from '../rules/StopLineRule';
@@ -16,6 +17,7 @@ import { Car } from '../vehicle/Car';
 import { CarController } from '../vehicle/CarController';
 import { createInitialCarState } from '../vehicle/carState';
 import { getFixedTestTrackLayout } from '../world/testTrackLayout';
+import { ScriptedMovingElementViews } from '../world/ScriptedMovingElementViews';
 import { World } from '../world/World';
 import { Engine, type TextureOverlay } from './Engine';
 import { Input } from './Input';
@@ -38,6 +40,12 @@ export interface GameDiagnostics {
     readonly direction: Vec3;
     readonly position: Vec3;
   };
+  readonly movingElements: readonly {
+    readonly id: string;
+    readonly kind: string;
+    readonly segmentId: string;
+    readonly speedMps: number;
+  }[];
   readonly session: {
     readonly active: boolean;
     readonly endReason: string | undefined;
@@ -60,14 +68,21 @@ export class Game {
   private readonly blindSpotCameraLook = new BlindSpotCameraLook();
   private readonly chaseCamera: ChaseCamera;
   private readonly cockpit: Cockpit;
+  private readonly track = getFixedTestTrackLayout();
   private readonly drivingSession = new DrivingSession({
-    rules: [new KeepLeftRule(), new StopLineRule(), new SideHazardRule()],
-    track: getFixedTestTrackLayout()
+    rules: [
+      new KeepLeftRule(),
+      new StopLineRule(),
+      new SideHazardRule(),
+      new FollowingTimeGapRule()
+    ],
+    track: this.track
   });
   private readonly engine: Engine;
   private readonly input = new Input();
   private readonly loop = new Loop();
   private readonly mirrors: GameMirror[];
+  private readonly movingElements = new ScriptedMovingElementViews(this.track);
   private readonly resizeObserver: ResizeObserver;
   private readonly world: World;
   private wasResetPressed = false;
@@ -75,7 +90,7 @@ export class Game {
   constructor({ canvas, uiRoot }: GameOptions) {
     this.canvas = canvas;
     this.engine = new Engine(canvas);
-    this.world = new World();
+    this.world = new World(this.track);
     this.car = new Car();
     this.carController = new CarController(this.car);
     this.chaseCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
@@ -105,9 +120,10 @@ export class Game {
     });
     this.engine.scene.background = this.world.sky.color;
     this.engine.scene.add(this.world.object);
+    this.engine.scene.add(this.movingElements.object);
     this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm9';
+    uiRoot.dataset.phase = 'm10';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -159,6 +175,12 @@ export class Game {
           z: this.chaseCamera.camera.position.z
         }
       },
+      movingElements: this.movingElements.currentStates.map((element) => ({
+        id: element.id,
+        kind: element.kind,
+        segmentId: element.segmentId,
+        speedMps: element.speedMps
+      })),
       session: {
         ...this.drivingSession.state,
         events: summary.events.map((event) => ({
@@ -187,12 +209,18 @@ export class Game {
     if (input.reset && !this.wasResetPressed) {
       this.car.applyState(createInitialCarState());
       this.carController.reset();
+      this.movingElements.update(0);
       this.drivingSession.reset(this.car.state);
     }
 
     this.wasResetPressed = input.reset;
     this.carController.update(input, dtSec);
-    this.drivingSession.update(this.car.state, dtSec);
+    this.movingElements.update(this.drivingSession.state.elapsedSec + dtSec);
+    this.drivingSession.update(
+      this.car.state,
+      dtSec,
+      this.movingElements.currentStates
+    );
     const blindSpotLookYawRad = this.blindSpotCameraLook.update(input, dtSec);
     this.chaseCamera.update(this.car.state, {
       lookYawRad: blindSpotLookYawRad
