@@ -24,8 +24,27 @@ const CHROME_CANDIDATES = [
 
 const WAIT_TIMEOUT_MS = 15_000;
 const RECORDING_DURATION_MS = 1_500;
+const M4_RECORDING_DURATION_MS = 4_500;
+const M5_RECORDING_DURATION_MS = 35_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
+const M5_DRIVER_INTERVAL_MS = 100;
+const M5_CHECKPOINT_RADIUS_M = 7;
+const M5_STEER_DEADBAND_RAD = 0.14;
+const M5_DESIRED_SPEED_MPS = 8.5;
+const M5_TURN_SPEED_MPS = 5.5;
+const M5_BRAKE_MARGIN_MPS = 1.5;
+
+const M5_ROUTE_CHECKPOINTS = [
+  { id: 'cross-junction-first-pass', xM: 0, zM: -14 },
+  { id: 'north-loop-bend', xM: 0, zM: -28 },
+  { id: 'northwest-loop-bend', xM: -14, zM: -40 },
+  { id: 'west-loop-bend', xM: -32, zM: -28 },
+  { id: 'west-loop-straight', xM: -32, zM: 28 },
+  { id: 'southwest-loop-bend', xM: -14, zM: 40 },
+  { id: 'loop-rejoin', xM: 0, zM: 28 },
+  { id: 't-junction-main-road-pass', xM: 0, zM: 14 }
+];
 
 async function main() {
   const artifactPrefix = getFlagValue('--artifact-prefix');
@@ -108,7 +127,16 @@ async function main() {
           canvasClientHeight: canvas instanceof HTMLCanvasElement ? canvas.clientHeight : 0,
           viewportWidth: window.innerWidth,
           viewportHeight: window.innerHeight,
-          overlayPhase: overlay instanceof HTMLDivElement ? overlay.dataset.phase ?? null : null
+          overlayPhase: overlay instanceof HTMLDivElement ? overlay.dataset.phase ?? null : null,
+          m4: overlay instanceof HTMLDivElement ? {
+            mirrorIds: [...overlay.querySelectorAll('[data-mirror]')].map((element) => element.dataset.mirror),
+            steeringWheelExists: overlay.querySelector('[data-instrument="steering-wheel"]') !== null,
+            speedometerExists: overlay.querySelector('[data-instrument="speedometer"]') !== null,
+            instructorAudioExists: overlay.querySelector('[data-instrument="instructor-audio"]') !== null,
+            instructorCaptionExists: overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') !== null,
+            instructorAudioText: overlay.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? null,
+            overlayText: overlay.innerText
+          } : null
         };
       })()`,
       returnByValue: true
@@ -116,14 +144,18 @@ async function main() {
 
     const smoke = result.result?.value;
     assertSmokeResult(smoke, expectedPhase);
+    const acceptance =
+      expectedPhase === 'm4' ? await runM4AcceptanceSample(cdp) : undefined;
 
     const artifactPaths = await writeArtifacts({
+      acceptance,
       artifactPrefix,
       appUrl,
       browserLogEntries,
       chromePath,
       cdp,
       errors,
+      expectedPhase,
       smoke
     });
 
@@ -175,6 +207,9 @@ async function findChrome() {
 }
 
 function launchChrome(chromePath, userDataDir) {
+  // These reduced-isolation flags are only for this temporary smoke-test Chrome
+  // profile. They keep headless WebGL and recording stable on Windows CI/local
+  // runners and should not be copied into user-facing browser launches.
   return spawn(chromePath, [
     '--headless=new',
     '--disable-background-networking',
@@ -265,7 +300,16 @@ function connectCdp(webSocketDebuggerUrl) {
                 resolveSend(value);
               }
             });
-            ws.send(JSON.stringify({ id, method, params }));
+
+            try {
+              ws.send(JSON.stringify({ id, method, params }));
+            } catch (error) {
+              const callback = pending.get(id);
+              pending.delete(id);
+              callback?.reject(
+                error instanceof Error ? error : new Error(String(error))
+              );
+            }
           });
         }
       });
@@ -309,7 +353,9 @@ function connectCdp(webSocketDebuggerUrl) {
       }
       pending.clear();
     });
-    ws.addEventListener('error', () => reject(new Error('Chrome DevTools WebSocket failed.')));
+    ws.addEventListener('error', () =>
+      reject(new Error('Chrome DevTools WebSocket failed.'))
+    );
   });
 }
 
@@ -385,15 +431,314 @@ function assertSmokeResult(smoke, expectedPhase) {
       `Expected #ui-overlay data-phase to be ${expectedPhase}, got ${smoke.overlayPhase}.`
     );
   }
+
+  if (expectedPhase === 'm4' || expectedPhase === 'm5') {
+    assertM4SmokeResult(smoke.m4);
+  }
+}
+
+function assertM4SmokeResult(m4) {
+  const mirrorIds = new Set(m4?.mirrorIds ?? []);
+
+  for (const mirrorId of ['rearview', 'leftSide', 'rightSide']) {
+    if (!mirrorIds.has(mirrorId)) {
+      throw new Error(`Expected M4 mirror frame ${mirrorId} to exist.`);
+    }
+  }
+
+  if (!m4?.steeringWheelExists) {
+    throw new Error('Expected M4 steering wheel to exist.');
+  }
+
+  if (!m4?.speedometerExists) {
+    throw new Error('Expected M4 speedometer to exist.');
+  }
+
+  if (!m4?.instructorAudioExists) {
+    throw new Error('Expected M4 instructor audio placeholder to exist.');
+  }
+
+  if (m4.instructorCaptionExists) {
+    throw new Error('Expected no instructor caption placeholder in M4.');
+  }
+
+  if ((m4.instructorAudioText ?? '').trim() !== '') {
+    throw new Error('Expected instructor audio placeholder to contain no text.');
+  }
+}
+
+function getRecordingDurationMs(expectedPhase) {
+  if (expectedPhase === 'm4') {
+    return M4_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm5') {
+    return M5_RECORDING_DURATION_MS;
+  }
+
+  return RECORDING_DURATION_MS;
+}
+
+async function runM4AcceptanceSample(cdp) {
+  const initial = await readM4HudState(cdp);
+
+  await dispatchKey(cdp, 'keyDown', 'ArrowUp', 'ArrowUp', 38);
+  await delay(650);
+
+  const moving = await readM4HudState(cdp);
+
+  await dispatchKey(cdp, 'keyDown', 'ArrowLeft', 'ArrowLeft', 37);
+  await delay(450);
+
+  const steering = await readM4HudState(cdp);
+
+  await dispatchKey(cdp, 'keyUp', 'ArrowLeft', 'ArrowLeft', 37);
+  await dispatchKey(cdp, 'keyUp', 'ArrowUp', 'ArrowUp', 38);
+
+  if (!(moving.speedKmh > initial.speedKmh)) {
+    throw new Error(
+      `Expected speedometer to increase during M4 sample; before ${initial.speedKmh}, after ${moving.speedKmh}.`
+    );
+  }
+
+  if (!(steering.steer > initial.steer)) {
+    throw new Error(
+      `Expected steering wheel data to change during M4 sample; before ${initial.steer}, after ${steering.steer}.`
+    );
+  }
+
+  return {
+    initial,
+    moving,
+    steering
+  };
+}
+
+async function readM4HudState(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    returnByValue: true,
+    expression: `(() => {
+      const speedometer = document.querySelector('[data-instrument="speedometer"]');
+      const wheel = document.querySelector('[data-instrument="steering-wheel"]');
+      const overlay = document.querySelector('#ui-overlay');
+      return {
+        speedKmh: Number(speedometer?.dataset.speedKmh ?? 0),
+        steer: Number(wheel?.dataset.steer ?? 0),
+        mirrorCount: overlay?.querySelectorAll('[data-mirror]').length ?? 0,
+        instructorAudioText: overlay?.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? ''
+      };
+    })()`
+  });
+
+  return result.result?.value;
+}
+
+async function runM4DrivingScenario(cdp) {
+  await delay(350);
+  await dispatchKey(cdp, 'keyDown', 'ArrowUp', 'ArrowUp', 38);
+  await delay(850);
+  await dispatchKey(cdp, 'keyDown', 'ArrowLeft', 'ArrowLeft', 37);
+  await delay(950);
+  await dispatchKey(cdp, 'keyUp', 'ArrowLeft', 'ArrowLeft', 37);
+  await dispatchKey(cdp, 'keyDown', 'ArrowRight', 'ArrowRight', 39);
+  await delay(950);
+  await dispatchKey(cdp, 'keyUp', 'ArrowRight', 'ArrowRight', 39);
+  await delay(550);
+  await dispatchKey(cdp, 'keyUp', 'ArrowUp', 'ArrowUp', 38);
+}
+
+async function runM5DrivingScenario(cdp, maxDurationMs) {
+  const startedAt = Date.now();
+  const keyState = new Map();
+  const checkpointStates = M5_ROUTE_CHECKPOINTS.map((checkpoint) => ({
+    ...checkpoint,
+    minDistanceM: Number.POSITIVE_INFINITY,
+    reached: false,
+    reachedAtMs: null
+  }));
+  const samples = [];
+  let targetIndex = 0;
+
+  try {
+    while (
+      Date.now() - startedAt < maxDurationMs &&
+      targetIndex < checkpointStates.length
+    ) {
+      const diagnostics = await readM5Diagnostics(cdp);
+      const car = diagnostics.car;
+      const target = checkpointStates[targetIndex];
+      const distanceM = getDistanceM(car.position, target);
+      target.minDistanceM = Math.min(target.minDistanceM, distanceM);
+
+      if (distanceM <= M5_CHECKPOINT_RADIUS_M) {
+        target.reached = true;
+        target.reachedAtMs = Date.now() - startedAt;
+        targetIndex += 1;
+      }
+
+      const activeTarget =
+        checkpointStates[Math.min(targetIndex, checkpointStates.length - 1)];
+      const headingErrorRad = getHeadingErrorRad(car, activeTarget);
+      const desiredSpeedMps =
+        Math.abs(headingErrorRad) > 0.65
+          ? M5_TURN_SPEED_MPS
+          : M5_DESIRED_SPEED_MPS;
+      const shouldBrake =
+        car.speedMps > desiredSpeedMps + M5_BRAKE_MARGIN_MPS;
+      const shouldThrottle = !shouldBrake && car.speedMps < desiredSpeedMps;
+
+      await setM5Key(cdp, keyState, 'ArrowUp', shouldThrottle);
+      await setM5Key(cdp, keyState, 'ArrowDown', shouldBrake);
+      await setM5Key(
+        cdp,
+        keyState,
+        'ArrowLeft',
+        headingErrorRad > M5_STEER_DEADBAND_RAD
+      );
+      await setM5Key(
+        cdp,
+        keyState,
+        'ArrowRight',
+        headingErrorRad < -M5_STEER_DEADBAND_RAD
+      );
+
+      if (samples.length < 20) {
+        samples.push({
+          atMs: Date.now() - startedAt,
+          checkpointId: activeTarget.id,
+          distanceM: Number(distanceM.toFixed(2)),
+          headingErrorRad: Number(headingErrorRad.toFixed(3)),
+          speedMps: Number(car.speedMps.toFixed(2)),
+          xM: Number(car.position.x.toFixed(2)),
+          zM: Number(car.position.z.toFixed(2))
+        });
+      }
+
+      await delay(M5_DRIVER_INTERVAL_MS);
+    }
+  } finally {
+    await releaseM5DrivingKeys(cdp, keyState);
+  }
+
+  return {
+    completed: checkpointStates.every((checkpoint) => checkpoint.reached),
+    durationMs: Date.now() - startedAt,
+    checkpointRadiusM: M5_CHECKPOINT_RADIUS_M,
+    checkpoints: checkpointStates.map((checkpoint) => ({
+      id: checkpoint.id,
+      reached: checkpoint.reached,
+      reachedAtMs: checkpoint.reachedAtMs,
+      minDistanceM: Number(checkpoint.minDistanceM.toFixed(2))
+    })),
+    samples
+  };
+}
+
+async function readM5Diagnostics(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    returnByValue: true,
+    expression: `(() => {
+      const api = window.__SG_DRIVING_GAME_DEV__;
+      if (!api) {
+        return { available: false };
+      }
+
+      return { available: true, ...api.readDiagnostics() };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M5 browser acceptance requires dev diagnostics.');
+  }
+
+  return value;
+}
+
+async function setM5Key(cdp, keyState, code, shouldBeDown) {
+  if (keyState.get(code) === shouldBeDown) {
+    return;
+  }
+
+  keyState.set(code, shouldBeDown);
+  await dispatchKey(
+    cdp,
+    shouldBeDown ? 'keyDown' : 'keyUp',
+    code,
+    code,
+    getArrowKeyCode(code)
+  );
+}
+
+async function releaseM5DrivingKeys(cdp, keyState) {
+  for (const code of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+    if (keyState.get(code)) {
+      await dispatchKey(cdp, 'keyUp', code, code, getArrowKeyCode(code));
+      keyState.set(code, false);
+    }
+  }
+}
+
+function getArrowKeyCode(code) {
+  switch (code) {
+    case 'ArrowDown':
+      return 40;
+    case 'ArrowLeft':
+      return 37;
+    case 'ArrowRight':
+      return 39;
+    case 'ArrowUp':
+      return 38;
+    default:
+      throw new Error(`Unsupported M5 driving key: ${code}`);
+  }
+}
+
+function getDistanceM(position, point) {
+  return Math.hypot(position.x - point.xM, position.z - point.zM);
+}
+
+function getHeadingErrorRad(car, point) {
+  const desiredHeadingRad = Math.atan2(
+    -(point.xM - car.position.x),
+    -(point.zM - car.position.z)
+  );
+
+  return wrapAngleRad(desiredHeadingRad - car.headingRad);
+}
+
+function wrapAngleRad(angleRad) {
+  let wrapped = angleRad;
+
+  while (wrapped <= -Math.PI) {
+    wrapped += Math.PI * 2;
+  }
+
+  while (wrapped > Math.PI) {
+    wrapped -= Math.PI * 2;
+  }
+
+  return wrapped;
+}
+
+async function dispatchKey(cdp, type, code, key, windowsVirtualKeyCode) {
+  await cdp.send('Input.dispatchKeyEvent', {
+    code,
+    key,
+    type,
+    windowsVirtualKeyCode
+  });
 }
 
 async function writeArtifacts({
+  acceptance,
   artifactPrefix,
   appUrl,
   browserLogEntries,
   chromePath,
   cdp,
   errors,
+  expectedPhase,
   smoke
 }) {
   if (!artifactPrefix) {
@@ -409,9 +754,14 @@ async function writeArtifacts({
   const logsPath = join(ARTIFACT_DIR, `${artifactPrefix}-chrome-logs.txt`);
   const recording = await captureChromeRecording({
     cdp,
-    durationMs: RECORDING_DURATION_MS,
+    durationMs: getRecordingDurationMs(expectedPhase),
+    expectedPhase,
     outputPath: recordingPath
   });
+
+  if (expectedPhase === 'm5' && !recording.acceptance?.completed) {
+    errors.push('M5 acceptance drive did not reach every route checkpoint.');
+  }
 
   await writeFile(
     logsPath,
@@ -420,6 +770,7 @@ async function writeArtifacts({
       browserLogEntries,
       chromePath,
       errors,
+      acceptance,
       recording,
       recordingPath,
       smoke
@@ -432,7 +783,20 @@ async function writeArtifacts({
   };
 }
 
-async function captureChromeRecording({ cdp, durationMs, outputPath }) {
+async function captureChromeRecording({
+  cdp,
+  durationMs,
+  expectedPhase,
+  outputPath
+}) {
+  if (expectedPhase === 'm4') {
+    return captureM4PageRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm5') {
+    return captureM5DrivingRecording({ cdp, durationMs, outputPath });
+  }
+
   try {
     const recording = await captureCanvasRecording(cdp, durationMs);
     await writeFile(outputPath, recording.buffer);
@@ -440,6 +804,42 @@ async function captureChromeRecording({ cdp, durationMs, outputPath }) {
   } catch (error) {
     return captureScreenshotRecording({ cdp, durationMs, outputPath, error });
   }
+}
+
+async function captureM5DrivingRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM5DrivingScenario(cdp, durationMs - 1_000);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M5 records full page while driving the fixed test track.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M5 driving input'
+  };
+}
+
+async function captureM4PageRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM4DrivingScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M4 records full page so DOM cockpit instruments are visible.'),
+    outputPath
+  });
+
+  await scenario;
+
+  return {
+    ...recording,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M4 driving input'
+  };
 }
 
 async function captureCanvasRecording(cdp, durationMs) {
@@ -604,6 +1004,7 @@ async function recordCanvasInPage(durationMs) {
 }
 
 function formatArtifactLog({
+  acceptance,
   appUrl,
   browserLogEntries,
   chromePath,
@@ -615,7 +1016,7 @@ function formatArtifactLog({
   return [
     'Chrome verification',
     `Timestamp: ${new Date().toISOString()}`,
-    `Chrome path: ${chromePath}`,
+    `Chrome: ${chromePath ? 'detected' : 'not detected'}`,
     `App URL: ${appUrl}`,
     `Recording: ${toArtifactPath(recordingPath)}`,
     `Recording source: ${recording.source}`,
@@ -626,6 +1027,14 @@ function formatArtifactLog({
     '',
     'Smoke result:',
     JSON.stringify(smoke, null, 2),
+    '',
+    'M4 acceptance sample:',
+    acceptance ? JSON.stringify(acceptance, null, 2) : 'not run',
+    '',
+    'M5 acceptance drive:',
+    recording.acceptance
+      ? JSON.stringify(recording.acceptance, null, 2)
+      : 'not run',
     '',
     'Browser log entries:',
     browserLogEntries.length > 0 ? browserLogEntries.join('\n') : 'none',

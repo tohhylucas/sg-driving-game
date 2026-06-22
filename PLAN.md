@@ -36,24 +36,30 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 
 ### M3 - Free Driving (kinematic, no rules)
 
-- [ ] Keyboard input manager (accelerate, brake/reverse, steer left/right).
-- [ ] `KinematicModel` bicycle model - test-first.
-- [ ] `CarController` maps input to model to car transform.
-- [ ] Chase/cockpit camera attached to car.
-- **Test:** Smooth accelerate/brake/steer around the world; camera follows correctly.
+- [DONE] Keyboard input manager (accelerate, staged brake/reverse, steer left/right).
+- [DONE] `KinematicModel` bicycle model - test-first.
+- [DONE] `CarController` maps input to model to car transform, with steering-only smoothing.
+- [DONE] Chase camera attached to car, with configurable lateral/view offset support.
+- [DONE] Preserve free driving: no lane keeping, road-edge blocking, collision physics, rules, or scoring.
+- Delivery note: Implemented issue #4 free driving with kinematic controls, chase camera follow, shared config constants, and focused tests.
+- **Test:** Smooth accelerate/brake/reverse/steer around the world; camera follows correctly and supports configurable offset.
 
 ### M4 - In-Car Cockpit UI
 
-- [ ] Rearview mirror (top center) - real rendered view via mirror camera.
-- [ ] Left and right side mirrors - real rendered views.
-- [ ] Steering wheel (bottom center) rotates with steering input.
-- [ ] Speedometer (bottom center) shows live km/h.
-- [ ] Instructor caption frame (empty placeholder; no logic this phase).
-- **Test:** Mirrors reflect actual scene behind/beside the car; wheel and speedometer respond live; layout matches the reference mockup.
+- [DONE] Cockpit overlay over the M3 chase camera, not a full cockpit/interior camera.
+- [DONE] Apply a right-hand-drive viewpoint offset using M3 camera offset support.
+- [DONE] Rearview mirror (top center) - real rendered view via mirror camera/render target.
+- [DONE] Left and right side mirrors - real rendered views via mirror cameras/render targets.
+- [DONE] Steering wheel uses right-hand-drive placement and rotates with steering input.
+- [DONE] Speedometer (bottom center) shows live km/h.
+- [DONE] Instructor audio placeholder frame (empty; no text captions or instruction logic this phase).
+- Delivery note: Implemented issue #5 cockpit overlay with right-hand-drive chase-camera offset, live rendered rear/side mirrors, live steering wheel and speedometer UI, and an audio-only instructor placeholder.
+- **Test:** Mirrors reflect actual scene behind/beside the car; wheel and speedometer respond live; right-hand-drive layout reads correctly; no instructor text appears.
 
 ### M5 - Hand-Built Test Track
 
-- [ ] Extend straight road into a small fixed track with a couple of turns and a junction to serve as a stable environment for Phase 2 rule testing.
+- [DONE] Extend straight road into a small fixed track with a couple of turns and a junction to serve as a stable environment for Phase 2 rule testing.
+- Delivery note: Implemented issue #10 fixed loop track with T-junction and uncontrolled cross junction, static stop-line markings, free-driving preservation, tests, and Chrome recording evidence.
 - **Test:** Car can be driven around the full track without falling off or glitching.
 
 ## PHASE 2 - Rules & Scoring (NOT STARTED - DO NOT IMPLEMENT YET)
@@ -65,6 +71,6 @@ module emitting scored events.
 - [ ] Keep-left enforcement
 - [ ] Stop-line detection (solid white line, side road to main road)
 - [ ] Safe following-distance with lead vehicles
-- [ ] Instructor instruction system (queued voice/text tied to road features)
+- [ ] Instructor TTS instruction system (queued audio tied to road features; no on-screen text)
 - [ ] Scoring / feedback loop
 - [ ] Procedural map generation (last)

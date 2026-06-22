@@ -40,12 +40,12 @@ The screen is composed in layers:
    rearview and side-mirror images. The implementation may use scissored
    viewport sub-passes or textured HUD quads, but mirrors must show real scene
    geometry.
-3. HUD overlay: steering wheel, speedometer, and instructor caption frame sit in
-   an HTML overlay above the canvas.
+3. HUD overlay: steering wheel, speedometer, mirror frames, and instructor
+   audio placeholder sit in an HTML overlay above the canvas.
 
 Mirrors must be real 3D because they are core to the game's real-world utility.
-Speedometer, wheel, and captions are pure 2D and remain cheaper and cleaner as
-DOM.
+Speedometer, wheel, mirror frames, and the audio placeholder are pure 2D and
+remain cheaper and cleaner as DOM.
 
 ## Folder Structure
 
@@ -74,6 +74,7 @@ driving-game/
 |   |   |-- Road.ts
 |   |   |-- RoadMarkings.ts
 |   |   |-- roadLayout.ts
+|   |   |-- testTrackLayout.ts
 |   |   `-- TestTrack.ts
 |   |-- vehicle/
 |   |   |-- Car.ts
@@ -85,10 +86,11 @@ driving-game/
 |   |   `-- MirrorCamera.ts
 |   |-- ui/
 |   |   |-- Cockpit.ts
+|   |   |-- InstructorAudio.ts
 |   |   |-- MirrorView.ts
 |   |   |-- SteeringWheel.ts
 |   |   |-- Speedometer.ts
-|   |   `-- InstructorCaption.ts
+|   |   `-- cockpitMetrics.ts
 |   |-- config/
 |   |   |-- constants.ts
 |   |   `-- controls.ts
@@ -106,9 +108,11 @@ driving-game/
 ## Module Responsibilities
 
 - `Engine.ts`: owns `WebGLRenderer`, root `Scene`, and `Clock`. Exposes
-  `render(camera)`. No game logic.
+  main-scene rendering, mirror render-target rendering, and texture overlay
+  compositing. No game logic.
 - `Game.ts`: composition root. Instantiates world, car, cameras, and UI as
-  milestones introduce them.
+  milestones introduce them. Exposes read-only dev diagnostics for local
+  browser smoke verification; diagnostics must not mutate gameplay.
 - `Loop.ts`: fixed-timestep accumulator so movement is frame-rate independent.
 - `Input.ts`: tracks pressed keys and exposes normalized input state.
 - `KinematicModel.ts`: pure logic for bicycle-model integration. No Three.js
@@ -118,12 +122,28 @@ driving-game/
 - `carState.ts`: pure initial parked-car state derived from shared car and road
   config, including the Singapore keep-left spawn convention.
 - `CarController.ts`: adapter from input to model to Three.js car transform.
-- `MirrorCamera.ts`: camera and render target for a mirror.
-- `MirrorView.ts`: places a mirror render target into a cockpit frame.
+- `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
+  car state.
+- `MirrorView.ts`: places a mirror render target into a cockpit frame and
+  reports the matching canvas viewport for compositing.
+- `InstructorAudio.ts`: audio-only instructor placeholder. It exposes no
+  instruction text or caption API in Phase 1.
+- `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
+  helpers.
 - `config/constants.ts`: single source of truth for tunable numbers and colors.
+- `World.ts`: composes the static sky, ground, and M5 fixed test track.
+- `Road.ts`: renders the earlier straight-road surface and markings. It remains
+  available for milestone history but is not the active M5 world road.
+- `TestTrack.ts`: renders the M5 fixed test track from pure layout data:
+  loop road segments, a T-junction side road, a cross junction, lane markings,
+  and static stop-line markings only.
 - `roadLayout.ts`: pure, testable straight-road layout derived from shared
   road config, including the Singapore keep-left default lane and marking
-  positions.
+  positions. Also provides shared center-dash cadence helpers.
+- `testTrackLayout.ts`: pure, testable fixed-track layout data derived from
+  shared config, including deterministic loop segments, uncontrolled junction
+  metadata, and static stop-line marker geometry. It contains no rule,
+  scoring, collision, or instructor logic.
 
 ## Data Flow
 

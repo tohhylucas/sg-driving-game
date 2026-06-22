@@ -22,6 +22,12 @@ export class Car {
     this.syncObjectToState();
   }
 
+  /** Replaces the car state and syncs the rendered transform. */
+  applyState(state: CarState): void {
+    this.state = state;
+    this.syncObjectToState();
+  }
+
   private syncObjectToState(): void {
     this.object.position.set(
       this.state.position.x,

@@ -22,8 +22,8 @@ export interface StraightRoadLayout {
 
 const DISTANCE_EPSILON_M = 0.000001;
 
-function getDashCenterZMs(): number[] {
-  const halfRoadLengthM = ROAD_CONFIG.roadLengthM / 2;
+export function getCenterDashCenterZMs(lengthM: number): number[] {
+  const halfRoadLengthM = lengthM / 2;
   const halfDashLengthM = ROAD_CONFIG.centerDashLengthM / 2;
   const dashCadenceM =
     ROAD_CONFIG.centerDashLengthM + ROAD_CONFIG.centerDashGapM;
@@ -54,7 +54,7 @@ export function getStraightRoadLayout(): StraightRoadLayout {
     rightEdgeLineCenterXM: halfRoadWidthM - halfEdgeLineWidthM,
     centerDashLengthM: ROAD_CONFIG.centerDashLengthM,
     centerDashGapM: ROAD_CONFIG.centerDashGapM,
-    centerDashCenterZMs: getDashCenterZMs(),
+    centerDashCenterZMs: getCenterDashCenterZMs(ROAD_CONFIG.roadLengthM),
     defaultDrivingLane: {
       side: ROAD_CONFIG.defaultDrivingLaneSide,
       centerXM: ROAD_CONFIG.leftLaneCenterXM
