@@ -5,12 +5,14 @@ import {
   type SessionRule
 } from '../src/rules/DrivingSession';
 import { KeepLeftRule } from '../src/rules/KeepLeftRule';
+import { SideHazardRule } from '../src/rules/SideHazardRule';
 import { StopLineRule } from '../src/rules/StopLineRule';
 import type { ScoredEvent } from '../src/rules/scoring';
 import { createInitialCarState } from '../src/vehicle/carState';
 import {
   getFixedTestTrackLayout,
   type TrackSegment,
+  type TrackSideHazard,
   type TrackStopLineRuleZone
 } from '../src/world/testTrackLayout';
 
@@ -91,6 +93,57 @@ describe('DrivingSession', () => {
         activeZoneCount: 1,
         pendingZoneCount: 0,
         violationZoneCount: 1
+      })
+    ]);
+  });
+
+  it('starts side-hazard diagnostics with active fixed hazards', () => {
+    const session = new DrivingSession({
+      rules: [new SideHazardRule()],
+      track
+    });
+
+    session.start(createInitialCarState());
+
+    expect(session.state.active).toBe(true);
+    expect(session.ruleDiagnostics).toEqual([
+      expect.objectContaining({
+        ruleId: 'side-hazard',
+        activeHazardCount: 1,
+        pendingHazardCount: 1
+      })
+    ]);
+  });
+
+  it('ends the session immediately when the car collides with a side hazard', () => {
+    const session = new DrivingSession({
+      rules: [new SideHazardRule()],
+      track
+    });
+    const hazard = getSideHazard();
+    const segment = getSegment(hazard.segmentId);
+
+    session.start(createInitialCarState());
+    session.update(
+      makeCarStateAtHazard(
+        segment,
+        hazard,
+        hazard.collisionBox.centerLocalXM,
+        hazard.collisionBox.centerLocalZM,
+        3
+      ),
+      0.1
+    );
+
+    expect(session.state.active).toBe(false);
+    expect(session.state.endReason).toBe('failure');
+    expect(session.summary.violationCount).toBe(1);
+    expect(session.summary.passCount).toBe(0);
+    expect(session.summary.events).toEqual([
+      expect.objectContaining({
+        message: 'IMMEDIATE FAILURE: Side hazard collision',
+        outcome: 'violation',
+        ruleId: 'side-hazard'
       })
     ]);
   });
@@ -247,6 +300,40 @@ function makeCarStateAtZone(
 
   return {
     position: { x, y: 0.01, z },
+    headingRad: segment.headingRad,
+    speedMps
+  };
+}
+
+function getSideHazard(): TrackSideHazard {
+  const hazard = track.sideHazards[0];
+
+  if (!hazard) {
+    throw new Error('Expected one fixed side hazard.');
+  }
+
+  return hazard;
+}
+
+function makeCarStateAtHazard(
+  segment: TrackSegment,
+  _hazard: TrackSideHazard,
+  localXM: number,
+  localZM: number,
+  speedMps: number
+): CarState {
+  return {
+    position: {
+      x:
+        segment.center.xM +
+        localXM * Math.cos(segment.headingRad) +
+        localZM * Math.sin(segment.headingRad),
+      y: 0.01,
+      z:
+        segment.center.zM -
+        localXM * Math.sin(segment.headingRad) +
+        localZM * Math.cos(segment.headingRad)
+    },
     headingRad: segment.headingRad,
     speedMps
   };

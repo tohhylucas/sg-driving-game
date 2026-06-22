@@ -1,15 +1,25 @@
 import * as THREE from 'three';
-import { ROAD_CONFIG } from '../config/constants';
+import { ROAD_CONFIG, TEST_TRACK_CONFIG } from '../config/constants';
 import { makeGroup, makeHorizontalPlaneMesh } from '../utils/three';
 import { getCenterDashCenterZMs } from './roadLayout';
 import {
   getFixedTestTrackLayout,
   type TrackFinishZone,
   type TrackSegment,
+  type TrackSideHazard,
   type TrackStopLine
 } from './testTrackLayout';
 
 const HALF = 0.5;
+const BICYCLE_FRAME_HEIGHT_FACTOR = 0.28;
+const BICYCLE_RIDER_HEIGHT_FACTOR = 0.34;
+const BICYCLE_RIDER_WIDTH_FACTOR = 0.48;
+const BICYCLE_RIDER_LENGTH_FACTOR = 0.34;
+const BICYCLE_WHEEL_RADIUS_FACTOR = 0.36;
+const BICYCLE_WHEEL_WIDTH_FACTOR = 0.18;
+const BICYCLE_WHEEL_Z_FACTOR = 0.36;
+const BICYCLE_WHEEL_SEGMENTS = 16;
+const BICYCLE_WHEEL_ROTATION_Z_RAD = Math.PI / 2;
 
 export class TestTrack {
   readonly object: THREE.Group = makeGroup('TestTrack');
@@ -23,6 +33,10 @@ export class TestTrack {
 
     for (const stopLine of layout.stopLines) {
       this.object.add(createStopLineGroup(stopLine));
+    }
+
+    for (const hazard of layout.sideHazards) {
+      this.object.add(createSideHazardGroup(hazard));
     }
 
     this.object.add(createFinishZoneGroup(layout.finishZone));
@@ -123,6 +137,80 @@ function createFinishZoneGroup(finishZone: TrackFinishZone): THREE.Group {
   );
 
   return group;
+}
+
+function createSideHazardGroup(hazard: TrackSideHazard): THREE.Group {
+  const group = makeGroup(`SideHazard-${hazard.id}`);
+  group.position.set(hazard.center.xM, 0, hazard.center.zM);
+  group.rotation.y = hazard.headingRad;
+
+  if (hazard.scenarioType === 'bicycle') {
+    addBicycleMeshes(group, hazard);
+  }
+
+  return group;
+}
+
+function addBicycleMeshes(
+  group: THREE.Group,
+  hazard: TrackSideHazard
+): void {
+  const frameHeightM = hazard.visualHeightM * BICYCLE_FRAME_HEIGHT_FACTOR;
+  const riderHeightM = hazard.visualHeightM * BICYCLE_RIDER_HEIGHT_FACTOR;
+  const wheelRadiusM = hazard.collisionBox.widthM * BICYCLE_WHEEL_RADIUS_FACTOR;
+  const wheelWidthM = hazard.collisionBox.widthM * BICYCLE_WHEEL_WIDTH_FACTOR;
+  const frameMaterial = new THREE.MeshBasicMaterial({
+    color: TEST_TRACK_CONFIG.sideHazard.frameColor
+  });
+  const wheelMaterial = new THREE.MeshBasicMaterial({
+    color: TEST_TRACK_CONFIG.sideHazard.wheelColor
+  });
+  const riderMaterial = new THREE.MeshBasicMaterial({
+    color: TEST_TRACK_CONFIG.sideHazard.riderColor
+  });
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(
+      hazard.collisionBox.widthM,
+      frameHeightM,
+      hazard.collisionBox.lengthM
+    ),
+    frameMaterial
+  );
+  const rider = new THREE.Mesh(
+    new THREE.BoxGeometry(
+      hazard.collisionBox.widthM * BICYCLE_RIDER_WIDTH_FACTOR,
+      riderHeightM,
+      hazard.collisionBox.lengthM * BICYCLE_RIDER_LENGTH_FACTOR
+    ),
+    riderMaterial
+  );
+
+  frame.name = `SideHazardBicycleFrame-${hazard.id}`;
+  frame.position.y = wheelRadiusM + frameHeightM * HALF;
+  rider.name = `SideHazardBicycleRider-${hazard.id}`;
+  rider.position.y = wheelRadiusM + frameHeightM + riderHeightM * HALF;
+  group.add(frame, rider);
+
+  for (const zFactor of [-BICYCLE_WHEEL_Z_FACTOR, BICYCLE_WHEEL_Z_FACTOR]) {
+    const wheel = new THREE.Mesh(
+      new THREE.CylinderGeometry(
+        wheelRadiusM,
+        wheelRadiusM,
+        wheelWidthM,
+        BICYCLE_WHEEL_SEGMENTS
+      ),
+      wheelMaterial
+    );
+
+    wheel.name = `SideHazardBicycleWheel-${hazard.id}`;
+    wheel.rotation.z = BICYCLE_WHEEL_ROTATION_Z_RAD;
+    wheel.position.set(
+      0,
+      wheelRadiusM,
+      hazard.collisionBox.lengthM * zFactor
+    );
+    group.add(wheel);
+  }
 }
 
 function makeOrientedGroup(

@@ -92,6 +92,7 @@ driving-game/
 |   |   |-- KeepLeftRule.ts
 |   |   |-- laneRules.ts
 |   |   |-- scoring.ts
+|   |   |-- SideHazardRule.ts
 |   |   `-- StopLineRule.ts
 |   |-- ui/
 |   |   |-- Cockpit.ts
@@ -158,6 +159,12 @@ driving-game/
   through the shared M7 event stream. A stop-line violation is a terminal
   failure, emits an `IMMEDIATE FAILURE` message, and ends the active session
   immediately.
+- `SideHazardRule.ts`: always-active Phase 2 side-hazard rule for configured
+  fixed track side hazards. It scores only physical collision with visible
+  hazard footprints or cleanly clearing a triggered hazard scenario, with one
+  scored event per configured hazard per session. A side-hazard collision is a
+  terminal failure, emits an `IMMEDIATE FAILURE` message, and ends the active
+  session immediately.
 - `finishZone.ts`: pure finish-gate containment helper.
 - `scoring.ts`: shared scored-event shape and pass/violation aggregation.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
@@ -179,14 +186,16 @@ driving-game/
 - `TestTrack.ts`: renders the M5 fixed test track from pure layout data:
   loop road segments, a T-junction side road, a cross junction, lane markings,
   an obvious solid white T-junction side-road guide line, and only the red
-  stop-line marking that is enforced by an M8 stop-line rule zone.
+  stop-line marking that is enforced by an M8 stop-line rule zone, the finish
+  gate, and deterministic visible side-hazard meshes.
 - `roadLayout.ts`: pure, testable straight-road layout derived from shared
   road config, including the Singapore keep-left default lane and marking
   positions. Also provides shared center-dash cadence helpers.
 - `testTrackLayout.ts`: pure, testable fixed-track layout data derived from
   shared config, including deterministic loop segments, uncontrolled junction
-  metadata, the single enforced M8 stop-line marker/rule zone, and a fixed
-  finish zone. It contains no scoring, collision, or instructor logic.
+  metadata, the single enforced M8 stop-line marker/rule zone, M9 side-hazard
+  trigger/collision footprints, and a fixed finish zone. It contains no scoring
+  or instructor logic.
 
 ## Data Flow
 

@@ -8,6 +8,7 @@ import type {
   RuleUpdateContext,
   SessionEndReason
 } from './KeepLeftRule';
+import type { SideHazardRuleDiagnostics } from './SideHazardRule';
 import type { StopLineRuleDiagnostics } from './StopLineRule';
 import type { ScoredEvent, ScoredEventSummary } from './scoring';
 import { summarizeScoredEvents } from './scoring';
@@ -23,6 +24,7 @@ export interface SessionRule {
 
 export type SessionRuleDiagnostics =
   | KeepLeftRuleDiagnostics
+  | SideHazardRuleDiagnostics
   | StopLineRuleDiagnostics;
 
 export interface DrivingSessionState {
@@ -170,5 +172,8 @@ export class DrivingSession {
 }
 
 function isTerminalFailureEvent(event: ScoredEvent): boolean {
-  return event.ruleId === 'stop-line' && event.outcome === 'violation';
+  return (
+    event.outcome === 'violation' &&
+    (event.ruleId === 'side-hazard' || event.ruleId === 'stop-line')
+  );
 }
