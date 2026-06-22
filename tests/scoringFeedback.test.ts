@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { formatKeepLeftDebugText } from '../src/ui/ScoringFeedback';
+import {
+  formatKeepLeftDebugText,
+  formatRuleOutcomeLabel
+} from '../src/ui/ScoringFeedback';
 
 describe('ScoringFeedback', () => {
   const diagnostics = {
@@ -20,6 +23,12 @@ describe('ScoringFeedback', () => {
   it('shows a paused outside timer after the scoring session has finished', () => {
     expect(formatKeepLeftDebugText(diagnostics, false)).toBe(
       'Grace 1.5s | Session finished | Side right | Correct no | Outside paused'
+    );
+  });
+
+  it('formats rule ids as readable outcome summary labels', () => {
+    expect(formatRuleOutcomeLabel('following-time-gap')).toBe(
+      'Following time gap'
     );
   });
 });

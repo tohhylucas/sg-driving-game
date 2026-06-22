@@ -232,16 +232,19 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M12 - Session Outcome Summary and Feedback Loop
 
-- [ ] Aggregate pass and violation events from always-active rule modules into a
+- [DONE] Aggregate pass and violation events from always-active rule modules into a
   deterministic session outcome summary, not a numeric score.
-- [ ] Show post-drive feedback grouped into rule-level `passes`, `violations`,
+- [DONE] Show post-drive feedback grouped into rule-level `passes`, `violations`,
   and `not encountered` sections when the player crosses the finish zone.
-- [ ] Treat missing rule events as `not encountered`, not as implicit passes.
-- [ ] Do not calculate or display a Phase 2 numeric score, percentage, stars, or
+- [DONE] Treat missing rule events as `not encountered`, not as implicit passes.
+- [DONE] Do not calculate or display a Phase 2 numeric score, percentage, stars, or
   severity weighting.
-- [ ] Keep in-drive feedback lightweight and separate from instructor audio.
-- [ ] Unit-test outcome grouping, not-encountered handling, session finish, and
+- [DONE] Keep in-drive feedback lightweight and separate from instructor audio.
+- [DONE] Unit-test outcome grouping, not-encountered handling, session finish, and
   reset behavior.
+- Delivery note: Implemented issue #18 with deterministic non-numeric session
+  outcome grouping, post-finish cockpit feedback, reset clearing, M12 unit
+  coverage, and M12 Chrome evidence.
 - **Test:** Crossing the finish zone produces a stable non-numeric session
   summary from real rule events; resetting the run clears summary state without
   reloading the app.

@@ -201,6 +201,12 @@ body {
   box-shadow: 0 12px 24px rgba(2, 6, 23, 0.32);
 }
 
+.cockpit__scoring-feedback--summary {
+  width: min(360px, calc(100vw - 36px));
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
 .cockpit__scoring-metric {
   display: flex;
   gap: 6px;
@@ -255,6 +261,66 @@ body {
   overflow-wrap: anywhere;
 }
 
+.cockpit__session-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.cockpit__session-summary-title,
+.cockpit__session-section-title,
+.cockpit__session-rule-title {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.cockpit__session-summary-title {
+  color: #f8fafc;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.cockpit__session-section {
+  display: grid;
+  gap: 5px;
+}
+
+.cockpit__session-section-title {
+  color: #bae6fd;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cockpit__session-rule {
+  display: grid;
+  gap: 3px;
+}
+
+.cockpit__session-rule-title {
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.cockpit__session-events {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 16px;
+  color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.cockpit__session-empty {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
 @media (max-width: 720px) {
   .cockpit__speedometer {
     min-width: 94px;
@@ -275,6 +341,11 @@ body {
     top: 10px;
     grid-template-columns: repeat(2, minmax(58px, max-content));
     padding: 8px 9px;
+  }
+
+  .cockpit__scoring-feedback--summary {
+    width: min(300px, calc(100vw - 20px));
+    grid-template-columns: 1fr;
   }
 
   .cockpit__scoring-latest {
