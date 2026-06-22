@@ -93,7 +93,7 @@ export const COCKPIT_CAMERA_CONFIG = {
   lookAheadM: 18,
   lookAtHeightM: 1.25,
   viewLateralOffsetM: 0,
-  blindSpotMaxShiftM: 0.7,
+  blindSpotMaxYawRad: Math.PI / 2,
   blindSpotSmoothingRatePerSec: 8
 } as const;
 

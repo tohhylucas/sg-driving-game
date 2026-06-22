@@ -1,5 +1,5 @@
 Chrome verification
-Timestamp: 2026-06-22T12:32:23.145Z
+Timestamp: 2026-06-22T12:38:27.123Z
 Chrome: detected
 App URL: http://127.0.0.1:5175/
 Recording: artifacts/issue-12-chrome-recording.webm
@@ -7,7 +7,7 @@ Recording source: Chrome DevTools Protocol full-page screenshots encoded with ff
 Recording duration ms: 9000
 Recording frames: 83
 Recording MIME type: video/webm
-Recording bytes: 153302
+Recording bytes: 199716
 
 Smoke result:
 {
@@ -47,7 +47,10 @@ Recorded acceptance scenario:
     "carYM": 0.01,
     "carZM": 0,
     "speedMps": 0,
-    "cameraShiftM": 0,
+    "cameraLookYawRad": 0,
+    "cameraDirectionXM": -0.02563093760694115,
+    "cameraDirectionYM": -0.011391527825307177,
+    "cameraDirectionZM": -0.9996065666707049,
     "cameraXM": -1.3,
     "cameraYM": 1.46,
     "cameraZM": -0.45
@@ -60,7 +63,10 @@ Recorded acceptance scenario:
     "carYM": 0.01,
     "carZM": -1.5312500000000002,
     "speedMps": 3.6750000000000034,
-    "cameraShiftM": 0,
+    "cameraLookYawRad": 0,
+    "cameraDirectionXM": -0.02563093760694115,
+    "cameraDirectionYM": -0.011391527825307177,
+    "cameraDirectionZM": -0.9996065666707049,
     "cameraXM": -1.3,
     "cameraYM": 1.46,
     "cameraZM": -1.9812500000000002
@@ -73,7 +79,10 @@ Recorded acceptance scenario:
     "carYM": 0.01,
     "carZM": -3.699782793109248,
     "speedMps": 5.775000000000008,
-    "cameraShiftM": 0,
+    "cameraLookYawRad": 0,
+    "cameraDirectionXM": -0.42013725935541896,
+    "cameraDirectionYM": -0.011391527825307177,
+    "cameraDirectionZM": -0.9073890656136003,
     "cameraXM": -1.911561815739857,
     "cameraYM": 1.46,
     "cameraZM": -4.2913914543848835
@@ -86,7 +95,10 @@ Recorded acceptance scenario:
     "carYM": 0.01,
     "carZM": -3.699782793109248,
     "speedMps": 5.775000000000008,
-    "cameraShiftM": 0,
+    "cameraLookYawRad": 0,
+    "cameraDirectionXM": -0.42013725935541896,
+    "cameraDirectionYM": -0.011391527825307177,
+    "cameraDirectionZM": -0.9073890656136003,
     "cameraXM": -1.911561815739857,
     "cameraYM": 1.46,
     "cameraZM": -4.2913914543848835
@@ -95,92 +107,113 @@ Recorded acceptance scenario:
     "available": true,
     "speedKmh": 15.7,
     "steer": 0,
-    "carXM": -4.537557753508555,
+    "carXM": -4.500438941101039,
     "carYM": 0.01,
-    "carZM": -7.856817355677172,
-    "speedMps": 4.349999999999988,
-    "cameraShiftM": 0,
-    "cameraXM": -4.381402537051051,
+    "carZM": -7.794540202840392,
+    "speedMps": 4.3749999999999885,
+    "cameraLookYawRad": 0,
+    "cameraDirectionXM": -0.5337953892975446,
+    "cameraDirectionYM": -0.011391527825307175,
+    "cameraDirectionZM": -0.8455369391448774,
+    "cameraXM": -4.344281060444519,
     "cameraYM": 1.46,
-    "cameraZM": -8.473757829607283
+    "cameraZM": -8.411480002422868
   },
   "reversed": {
     "available": true,
     "speedKmh": 4,
     "steer": 0,
-    "carXM": -5.016701227748446,
+    "carXM": -4.9864075480525605,
     "carYM": 0.01,
-    "carZM": -8.660686473659391,
+    "carZM": -8.609863374431313,
     "speedMps": -1.1000000000000003,
-    "cameraShiftM": 0,
-    "cameraXM": -4.860559374056667,
+    "cameraLookYawRad": 0,
+    "cameraDirectionXM": -0.5338166765005214,
+    "cameraDirectionYM": -0.011391527825307172,
+    "cameraDirectionZM": -0.8455234999594884,
+    "cameraXM": -4.830265199619818,
     "cameraYM": 1.46,
-    "cameraZM": -9.277630329715754
+    "cameraZM": -9.22680710527385
   },
   "beforeLook": {
     "available": true,
     "speedKmh": 2.8,
     "steer": 0,
-    "carXM": -4.914087448756037,
+    "carXM": -4.883793907151493,
     "carYM": 0.01,
-    "carZM": -8.48853173907833,
+    "carZM": -8.437708557540223,
     "speedMps": -0.7750000000000005,
-    "cameraShiftM": 0,
-    "cameraXM": -4.7579455938161885,
+    "cameraLookYawRad": 0,
+    "cameraDirectionXM": -0.5338166745268821,
+    "cameraDirectionYM": -0.011391527825307174,
+    "cameraDirectionZM": -0.8455235012055349,
+    "cameraXM": -4.727651557278668,
     "cameraYM": 1.46,
-    "cameraZM": -9.10547559481882
+    "cameraZM": -9.054652288018287
   },
   "leftLook": {
     "available": true,
     "speedKmh": 0,
     "steer": 0,
-    "carXM": -4.81488701805618,
+    "carXM": -4.784593609970242,
     "carYM": 0.01,
-    "carZM": -8.32210356523458,
+    "carZM": -8.271280304112048,
     "speedMps": 0,
-    "cameraShiftM": -0.694604033925004,
-    "cameraXM": -5.255398999955404,
+    "cameraLookYawRad": -1.5586878072375916,
+    "cameraDirectionXM": -0.8524269397872768,
+    "cameraDirectionYM": -0.010839389425878759,
+    "cameraDirectionZM": 0.5227339858491821,
+    "cameraXM": -4.628451259936453,
     "cameraYM": 1.46,
-    "cameraZM": -8.583408611522634
+    "cameraZM": -8.888224034549376
   },
   "returnedFromLeft": {
     "available": true,
     "speedKmh": 0,
     "steer": 0,
-    "carXM": -4.81488701805618,
+    "carXM": -4.784593609970242,
     "carYM": 0.01,
-    "carZM": -8.32210356523458,
+    "carZM": -8.271280304112048,
     "speedMps": 0,
-    "cameraShiftM": -0.001704218273423754,
-    "cameraXM": -4.660209059415989,
+    "cameraLookYawRad": -0.0038242568627868184,
+    "cameraDirectionXM": -0.5371266318968887,
+    "cameraDirectionYM": -0.011390381042957023,
+    "cameraDirectionZM": -0.8434247094594756,
+    "cameraXM": -4.628451259936453,
     "cameraYM": 1.46,
-    "cameraZM": -8.938174857395435
+    "cameraZM": -8.888224034549376
   },
   "rightLook": {
     "available": true,
     "speedKmh": 0,
     "steer": 0,
-    "carXM": -4.81488701805618,
+    "carXM": -4.784593609970242,
     "carYM": 0.01,
-    "carZM": -8.32210356523458,
+    "carZM": -8.271280304112048,
     "speedMps": 0,
-    "cameraShiftM": 0.6945908969193071,
-    "cameraXM": -4.062102610477576,
+    "cameraLookYawRad": 1.5586583278657433,
+    "cameraDirectionXM": 0.8656078812263307,
+    "cameraDirectionYM": -0.011395140843643351,
+    "cameraDirectionZM": -0.5005927953177274,
+    "cameraXM": -4.628451259936453,
     "cameraYM": 1.46,
-    "cameraZM": -9.294679504180776
+    "cameraZM": -8.888224034549376
   },
   "returnedFromRight": {
     "available": true,
     "speedKmh": 0,
     "steer": 0,
-    "carXM": -4.81488701805618,
+    "carXM": -4.784593609970242,
     "carYM": 0.01,
-    "carZM": -8.32210356523458,
+    "carZM": -8.271280304112048,
     "speedMps": 0,
-    "cameraShiftM": 0.001476961236090307,
-    "cameraXM": -4.657476476724604,
+    "cameraLookYawRad": 0.003314293263527293,
+    "cameraDirectionXM": -0.530941186855,
+    "cameraDirectionYM": -0.011392518423317222,
+    "cameraDirectionZM": -0.847332087569554,
+    "cameraXM": -4.628451259936453,
     "cameraYM": 1.46,
-    "cameraZM": -8.939803628375806
+    "cameraZM": -8.888224034549376
   }
 }
 
@@ -188,10 +221,10 @@ Browser log entries:
 console.debug: [vite] connecting...
 console.debug: [vite] connected.
 console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
-browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:50E4001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
-browser.warning: [.WebGL-0x44d400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x44d400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x44d400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x44d400140200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:2F8C023940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x74b40014ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x74b40014ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x74b40014ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x74b40014ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
 
 Console/runtime error result: none

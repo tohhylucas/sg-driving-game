@@ -53,15 +53,34 @@ describe('ChaseCamera', () => {
     expect(direction.z).toBeLessThan(-0.9);
   });
 
-  it('applies runtime lateral shift for blind-spot camera movement', () => {
+  it('rotates side-look direction without translating the driver-seat position', () => {
     const centeredCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
-    const shiftedCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const leftLookCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const rightLookCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const centeredDirection = new THREE.Vector3();
+    const leftDirection = new THREE.Vector3();
+    const rightDirection = new THREE.Vector3();
 
     centeredCamera.update(carState);
-    shiftedCamera.update(carState, { lateralShiftM: -0.5 });
+    leftLookCamera.update(carState, { lookYawRad: -Math.PI / 2 });
+    rightLookCamera.update(carState, { lookYawRad: Math.PI / 2 });
+    centeredCamera.camera.getWorldDirection(centeredDirection);
+    leftLookCamera.camera.getWorldDirection(leftDirection);
+    rightLookCamera.camera.getWorldDirection(rightDirection);
 
-    expect(shiftedCamera.camera.position.x).toBeLessThan(
+    expect(leftLookCamera.camera.position.x).toBeCloseTo(
       centeredCamera.camera.position.x
     );
+    expect(leftLookCamera.camera.position.z).toBeCloseTo(
+      centeredCamera.camera.position.z
+    );
+    expect(rightLookCamera.camera.position.x).toBeCloseTo(
+      centeredCamera.camera.position.x
+    );
+    expect(rightLookCamera.camera.position.z).toBeCloseTo(
+      centeredCamera.camera.position.z
+    );
+    expect(leftDirection.x).toBeLessThan(centeredDirection.x);
+    expect(rightDirection.x).toBeGreaterThan(centeredDirection.x);
   });
 });

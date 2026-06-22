@@ -83,7 +83,7 @@ driving-game/
 |   |   |-- KinematicModel.ts
 |   |   `-- CarController.ts
 |   |-- camera/
-|   |   |-- BlindSpotCameraShift.ts
+|   |   |-- BlindSpotCameraLook.ts
 |   |   |-- ChaseCamera.ts
 |   |   `-- MirrorCamera.ts
 |   |-- ui/
@@ -129,9 +129,9 @@ driving-game/
 - `ChaseCamera.ts`: car-relative driving camera. M6 configures it as a
   right-hand-drive driver-seat camera, while older tests still cover its
   general car-following offset behavior.
-- `BlindSpotCameraShift.ts`: pure, testable smoothing state for A/D lateral
-  driver-seat camera shifts. It does not emit scoring events or affect vehicle
-  motion.
+- `BlindSpotCameraLook.ts`: pure, testable smoothing state for A/D driver-seat
+  side-look yaw. It rotates the camera view direction only and does not emit
+  scoring events or affect vehicle motion.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
   car state.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame and
@@ -160,7 +160,7 @@ driving-game/
 ```text
 Input -> CarController -> KinematicModel -> Car transform
    |                          |
-   `-> BlindSpotCameraShift -> driver-seat camera follows Car
+   `-> BlindSpotCameraLook -> driver-seat camera follows Car
 MirrorCameras follow Car -> render targets -> MirrorView
 Cockpit reads CarState/InputState
 Engine renders main pass + mirror passes; DOM HUD overlays on top

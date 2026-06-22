@@ -633,7 +633,10 @@ async function readM6State(cdp) {
         carYM: diagnostics.car.position.y,
         carZM: diagnostics.car.position.z,
         speedMps: diagnostics.car.speedMps,
-        cameraShiftM: diagnostics.camera.blindSpotShiftM,
+        cameraLookYawRad: diagnostics.camera.blindSpotLookYawRad,
+        cameraDirectionXM: diagnostics.camera.direction.x,
+        cameraDirectionYM: diagnostics.camera.direction.y,
+        cameraDirectionZM: diagnostics.camera.direction.z,
         cameraXM: diagnostics.camera.position.x,
         cameraYM: diagnostics.camera.position.y,
         cameraZM: diagnostics.camera.position.z
@@ -658,6 +661,10 @@ function assertM6Scenario(sample) {
     throw new Error('Expected M6 camera to sit forward in/near the car cabin.');
   }
 
+  if (!(sample.initial.cameraDirectionZM < -0.75)) {
+    throw new Error('Expected M6 camera to face forward from the driver seat.');
+  }
+
   if (!(sample.accelerated.speedMps > sample.initial.speedMps)) {
     throw new Error('Expected KeyW to accelerate the car in M6 scenario.');
   }
@@ -674,27 +681,40 @@ function assertM6Scenario(sample) {
     throw new Error('Expected holding KeyS to brake and then reverse the car.');
   }
 
-  if (!(sample.leftLook.cameraShiftM < sample.beforeLook.cameraShiftM)) {
-    throw new Error('Expected KeyA to shift the camera left.');
+  if (!(sample.leftLook.cameraLookYawRad < sample.beforeLook.cameraLookYawRad)) {
+    throw new Error('Expected KeyA to turn the camera left.');
+  }
+
+  if (!(sample.leftLook.cameraDirectionXM < sample.beforeLook.cameraDirectionXM)) {
+    throw new Error('Expected KeyA to rotate the camera view direction left.');
   }
 
   if (
     !(
-      Math.abs(sample.returnedFromLeft.cameraShiftM) <
-      Math.abs(sample.leftLook.cameraShiftM)
+      Math.abs(sample.returnedFromLeft.cameraLookYawRad) <
+      Math.abs(sample.leftLook.cameraLookYawRad)
     )
   ) {
     throw new Error('Expected camera to return toward center after releasing KeyA.');
   }
 
-  if (!(sample.rightLook.cameraShiftM > sample.returnedFromLeft.cameraShiftM)) {
-    throw new Error('Expected KeyD to shift the camera right.');
+  if (!(sample.rightLook.cameraLookYawRad > sample.returnedFromLeft.cameraLookYawRad)) {
+    throw new Error('Expected KeyD to turn the camera right.');
   }
 
   if (
     !(
-      Math.abs(sample.returnedFromRight.cameraShiftM) <
-      Math.abs(sample.rightLook.cameraShiftM)
+      sample.rightLook.cameraDirectionXM >
+      sample.returnedFromLeft.cameraDirectionXM
+    )
+  ) {
+    throw new Error('Expected KeyD to rotate the camera view direction right.');
+  }
+
+  if (
+    !(
+      Math.abs(sample.returnedFromRight.cameraLookYawRad) <
+      Math.abs(sample.rightLook.cameraLookYawRad)
     )
   ) {
     throw new Error('Expected camera to return toward center after releasing KeyD.');

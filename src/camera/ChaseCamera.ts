@@ -12,7 +12,7 @@ interface ChaseCameraConfig {
 }
 
 interface ChaseCameraRuntimeOffset {
-  lateralShiftM?: number;
+  lookYawRad?: number;
 }
 
 export class ChaseCamera {
@@ -38,29 +38,30 @@ export class ChaseCamera {
     const forwardZ = -Math.cos(state.headingRad);
     const rightX = Math.cos(state.headingRad);
     const rightZ = -Math.sin(state.headingRad);
-    const lateralOffsetM =
-      this.config.lateralOffsetM + (offset.lateralShiftM ?? 0);
-    const viewLateralOffsetM =
-      this.config.viewLateralOffsetM + (offset.lateralShiftM ?? 0);
+    const lookYawRad = offset.lookYawRad ?? 0;
+    const lookDirectionX =
+      forwardX * Math.cos(lookYawRad) + rightX * Math.sin(lookYawRad);
+    const lookDirectionZ =
+      forwardZ * Math.cos(lookYawRad) + rightZ * Math.sin(lookYawRad);
 
     this.camera.position.set(
       state.position.x -
         forwardX * this.config.distanceM +
-        rightX * lateralOffsetM,
+        rightX * this.config.lateralOffsetM,
       state.position.y + this.config.heightM,
       state.position.z -
         forwardZ * this.config.distanceM +
-        rightZ * lateralOffsetM
+        rightZ * this.config.lateralOffsetM
     );
 
     this.camera.lookAt(
       state.position.x +
-        forwardX * this.config.lookAheadM +
-        rightX * viewLateralOffsetM,
+        lookDirectionX * this.config.lookAheadM +
+        rightX * this.config.viewLateralOffsetM,
       state.position.y + this.config.lookAtHeightM,
       state.position.z +
-        forwardZ * this.config.lookAheadM +
-        rightZ * viewLateralOffsetM
+        lookDirectionZ * this.config.lookAheadM +
+        rightZ * this.config.viewLateralOffsetM
     );
   }
 }
