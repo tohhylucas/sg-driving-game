@@ -1,13 +1,13 @@
 Chrome verification
-Timestamp: 2026-06-22T11:26:23.118Z
+Timestamp: 2026-06-22T11:38:58.392Z
 Chrome: detected
 App URL: http://127.0.0.1:5175/
 Recording: artifacts/issue-13-chrome-recording.webm
 Recording source: Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M7 scoring input
 Recording duration ms: 9000
-Recording frames: 63
+Recording frames: 85
 Recording MIME type: video/webm
-Recording bytes: 135633
+Recording bytes: 162513
 
 Smoke result:
 {
@@ -62,8 +62,8 @@ Recorded acceptance scenario:
     "passCount": 0,
     "sessionId": 1,
     "violationCount": 1,
-    "xM": 3.7928181290135066,
-    "zM": 3.966736319317782
+    "xM": 2.2652897849589535,
+    "zM": 4.187636199931577
   },
   "afterReset": {
     "available": true,
@@ -81,10 +81,10 @@ Browser log entries:
 console.debug: [vite] connecting...
 console.debug: [vite] connected.
 console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
-browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:720C001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
-browser.warning: [.WebGL-0x6e240014ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x6e240014ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x6e240014ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
-browser.warning: [.WebGL-0x6e240014ec00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:54C4001940A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x516c00148200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x516c00148200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x516c00148200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x516c00148200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
 
 Console/runtime error result: none

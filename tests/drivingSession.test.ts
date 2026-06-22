@@ -38,6 +38,21 @@ describe('DrivingSession', () => {
     expect(session.summary.events).toHaveLength(1);
   });
 
+  it('aggregates separate keep-left violation episodes independently', () => {
+    const session = new DrivingSession({
+      rules: [new KeepLeftRule({ gracePeriodSec: 1 })],
+      track
+    });
+
+    session.start(createInitialCarState());
+    session.update(makeCarState(1.75, 0), 1.1);
+    session.update(makeCarState(-1.75, 0), 0.1);
+    session.update(makeCarState(1.75, 0), 1.1);
+
+    expect(session.summary.violationCount).toBe(2);
+    expect(session.summary.events).toHaveLength(2);
+  });
+
   it('ends the session and records a clean pass when crossing the finish zone', () => {
     const session = new DrivingSession({
       rules: [new KeepLeftRule({ gracePeriodSec: 1 })],

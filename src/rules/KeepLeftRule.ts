@@ -33,9 +33,12 @@ export class KeepLeftRule {
   readonly id = 'keep-left';
 
   private readonly config: KeepLeftRuleConfig;
-  private hasViolation = false;
+  private currentWrongLaneSegmentId: string | undefined;
+  private hasAnyViolation = false;
   private hasPass = false;
   private outsideLaneSec = 0;
+  private violationCount = 0;
+  private violationEmittedForEpisode = false;
 
   constructor(config: Partial<KeepLeftRuleConfig> = {}) {
     this.config = {
@@ -46,9 +49,12 @@ export class KeepLeftRule {
 
   /** Resets per-session keep-left state. */
   startSession(_sessionId: number): void {
-    this.hasViolation = false;
+    this.currentWrongLaneSegmentId = undefined;
+    this.hasAnyViolation = false;
     this.hasPass = false;
     this.outsideLaneSec = 0;
+    this.violationCount = 0;
+    this.violationEmittedForEpisode = false;
   }
 
   /** Observes lane position and emits a violation after the grace period. */
@@ -59,33 +65,44 @@ export class KeepLeftRule {
     });
 
     if (isWithinDefaultDrivingLane(lanePosition, context.track)) {
+      this.currentWrongLaneSegmentId = undefined;
       this.outsideLaneSec = 0;
+      this.violationEmittedForEpisode = false;
       return [];
+    }
+
+    if (this.currentWrongLaneSegmentId !== lanePosition.segmentId) {
+      this.currentWrongLaneSegmentId = lanePosition.segmentId;
+      this.outsideLaneSec = 0;
+      this.violationEmittedForEpisode = false;
     }
 
     this.outsideLaneSec += context.dtSec;
 
     if (
-      this.hasViolation ||
+      this.violationEmittedForEpisode ||
       this.outsideLaneSec < this.config.gracePeriodSec
     ) {
       return [];
     }
 
-    this.hasViolation = true;
+    this.hasAnyViolation = true;
+    this.violationCount += 1;
+    this.violationEmittedForEpisode = true;
     return [
       this.createEvent(
         context.sessionId,
         'violation',
         'Keep left violation',
-        context.elapsedSec
+        context.elapsedSec,
+        this.violationCount
       )
     ];
   }
 
   /** Emits a clean pass only when the route finishes without violation. */
   endSession(context: RuleEndContext): ScoredEvent[] {
-    if (context.reason !== 'finish' || this.hasViolation || this.hasPass) {
+    if (context.reason !== 'finish' || this.hasAnyViolation || this.hasPass) {
       return [];
     }
 
@@ -104,10 +121,13 @@ export class KeepLeftRule {
     sessionId: number,
     outcome: ScoredEvent['outcome'],
     message: string,
-    occurredAtSec: number
+    occurredAtSec: number,
+    sequence?: number
   ): ScoredEvent {
     return {
-      id: `${sessionId}:${this.id}:${outcome}`,
+      id: `${sessionId}:${this.id}:${outcome}${
+        sequence === undefined ? '' : `:${sequence}`
+      }`,
       sessionId,
       ruleId: this.id,
       outcome,

@@ -107,11 +107,12 @@ blind-spot camera look controls and M7's scoring foundation.
 - [DONE] Unit-test lane-side detection, finish-zone crossing, always-active rule
   startup, and scored-event aggregation within one session.
 - Delivery note: Implemented issue #13 with a session-scoped scoring event
-  stream, keep-left pass/violation rule, fixed finish gate, R reset, and
-  separate feedback HUD.
+  stream, episode-based keep-left pass/violation rule, fixed finish gate, R
+  reset, and separate feedback HUD.
 - **Test:** Driving outside the correct left lane emits a scored keep-left
-  event after a configurable grace period; the rule is active for the full
-  session; car movement remains unconstrained.
+  event after a configurable grace period; returning left or entering a new
+  road segment allows a later separate keep-left violation; the rule is active
+  for the full session; car movement remains unconstrained.
 
 ### M8 - Stop-Line Rule at the Hand-Built Junction
 

@@ -143,8 +143,10 @@ driving-game/
   Sessions start when the game starts or resets, end at the finish zone, and
   keep rule modules active only while the session is active.
 - `KeepLeftRule.ts`: always-active Phase 2 keep-left rule. It observes car
-  state, emits one violation after a configurable grace period outside the
-  left lane, and emits a pass only when a clean route reaches the finish zone.
+  state, emits one violation per continuous wrong-lane episode after a
+  configurable grace period, allows new episodes after returning left or
+  entering a new road segment, and emits a pass only when a clean route reaches
+  the finish zone.
 - `laneRules.ts`: pure lane-side and default-lane helpers for fixed track
   segments.
 - `finishZone.ts`: pure finish-gate containment helper.
