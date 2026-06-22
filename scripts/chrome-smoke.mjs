@@ -30,6 +30,7 @@ const M6_RECORDING_DURATION_MS = 9_000;
 const M7_RECORDING_DURATION_MS = 9_000;
 const M8_RECORDING_DURATION_MS = 7_000;
 const M9_RECORDING_DURATION_MS = 7_000;
+const M10_RECORDING_DURATION_MS = 7_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -163,6 +164,12 @@ async function main() {
             sideHazardDiagnostics: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.ruleDiagnostics.find(
               (entry) => entry.ruleId === 'side-hazard'
             ) ?? null
+          } : null,
+          m10: window.__SG_DRIVING_GAME_DEV__ ? {
+            followingDiagnostics: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().session.ruleDiagnostics.find(
+              (entry) => entry.ruleId === 'following-time-gap'
+            ) ?? null,
+            movingElements: window.__SG_DRIVING_GAME_DEV__.readDiagnostics().movingElements
           } : null
         };
       })()`,
@@ -465,7 +472,8 @@ function assertSmokeResult(smoke, expectedPhase) {
     expectedPhase === 'm6' ||
     expectedPhase === 'm7' ||
     expectedPhase === 'm8' ||
-    expectedPhase === 'm9'
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10'
   ) {
     assertM4SmokeResult(smoke.m4);
   }
@@ -473,17 +481,26 @@ function assertSmokeResult(smoke, expectedPhase) {
   if (
     expectedPhase === 'm7' ||
     expectedPhase === 'm8' ||
-    expectedPhase === 'm9'
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10'
   ) {
     assertM7SmokeResult(smoke.m7);
   }
 
-  if (expectedPhase === 'm8' || expectedPhase === 'm9') {
+  if (
+    expectedPhase === 'm8' ||
+    expectedPhase === 'm9' ||
+    expectedPhase === 'm10'
+  ) {
     assertM8SmokeResult(smoke.m8);
   }
 
-  if (expectedPhase === 'm9') {
+  if (expectedPhase === 'm9' || expectedPhase === 'm10') {
     assertM9SmokeResult(smoke.m9);
+  }
+
+  if (expectedPhase === 'm10') {
+    assertM10SmokeResult(smoke.m10);
   }
 }
 
@@ -579,6 +596,30 @@ function assertM9SmokeResult(m9) {
   }
 }
 
+function assertM10SmokeResult(m10) {
+  const followingDiagnostics = m10?.followingDiagnostics;
+
+  if (!followingDiagnostics) {
+    throw new Error('Expected M10 following time-gap diagnostics to exist.');
+  }
+
+  if (!(followingDiagnostics.safeTimeGapSec > 0)) {
+    throw new Error('Expected M10 to expose a safe time-gap threshold.');
+  }
+
+  if (!(followingDiagnostics.detectionRangeM > 0)) {
+    throw new Error('Expected M10 to expose a forward detection range.');
+  }
+
+  if (m10.movingElements?.length !== 1) {
+    throw new Error('Expected M10 to start with one tracked moving element.');
+  }
+
+  if (m10.movingElements[0]?.kind !== 'lead-vehicle') {
+    throw new Error('Expected M10 tracked moving element to be a lead vehicle.');
+  }
+}
+
 function getRecordingDurationMs(expectedPhase) {
   if (expectedPhase === 'm4') {
     return M4_RECORDING_DURATION_MS;
@@ -602,6 +643,10 @@ function getRecordingDurationMs(expectedPhase) {
 
   if (expectedPhase === 'm9') {
     return M9_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm10') {
+    return M10_RECORDING_DURATION_MS;
   }
 
   return RECORDING_DURATION_MS;
@@ -1382,6 +1427,406 @@ async function runM9SideHazardScenario(cdp) {
   return value;
 }
 
+async function runM10FollowingScenario(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    awaitPromise: true,
+    returnByValue: true,
+    expression: `(async () => {
+      const [
+        {
+          FollowingTimeGapRule,
+          computeFollowingTimeGapSec,
+          selectNearestForwardMovingElement
+        },
+        { getScriptedMovingElementStates },
+        { getFixedTestTrackLayout }
+      ] = await Promise.all([
+        import('/src/rules/FollowingTimeGapRule.ts'),
+        import('/src/world/scriptedMovingElements.ts'),
+        import('/src/world/testTrackLayout.ts')
+      ]);
+      const layout = getFixedTestTrackLayout();
+      const leadVehicle = layout.movingElements[0];
+      const segment = layout.segments.find(
+        (candidate) => candidate.id === leadVehicle?.segmentId
+      );
+      const api = window.__SG_DRIVING_GAME_DEV__;
+
+      if (!leadVehicle || !segment || !api) {
+        return { available: false };
+      }
+
+      const laneXM = layout.defaultDrivingLane.centerOffsetM;
+      const makeCarState = (localXM, localZM, speedMps) => ({
+        position: {
+          x:
+            segment.center.xM +
+            localXM * Math.cos(segment.headingRad) +
+            localZM * Math.sin(segment.headingRad),
+          y: 0.01,
+          z:
+            segment.center.zM -
+            localXM * Math.sin(segment.headingRad) +
+            localZM * Math.cos(segment.headingRad)
+        },
+        headingRad: segment.headingRad,
+        speedMps
+      });
+      const makeElement = (id, localXM, localZM, speedMps = leadVehicle.speedMps) => {
+        const state = makeCarState(localXM, localZM, speedMps);
+
+        return {
+          id,
+          kind: 'lead-vehicle',
+          segmentId: segment.id,
+          position: state.position,
+          headingRad: state.headingRad,
+          speedMps,
+          lengthM: leadVehicle.lengthM,
+          widthM: leadVehicle.widthM
+        };
+      };
+      const runRule = (sessionId, config, steps) => {
+        const rule = new FollowingTimeGapRule(config);
+        const events = [];
+        let elapsedSec = 0;
+
+        rule.startSession(sessionId, layout);
+
+        for (const step of steps) {
+          elapsedSec += step.dtSec;
+          events.push(
+            ...rule.update({
+              car: makeCarState(step.carLocalXM, step.carLocalZM, step.carSpeedMps),
+              dtSec: step.dtSec,
+              elapsedSec,
+              movingElements: step.elements.map((element) =>
+                makeElement(
+                  element.id,
+                  element.localXM,
+                  element.localZM,
+                  element.speedMps
+                )
+              ),
+              sessionId,
+              track: layout
+            })
+          );
+        }
+
+        return {
+          diagnostics: rule.getDiagnostics(),
+          events: events.map((event) => ({
+            message: event.message,
+            outcome: event.outcome,
+            ruleId: event.ruleId
+          }))
+        };
+      };
+      const liveDiagnostics = api.readDiagnostics();
+      const followingDiagnostics = liveDiagnostics.session.ruleDiagnostics.find(
+        (entry) => entry.ruleId === 'following-time-gap'
+      );
+      const scriptedAtStart = getScriptedMovingElementStates(layout, 0)[0];
+      const scriptedAfterOneSecond = getScriptedMovingElementStates(layout, 1)[0];
+      const car = makeCarState(laneXM, 0, 10);
+      const nearest = makeElement('nearest', laneXM, -12);
+      const selected = selectNearestForwardMovingElement(layout, car, [
+        makeElement('farther', laneXM, -24),
+        makeElement('adjacent', -laneXM, -6),
+        nearest,
+        makeElement('behind', laneXM, 6)
+      ]);
+      const timeGapSec = computeFollowingTimeGapSec(
+        car,
+        selected?.forwardDistanceM ?? 0,
+        selected?.element ?? nearest
+      );
+      const safeCompletion = runRule(1001, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 1
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.5,
+          elements: []
+        }
+      ]);
+      const shortClean = runRule(1002, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.4,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.1,
+          elements: []
+        }
+      ]);
+      const unsafe = runRule(1003, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -10 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -10 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.1,
+          elements: []
+        }
+      ]);
+      const strictThreshold = runRule(1004, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 3,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -27 }]
+        }
+      ]);
+      const lenientThreshold = runRule(1005, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -27 }]
+        }
+      ]);
+      const reentry = runRule(1006, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 0.5,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -24 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 5,
+          dtSec: 0.1,
+          elements: []
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -10 }]
+        }
+      ]);
+      const hysteresis = runRule(1007, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 1,
+        recoveryHysteresisSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.6,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -22 }]
+        },
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 0.5,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -26 }]
+        }
+      ]);
+      const noSideHazardFollowing = runRule(1008, {
+        detectionRangeM: 50,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 1,
+          elements: []
+        }
+      ]);
+      const outsideRange = runRule(1009, {
+        detectionRangeM: 8,
+        minimumEncounterDurationSec: 1,
+        safeTimeGapSec: 2,
+        unsafeGracePeriodSec: 0.5
+      }, [
+        {
+          carLocalXM: laneXM,
+          carLocalZM: 0,
+          carSpeedMps: 10,
+          dtSec: 1,
+          elements: [{ id: 'lead', localXM: laneXM, localZM: -20 }]
+        }
+      ]);
+      const checks = {
+        activeAtSessionStart:
+          followingDiagnostics?.safeTimeGapSec > 0 &&
+          followingDiagnostics?.detectionRangeM > 0,
+        cleanCompletionPasses:
+          safeCompletion.events.length === 1 &&
+          safeCompletion.events[0].outcome === 'pass',
+        deterministicLeadVehicle:
+          layout.movingElements.length === 1 &&
+          leadVehicle.kind === 'lead-vehicle' &&
+          leadVehicle.tracked === true &&
+          scriptedAtStart.id === leadVehicle.id &&
+          scriptedAfterOneSecond.position.z !== scriptedAtStart.position.z,
+        detectionRangeRequired:
+          outsideRange.events.length === 0 &&
+          outsideRange.diagnostics.activeEncounterElementId === undefined,
+        globalThresholdUsed:
+          strictThreshold.events.length === 1 &&
+          strictThreshold.events[0].outcome === 'violation' &&
+          lenientThreshold.events.length === 0,
+        hysteresisMaintainsUnsafeState:
+          hysteresis.events.length === 1 &&
+          hysteresis.events[0].outcome === 'violation',
+        liveGameTracksLeadVehicle:
+          liveDiagnostics.movingElements.length === 1 &&
+          liveDiagnostics.movingElements[0].kind === 'lead-vehicle',
+        nearestCurrentLaneOnly:
+          selected?.element.id === 'nearest',
+        noContinuousSafePass:
+          safeCompletion.events.length === 1,
+        noPassAfterViolationAndNoDuplicates:
+          unsafe.events.length === 1 &&
+          unsafe.events[0].outcome === 'violation' &&
+          unsafe.diagnostics.violationEncounterCount === 1,
+        sameObjectReentryIsIndependent:
+          reentry.events.length === 2 &&
+          reentry.events[0].outcome === 'pass' &&
+          reentry.events[1].outcome === 'violation',
+        sideHazardIgnored:
+          layout.sideHazards.length === 1 &&
+          noSideHazardFollowing.events.length === 0,
+        shortCleanEncounterUnscored:
+          shortClean.events.length === 0,
+        timeGapFromLiveState:
+          Number.isFinite(timeGapSec) &&
+          timeGapSec > 0 &&
+          selected?.forwardDistanceM > 0,
+        unsafeGraceViolates:
+          unsafe.events.length === 1 &&
+          unsafe.events[0].ruleId === 'following-time-gap'
+      };
+      const allPassed = Object.values(checks).every(Boolean);
+      const panel = document.createElement('div');
+      panel.dataset.smokeAcceptance = 'm10-following-time-gap';
+      panel.style.cssText = [
+        'position:fixed',
+        'left:16px',
+        'top:16px',
+        'z-index:9999',
+        'max-width:640px',
+        'padding:12px 14px',
+        'border:2px solid #16a34a',
+        'background:rgba(15,23,42,0.92)',
+        'color:white',
+        'font:13px/1.35 system-ui,sans-serif',
+        'border-radius:6px'
+      ].join(';');
+      panel.innerHTML = [
+        '<strong>M10 following time-gap acceptance</strong>',
+        ...Object.entries(checks).map(
+          ([name, passed]) => '<div>' + (passed ? 'PASS ' : 'FAIL ') + name + '</div>'
+        )
+      ].join('');
+      document.body.append(panel);
+
+      return {
+        available: true,
+        allPassed,
+        checks,
+        cleanCompletion: safeCompletion,
+        followingDiagnostics,
+        hysteresis,
+        reentry,
+        unsafe
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M10 browser acceptance requires dev diagnostics and rule modules.');
+  }
+
+  if (!value.allPassed) {
+    throw new Error(
+      `M10 following time-gap browser acceptance failed: ${JSON.stringify(value.checks)}`
+    );
+  }
+
+  return value;
+}
+
 async function readM7State(cdp) {
   const result = await cdp.send('Runtime.evaluate', {
     returnByValue: true,
@@ -1639,6 +2084,10 @@ async function writeArtifacts({
     errors.push('M9 side-hazard acceptance scenario did not pass every check.');
   }
 
+  if (expectedPhase === 'm10' && !recording.acceptance?.allPassed) {
+    errors.push('M10 following time-gap acceptance scenario did not pass every check.');
+  }
+
   await writeFile(
     logsPath,
     formatArtifactLog({
@@ -1687,6 +2136,10 @@ async function captureChromeRecording({
 
   if (expectedPhase === 'm9') {
     return captureM9SideHazardRecording({ cdp, durationMs, outputPath });
+  }
+
+  if (expectedPhase === 'm10') {
+    return captureM10FollowingRecording({ cdp, durationMs, outputPath });
   }
 
   try {
@@ -1785,6 +2238,24 @@ async function captureM9SideHazardRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M9 side-hazard acceptance'
+  };
+}
+
+async function captureM10FollowingRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM10FollowingScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M10 records the following time-gap acceptance panel and HUD.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while running M10 following time-gap acceptance'
   };
 }
 

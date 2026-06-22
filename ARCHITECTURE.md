@@ -75,6 +75,8 @@ driving-game/
 |   |   |-- Road.ts
 |   |   |-- RoadMarkings.ts
 |   |   |-- roadLayout.ts
+|   |   |-- scriptedMovingElements.ts
+|   |   |-- ScriptedMovingElementViews.ts
 |   |   |-- testTrackLayout.ts
 |   |   `-- TestTrack.ts
 |   |-- vehicle/
@@ -89,6 +91,7 @@ driving-game/
 |   |-- rules/
 |   |   |-- DrivingSession.ts
 |   |   |-- finishZone.ts
+|   |   |-- FollowingTimeGapRule.ts
 |   |   |-- KeepLeftRule.ts
 |   |   |-- laneRules.ts
 |   |   |-- scoring.ts
@@ -144,8 +147,9 @@ driving-game/
 - `DrivingSession.ts`: pure session lifecycle and scored-event aggregation.
   Sessions start when the game starts or resets, end at the finish zone, and
   keep rule modules active only while the session is active. It records the
-  session end reason, including terminal failures, and exposes read-only rule
-  diagnostics for debug HUDs without mutating gameplay.
+  session end reason, including terminal failures, passes live moving-element
+  state to observer rules, and exposes read-only rule diagnostics for debug
+  HUDs without mutating gameplay.
 - `KeepLeftRule.ts`: always-active Phase 2 keep-left rule. It observes car
   state, emits one violation per continuous wrong-lane episode after a
   configurable grace period, allows new episodes after returning left or
@@ -165,6 +169,10 @@ driving-game/
   scored event per configured hazard per session. A side-hazard collision is a
   terminal failure, emits an `IMMEDIATE FAILURE` message, and ends the active
   session immediately.
+- `FollowingTimeGapRule.ts`: always-active Phase 2 following time-gap rule for
+  tracked forward moving elements. It scores only the nearest current-lane
+  moving element ahead of the player, uses global time-gap config, and emits at
+  most one pass or violation per encounter.
 - `finishZone.ts`: pure finish-gate containment helper.
 - `scoring.ts`: shared scored-event shape and pass/violation aggregation.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
@@ -180,7 +188,7 @@ driving-game/
 - `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
   helpers.
 - `config/constants.ts`: single source of truth for tunable numbers and colors.
-- `World.ts`: composes the static sky, ground, and M5 fixed test track.
+- `World.ts`: composes the static sky, ground, and fixed test track.
 - `Road.ts`: renders the earlier straight-road surface and markings. It remains
   available for milestone history but is not the active M5 world road.
 - `TestTrack.ts`: renders the M5 fixed test track from pure layout data:
@@ -188,14 +196,20 @@ driving-game/
   an obvious solid white T-junction side-road guide line, and only the red
   stop-line marking that is enforced by an M8 stop-line rule zone, the finish
   gate, and deterministic visible side-hazard meshes.
+- `scriptedMovingElements.ts`: pure deterministic live-state derivation for
+  tracked moving elements declared by the fixed test track layout.
+- `ScriptedMovingElementViews.ts`: renders deterministic tracked moving
+  elements using placeholder car meshes and syncs them from
+  `scriptedMovingElements.ts`.
 - `roadLayout.ts`: pure, testable straight-road layout derived from shared
   road config, including the Singapore keep-left default lane and marking
   positions. Also provides shared center-dash cadence helpers.
 - `testTrackLayout.ts`: pure, testable fixed-track layout data derived from
   shared config, including deterministic loop segments, uncontrolled junction
   metadata, the single enforced M8 stop-line marker/rule zone, M9 side-hazard
-  trigger/collision footprints, and a fixed finish zone. It contains no scoring
-  or instructor logic.
+  trigger/collision footprints, the M10 scripted lead vehicle as the first
+  tracked forward moving element, and a fixed finish zone. It contains no
+  scoring or instructor logic.
 
 ## Data Flow
 
@@ -206,6 +220,7 @@ Input -> CarController -> KinematicModel -> Car transform
    |                          `-> DrivingSession -> Rule modules -> ScoringFeedback
    |-> BlindSpotCameraLook -> driver-seat camera follows Car
    `-> reset session/car
+ScriptedMovingElementViews -> live MovingElementState -> DrivingSession
 MirrorCameras follow Car -> render targets -> MirrorView
 Cockpit reads CarState/InputState
 Engine renders main pass + mirror passes; DOM HUD overlays on top

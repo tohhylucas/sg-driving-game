@@ -140,4 +140,27 @@ describe('fixed test track layout', () => {
       layout.segments.some((segment) => segment.id === hazard?.segmentId)
     ).toBe(true);
   });
+
+  it('exposes one deterministic lead vehicle as the first tracked forward moving element', () => {
+    const layout = getFixedTestTrackLayout();
+    const leadVehicle = layout.movingElements[0];
+
+    expect(layout.movingElements).toHaveLength(1);
+    expect(leadVehicle).toEqual(
+      expect.objectContaining({
+        id: 'loop-1-scripted-lead-vehicle',
+        kind: 'lead-vehicle',
+        segmentId: 'loop-1',
+        tracked: true
+      })
+    );
+    expect(leadVehicle.centerLocalXM).toBe(layout.defaultDrivingLane.centerOffsetM);
+    expect(leadVehicle.speedMps).toBeGreaterThan(0);
+    expect(leadVehicle.pathStartLocalZM).toBeGreaterThan(
+      leadVehicle.pathEndLocalZM
+    );
+    expect(
+      layout.segments.some((segment) => segment.id === leadVehicle.segmentId)
+    ).toBe(true);
+  });
 });

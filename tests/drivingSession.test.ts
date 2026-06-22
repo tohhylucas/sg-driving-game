@@ -4,6 +4,7 @@ import {
   DrivingSession,
   type SessionRule
 } from '../src/rules/DrivingSession';
+import { FollowingTimeGapRule } from '../src/rules/FollowingTimeGapRule';
 import { KeepLeftRule } from '../src/rules/KeepLeftRule';
 import { SideHazardRule } from '../src/rules/SideHazardRule';
 import { StopLineRule } from '../src/rules/StopLineRule';
@@ -111,6 +112,51 @@ describe('DrivingSession', () => {
         ruleId: 'side-hazard',
         activeHazardCount: 1,
         pendingHazardCount: 1
+      })
+    ]);
+  });
+
+  it('starts following time-gap diagnostics with the driving session', () => {
+    const session = new DrivingSession({
+      rules: [new FollowingTimeGapRule()],
+      track
+    });
+
+    session.start(createInitialCarState());
+
+    expect(session.state.active).toBe(true);
+    expect(session.ruleDiagnostics).toEqual([
+      expect.objectContaining({
+        ruleId: 'following-time-gap',
+        activeEncounterElementId: undefined,
+        safeTimeGapSec: expect.any(Number)
+      })
+    ]);
+  });
+
+  it('aggregates following time-gap scored events through the session stream', () => {
+    const session = new DrivingSession({
+      rules: [
+        new FollowingTimeGapRule({
+          detectionRangeM: 50,
+          safeTimeGapSec: 2,
+          unsafeGracePeriodSec: 0.5
+        })
+      ],
+      track
+    });
+    const segment = getSegment('loop-1');
+    const car = makeCarStateOnSegment(segment, -1.75, 0, 10);
+    const lead = makeMovingElementStateOnSegment(segment, -1.75, -10);
+
+    session.start(car);
+    session.update(car, 0.6, [lead]);
+
+    expect(session.summary.violationCount).toBe(1);
+    expect(session.summary.events).toEqual([
+      expect.objectContaining({
+        outcome: 'violation',
+        ruleId: 'following-time-gap'
       })
     ]);
   });
@@ -336,5 +382,47 @@ function makeCarStateAtHazard(
     },
     headingRad: segment.headingRad,
     speedMps
+  };
+}
+
+function makeCarStateOnSegment(
+  segment: TrackSegment,
+  localXM: number,
+  localZM: number,
+  speedMps: number
+): CarState {
+  return {
+    position: {
+      x:
+        segment.center.xM +
+        localXM * Math.cos(segment.headingRad) +
+        localZM * Math.sin(segment.headingRad),
+      y: 0.01,
+      z:
+        segment.center.zM -
+        localXM * Math.sin(segment.headingRad) +
+        localZM * Math.cos(segment.headingRad)
+    },
+    headingRad: segment.headingRad,
+    speedMps
+  };
+}
+
+function makeMovingElementStateOnSegment(
+  segment: TrackSegment,
+  localXM: number,
+  localZM: number
+) {
+  const carState = makeCarStateOnSegment(segment, localXM, localZM, 4);
+
+  return {
+    id: 'lead',
+    kind: 'lead-vehicle' as const,
+    segmentId: segment.id,
+    position: carState.position,
+    headingRad: carState.headingRad,
+    speedMps: carState.speedMps,
+    lengthM: 4.2,
+    widthM: 1.7
   };
 }

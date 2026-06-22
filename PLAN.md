@@ -157,45 +157,49 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M10 - Forward Moving Elements and Following Time-Gap Rule
 
-- [ ] Add a simple scripted lead vehicle as the first tracked forward moving
+- [DONE] Add a simple scripted lead vehicle as the first tracked forward moving
   element on the fixed test track, not a traffic simulation.
-- [ ] Apply one global configurable safe time-gap threshold to all tracked
+- [DONE] Apply one global configurable safe time-gap threshold to all tracked
   moving elements in the player's current lane in front of the car.
-- [ ] Score only against the nearest tracked moving element ahead in the
+- [DONE] Score only against the nearest tracked moving element ahead in the
   player's current lane.
-- [ ] Ignore farther current-lane objects, adjacent-lane objects, and
+- [DONE] Ignore farther current-lane objects, adjacent-lane objects, and
   side-hazard objects for M10 following time-gap scoring.
-- [ ] Compute the relevant current-lane forward following gap as a time gap from
+- [DONE] Compute the relevant current-lane forward following gap as a time gap from
   car state and moving-element state.
-- [ ] Start an encounter-based following segment when the nearest tracked moving
+- [DONE] Start an encounter-based following segment when the nearest tracked moving
   element is ahead in the player's current lane and within a configurable
   forward detection range; do not wait until the player is already too close and
   do not use fixed scoring zones for M10.
-- [ ] End the following segment when that moving element is no longer the
+- [DONE] End the following segment when that moving element is no longer the
   relevant current-lane object, or when the route/session ends.
-- [ ] Allow the same moving element to start a new independent following
+- [DONE] Allow the same moving element to start a new independent following
   encounter later if it again becomes the nearest current-lane object within the
   forward detection range.
-- [ ] Emit pass/violation following time-gap events with a grace period and
+- [DONE] Emit pass/violation following time-gap events with a grace period and
   hysteresis.
-- [ ] Once an encounter-based following segment emits a violation, keep that
+- [DONE] Once an encounter-based following segment emits a violation, keep that
   segment marked as a violation even if the player later restores a safe gap
   before the segment ends.
-- [ ] Emit at most one violation event per encounter-based following segment;
+- [DONE] Emit at most one violation event per encounter-based following segment;
   continued unsafe following after the first violation does not emit duplicate
   M10 violations.
-- [ ] Emit a pass only when the player completes an encounter-based following
+- [DONE] Emit a pass only when the player completes an encounter-based following
   segment cleanly; do not emit continuous pass events while the time gap is
   safe.
-- [ ] Require a configurable minimum encounter duration before a clean encounter
+- [DONE] Require a configurable minimum encounter duration before a clean encounter
   can emit a pass; too-short clean encounters emit no scored event.
-- [ ] Apply minimum encounter duration only to pass eligibility; violations can
+- [DONE] Apply minimum encounter duration only to pass eligibility; violations can
   still emit whenever the unsafe-gap grace period is exceeded.
-- [ ] Unit-test nearest current-lane forward-element selection, time-gap
+- [DONE] Unit-test nearest current-lane forward-element selection, time-gap
   calculation, detection-range encounter start/end, global-threshold usage,
   same-object re-entry as a new encounter, violation lockout after recovery,
   single-violation-per-encounter suppression, minimum-duration pass
   eligibility, clean segment completion, and repeated-event suppression.
+- Delivery note: Implemented issue #16 with a deterministic scripted lead
+  vehicle, live moving-element state, always-active encounter-based following
+  time-gap scoring, repeated-event suppression, M10 unit coverage, and M10
+  Chrome evidence.
 - **Test:** Completing an encounter-based following segment behind the nearest
   current-lane object without tailgating emits a pass; tailgating that nearest
   object for longer than the grace period emits one scored violation event,
