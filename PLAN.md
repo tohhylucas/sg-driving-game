@@ -95,20 +95,25 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M7 - Keep-Left Rule and Scoring Foundation
 
-- [ ] Define a small always-active rule-module contract and scored-event shape
+- [DONE] Define a small always-active rule-module contract and scored-event shape
   with `pass` and `violation` outcomes.
-- [ ] Define driving session lifecycle: start/reset onto the practice track
+- [DONE] Define driving session lifecycle: start/reset onto the practice track
   starts a session; crossing a fixed finish zone or pressing reset ends it.
-- [ ] Add a fixed finish zone/gate to the hand-built test track for ending the
+- [DONE] Add a fixed finish zone/gate to the hand-built test track for ending the
   route.
-- [ ] Implement the first end-to-end rule using keep-left detection.
-- [ ] Add a minimal scoring event stream and feedback surface that records
+- [DONE] Implement the first end-to-end rule using keep-left detection.
+- [DONE] Add a minimal scoring event stream and feedback surface that records
   successes and violations separately from instructor audio.
-- [ ] Unit-test lane-side detection, finish-zone crossing, always-active rule
+- [DONE] Unit-test lane-side detection, finish-zone crossing, always-active rule
   startup, and scored-event aggregation within one session.
+- Delivery note: Implemented issue #13 with a session-scoped scoring event
+  stream, episode-based keep-left pass/violation rule, fixed finish gate, R
+  reset, separate feedback HUD, and keep-left debug readout for grace period
+  lane-side diagnostics, and active/finished session state.
 - **Test:** Driving outside the correct left lane emits a scored keep-left
-  event after a configurable grace period; the rule is active for the full
-  session; car movement remains unconstrained.
+  event after a configurable grace period; returning left or entering a new
+  road segment allows a later separate keep-left violation; the rule is active
+  for the full session; car movement remains unconstrained.
 
 ### M8 - Stop-Line Rule at the Hand-Built Junction
 

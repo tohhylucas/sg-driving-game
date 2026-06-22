@@ -35,4 +35,9 @@ export class CarController {
       )
     );
   }
+
+  /** Clears smoothed steering state after a session reset. */
+  reset(): void {
+    this.smoothedSteer = 0;
+  }
 }

@@ -37,7 +37,8 @@ export class Input {
         (this.isAnyPressed(CONTROL_KEYS.steerRight) ? 1 : 0),
       look:
         (this.isAnyPressed(CONTROL_KEYS.lookRight) ? 1 : 0) -
-        (this.isAnyPressed(CONTROL_KEYS.lookLeft) ? 1 : 0)
+        (this.isAnyPressed(CONTROL_KEYS.lookLeft) ? 1 : 0),
+      reset: this.isAnyPressed(CONTROL_KEYS.reset)
     };
   }
 

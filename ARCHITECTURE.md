@@ -86,10 +86,17 @@ driving-game/
 |   |   |-- BlindSpotCameraLook.ts
 |   |   |-- ChaseCamera.ts
 |   |   `-- MirrorCamera.ts
+|   |-- rules/
+|   |   |-- DrivingSession.ts
+|   |   |-- finishZone.ts
+|   |   |-- KeepLeftRule.ts
+|   |   |-- laneRules.ts
+|   |   `-- scoring.ts
 |   |-- ui/
 |   |   |-- Cockpit.ts
 |   |   |-- InstructorAudio.ts
 |   |   |-- MirrorView.ts
+|   |   |-- ScoringFeedback.ts
 |   |   |-- SteeringWheel.ts
 |   |   |-- Speedometer.ts
 |   |   `-- cockpitMetrics.ts
@@ -117,7 +124,7 @@ driving-game/
   browser smoke verification; diagnostics must not mutate gameplay.
 - `Loop.ts`: fixed-timestep accumulator so movement is frame-rate independent.
 - `Input.ts`: tracks pressed keys and exposes normalized driving and
-  blind-spot look input state.
+  blind-spot look input state plus session reset input.
 - `KinematicModel.ts`: pure logic for bicycle-model integration. No Three.js
   imports. Must be unit-tested when implemented.
 - `Car.ts`: renders the exterior placeholder car and syncs its scene transform
@@ -132,12 +139,28 @@ driving-game/
 - `BlindSpotCameraLook.ts`: pure, testable smoothing state for A/D driver-seat
   side-look yaw. It rotates the camera view direction only and does not emit
   scoring events or affect vehicle motion.
+- `DrivingSession.ts`: pure session lifecycle and scored-event aggregation.
+  Sessions start when the game starts or resets, end at the finish zone, and
+  keep rule modules active only while the session is active. It also exposes
+  read-only rule diagnostics for debug HUDs without mutating gameplay.
+- `KeepLeftRule.ts`: always-active Phase 2 keep-left rule. It observes car
+  state, emits one violation per continuous wrong-lane episode after a
+  configurable grace period, allows new episodes after returning left or
+  entering a new road segment, and emits a pass only when a clean route reaches
+  the finish zone.
+- `laneRules.ts`: pure lane-side and default-lane helpers for fixed track
+  segments.
+- `finishZone.ts`: pure finish-gate containment helper.
+- `scoring.ts`: shared scored-event shape and pass/violation aggregation.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
   car state.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame and
   reports the matching canvas viewport for compositing.
 - `InstructorAudio.ts`: audio-only instructor placeholder. It exposes no
   instruction text or caption API in Phase 1.
+- `ScoringFeedback.ts`: minimal feedback HUD for scored pass/violation counts
+  plus rule diagnostics such as keep-left grace period and lane-side debug
+  state. It is separate from instructor audio.
 - `cockpitMetrics.ts`: pure speedometer and steering-wheel presentation
   helpers.
 - `config/constants.ts`: single source of truth for tunable numbers and colors.
@@ -152,8 +175,8 @@ driving-game/
   positions. Also provides shared center-dash cadence helpers.
 - `testTrackLayout.ts`: pure, testable fixed-track layout data derived from
   shared config, including deterministic loop segments, uncontrolled junction
-  metadata, and static stop-line marker geometry. It contains no rule,
-  scoring, collision, or instructor logic.
+  metadata, static stop-line marker geometry, and a fixed finish zone. It
+  contains no scoring, collision, or instructor logic.
 
 ## Data Flow
 
@@ -161,6 +184,9 @@ driving-game/
 Input -> CarController -> KinematicModel -> Car transform
    |                          |
    `-> BlindSpotCameraLook -> driver-seat camera follows Car
+   |                          `-> DrivingSession -> Rule modules -> ScoringFeedback
+   |-> BlindSpotCameraLook -> driver-seat camera follows Car
+   `-> reset session/car
 MirrorCameras follow Car -> render targets -> MirrorView
 Cockpit reads CarState/InputState
 Engine renders main pass + mirror passes; DOM HUD overlays on top

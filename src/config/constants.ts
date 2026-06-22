@@ -10,6 +10,10 @@ export const LOOP_CONFIG = {
   maxFrameDeltaSec: 0.25
 } as const;
 
+export const RULE_CONFIG = {
+  keepLeftGracePeriodSec: 1.5
+} as const;
+
 export const RENDER_CONFIG = {
   clearColor: WORLD_CONFIG.skyColor,
   cameraFovDeg: 60,
@@ -42,7 +46,9 @@ export const ROAD_CONFIG = {
   centerDashGapM: 5,
   markingYOffsetM: 0.02,
   stopLineWidthM: 0.35,
-  stopLineColor: 0xffffff
+  stopLineColor: 0xffffff,
+  finishLineWidthM: 0.4,
+  finishLineColor: 0x22c55e
 } as const;
 
 export const TEST_TRACK_CONFIG = {
@@ -65,7 +71,11 @@ export const TEST_TRACK_CONFIG = {
     end: { xM: 20, zM: -14 },
     junctionCenter: { xM: 0, zM: -14 }
   },
-  stopLineSetbackM: 4
+  stopLineSetbackM: 4,
+  finishZone: {
+    center: { xM: 0, zM: 24 },
+    depthM: 4
+  }
 } as const;
 
 export const FIXED_CAMERA_CONFIG = {

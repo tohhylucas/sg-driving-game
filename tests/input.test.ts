@@ -97,4 +97,20 @@ describe('Input', () => {
     target.release('KeyD');
     expect(input.getState().look).toBe(0);
   });
+
+  it('exposes reset as a separate session control', () => {
+    const target = new FakeInputTarget();
+    const input = new Input(target);
+    input.start();
+
+    for (const key of CONTROL_KEYS.reset) {
+      target.press(key);
+      expect(input.getState().reset).toBe(true);
+      expect(input.getState().throttle).toBe(0);
+      expect(input.getState().brake).toBe(0);
+      expect(input.getState().steer).toBe(0);
+      target.release(key);
+      expect(input.getState().reset).toBe(false);
+    }
+  });
 });

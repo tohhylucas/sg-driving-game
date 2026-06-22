@@ -4,6 +4,7 @@ import { makeGroup, makeHorizontalPlaneMesh } from '../utils/three';
 import { getCenterDashCenterZMs } from './roadLayout';
 import {
   getFixedTestTrackLayout,
+  type TrackFinishZone,
   type TrackSegment,
   type TrackStopLine
 } from './testTrackLayout';
@@ -23,6 +24,8 @@ export class TestTrack {
     for (const stopLine of layout.stopLines) {
       this.object.add(createStopLineGroup(stopLine));
     }
+
+    this.object.add(createFinishZoneGroup(layout.finishZone));
   }
 }
 
@@ -86,6 +89,22 @@ function createStopLineGroup(stopLine: TrackStopLine): THREE.Group {
       widthM: stopLine.lengthM,
       lengthM: stopLine.widthM,
       color: ROAD_CONFIG.stopLineColor,
+      yM: ROAD_CONFIG.markingYOffsetM
+    })
+  );
+
+  return group;
+}
+
+function createFinishZoneGroup(finishZone: TrackFinishZone): THREE.Group {
+  const group = makeGroup(`FinishZone-${finishZone.id}`);
+  group.position.set(finishZone.center.xM, 0, finishZone.center.zM);
+  group.add(
+    makeHorizontalPlaneMesh({
+      name: `FinishLineMarking-${finishZone.id}`,
+      widthM: finishZone.widthM,
+      lengthM: ROAD_CONFIG.finishLineWidthM,
+      color: ROAD_CONFIG.finishLineColor,
       yM: ROAD_CONFIG.markingYOffsetM
     })
   );

@@ -27,6 +27,7 @@ const RECORDING_DURATION_MS = 1_500;
 const M4_RECORDING_DURATION_MS = 4_500;
 const M5_RECORDING_DURATION_MS = 35_000;
 const M6_RECORDING_DURATION_MS = 9_000;
+const M7_RECORDING_DURATION_MS = 9_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -35,6 +36,8 @@ const M5_STEER_DEADBAND_RAD = 0.14;
 const M5_DESIRED_SPEED_MPS = 8.5;
 const M5_TURN_SPEED_MPS = 5.5;
 const M5_BRAKE_MARGIN_MPS = 1.5;
+const M7_VIOLATION_TIMEOUT_MS = 7_500;
+const M7_DRIVER_INTERVAL_MS = 250;
 
 const M5_ROUTE_CHECKPOINTS = [
   { id: 'cross-junction-first-pass', xM: 0, zM: -14 },
@@ -137,6 +140,17 @@ async function main() {
             instructorCaptionExists: overlay.querySelector('[data-instrument="instructor-caption"], .cockpit__caption') !== null,
             instructorAudioText: overlay.querySelector('[data-instrument="instructor-audio"]')?.textContent ?? null,
             overlayText: overlay.innerText
+          } : null,
+          m7: overlay instanceof HTMLDivElement ? {
+            keepLeftDebugExists: overlay.querySelector('[data-rule-debug="keep-left"]') !== null,
+            keepLeftDebugText: overlay.querySelector('[data-rule-debug="keep-left"]')?.textContent ?? null,
+            keepLeftGracePeriodSec: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftGracePeriodSec ?? -1),
+            keepLeftLaneSide: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftLaneSide ?? null,
+            keepLeftSessionActive: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.keepLeftSessionActive ?? null,
+            scoringFeedbackExists: overlay.querySelector('[data-instrument="scoring-feedback"]') !== null,
+            passCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.passCount ?? -1),
+            violationCount: Number(overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.violationCount ?? -1),
+            latestOutcome: overlay.querySelector('[data-instrument="scoring-feedback"]')?.dataset.latestOutcome ?? null
           } : null
         };
       })()`,
@@ -436,9 +450,14 @@ function assertSmokeResult(smoke, expectedPhase) {
   if (
     expectedPhase === 'm4' ||
     expectedPhase === 'm5' ||
-    expectedPhase === 'm6'
+    expectedPhase === 'm6' ||
+    expectedPhase === 'm7'
   ) {
     assertM4SmokeResult(smoke.m4);
+  }
+
+  if (expectedPhase === 'm7') {
+    assertM7SmokeResult(smoke.m7);
   }
 }
 
@@ -472,6 +491,32 @@ function assertM4SmokeResult(m4) {
   }
 }
 
+function assertM7SmokeResult(m7) {
+  if (!m7?.scoringFeedbackExists) {
+    throw new Error('Expected M7 scoring feedback surface to exist.');
+  }
+
+  if (m7.passCount !== 0 || m7.violationCount !== 0) {
+    throw new Error('Expected M7 scoring feedback to start with zero events.');
+  }
+
+  if (!m7.keepLeftDebugExists) {
+    throw new Error('Expected M7 keep-left debug readout to exist.');
+  }
+
+  if (!(m7.keepLeftGracePeriodSec > 0)) {
+    throw new Error('Expected M7 keep-left debug to expose grace period.');
+  }
+
+  if (!['left', 'right'].includes(m7.keepLeftLaneSide)) {
+    throw new Error('Expected M7 keep-left debug to expose lane side.');
+  }
+
+  if (m7.keepLeftSessionActive !== 'true') {
+    throw new Error('Expected M7 keep-left debug to expose active session state.');
+  }
+}
+
 function getRecordingDurationMs(expectedPhase) {
   if (expectedPhase === 'm4') {
     return M4_RECORDING_DURATION_MS;
@@ -483,6 +528,10 @@ function getRecordingDurationMs(expectedPhase) {
 
   if (expectedPhase === 'm6') {
     return M6_RECORDING_DURATION_MS;
+  }
+
+  if (expectedPhase === 'm7') {
+    return M7_RECORDING_DURATION_MS;
   }
 
   return RECORDING_DURATION_MS;
@@ -808,6 +857,151 @@ async function runM5DrivingScenario(cdp, maxDurationMs) {
   };
 }
 
+async function runM7ViolationResetScenario(cdp) {
+  const sample = {
+    initial: await readM7State(cdp),
+    violation: null,
+    afterReset: null
+  };
+  const startedAt = Date.now();
+
+  try {
+    await dispatchControlKey(cdp, 'keyDown', 'KeyW');
+    await dispatchControlKey(cdp, 'keyDown', 'ArrowRight');
+
+    while (Date.now() - startedAt < M7_VIOLATION_TIMEOUT_MS) {
+      await delay(M7_DRIVER_INTERVAL_MS);
+      const state = await readM7State(cdp);
+
+      if (state.violationCount > 0) {
+        sample.violation = state;
+        break;
+      }
+    }
+  } finally {
+    await dispatchControlKey(cdp, 'keyUp', 'ArrowRight');
+    await dispatchControlKey(cdp, 'keyUp', 'KeyW');
+  }
+
+  if (!sample.violation) {
+    throw new Error('Expected M7 drive to emit a keep-left violation.');
+  }
+
+  await dispatchControlKey(cdp, 'keyDown', 'KeyR');
+  await delay(100);
+  await dispatchControlKey(cdp, 'keyUp', 'KeyR');
+  await delay(400);
+  sample.afterReset = await readM7State(cdp);
+
+  assertM7Scenario(sample);
+  return sample;
+}
+
+async function readM7State(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    returnByValue: true,
+    expression: `(() => {
+      const api = window.__SG_DRIVING_GAME_DEV__;
+      const feedback = document.querySelector('[data-instrument="scoring-feedback"]');
+
+      if (!api || !(feedback instanceof HTMLElement)) {
+        return { available: false };
+      }
+
+      const diagnostics = api.readDiagnostics();
+      const keepLeftDiagnostics = diagnostics.session.ruleDiagnostics.find(
+        (entry) => entry.ruleId === 'keep-left'
+      );
+      const keepLeftDebug = feedback.querySelector('[data-rule-debug="keep-left"]');
+
+      return {
+        available: true,
+        active: diagnostics.session.active,
+        diagnosticGracePeriodSec: keepLeftDiagnostics?.gracePeriodSec ?? null,
+        diagnosticLaneSide: keepLeftDiagnostics?.laneSide ?? null,
+        feedbackGracePeriodSec: Number(feedback.dataset.keepLeftGracePeriodSec ?? -1),
+        feedbackLaneSide: feedback.dataset.keepLeftLaneSide ?? null,
+        feedbackOutsideLaneSec: Number(feedback.dataset.keepLeftOutsideLaneSec ?? -1),
+        feedbackSessionActive: feedback.dataset.keepLeftSessionActive ?? null,
+        feedbackWithinDefaultLane: feedback.dataset.keepLeftWithinDefaultLane ?? null,
+        keepLeftDebugText: keepLeftDebug?.textContent ?? null,
+        latestOutcome: feedback.dataset.latestOutcome ?? '',
+        passCount: Number(feedback.dataset.passCount ?? 0),
+        sessionId: diagnostics.session.sessionId,
+        violationCount: Number(feedback.dataset.violationCount ?? 0),
+        xM: diagnostics.car.position.x,
+        zM: diagnostics.car.position.z
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M7 browser acceptance requires dev diagnostics.');
+  }
+
+  return value;
+}
+
+function assertM7Scenario(sample) {
+  assertM7DebugState(sample.initial, 'initial');
+  assertM7DebugState(sample.violation, 'violation');
+  assertM7DebugState(sample.afterReset, 'after reset');
+
+  if (sample.violation.violationCount !== 1) {
+    throw new Error('Expected one M7 keep-left violation in feedback.');
+  }
+
+  if (sample.violation.latestOutcome !== 'violation') {
+    throw new Error('Expected latest M7 feedback outcome to be violation.');
+  }
+
+  if (!(sample.afterReset.sessionId > sample.violation.sessionId)) {
+    throw new Error('Expected reset to start a new M7 session.');
+  }
+
+  if (
+    sample.afterReset.passCount !== 0 ||
+    sample.afterReset.violationCount !== 0
+  ) {
+    throw new Error('Expected reset to clear M7 feedback counts.');
+  }
+
+  if (!sample.afterReset.active) {
+    throw new Error('Expected reset to leave a new M7 session active.');
+  }
+}
+
+function assertM7DebugState(state, label) {
+  if (!(state.feedbackGracePeriodSec > 0)) {
+    throw new Error(`Expected ${label} M7 debug grace period to be visible.`);
+  }
+
+  if (state.feedbackGracePeriodSec !== state.diagnosticGracePeriodSec) {
+    throw new Error(`Expected ${label} M7 debug grace period to match diagnostics.`);
+  }
+
+  if (!['left', 'right'].includes(state.feedbackLaneSide)) {
+    throw new Error(`Expected ${label} M7 debug lane side to be visible.`);
+  }
+
+  if (state.feedbackLaneSide !== state.diagnosticLaneSide) {
+    throw new Error(`Expected ${label} M7 debug lane side to match diagnostics.`);
+  }
+
+  if (state.feedbackSessionActive !== String(state.active)) {
+    throw new Error(`Expected ${label} M7 debug session state to match diagnostics.`);
+  }
+
+  if (!state.keepLeftDebugText?.includes(`Side ${state.feedbackLaneSide}`)) {
+    throw new Error(`Expected ${label} M7 debug text to include lane side.`);
+  }
+
+  if (!state.keepLeftDebugText?.includes(`Session ${state.active ? 'active' : 'finished'}`)) {
+    throw new Error(`Expected ${label} M7 debug text to include session state.`);
+  }
+}
+
 async function readM5Diagnostics(cdp) {
   const result = await cdp.send('Runtime.evaluate', {
     returnByValue: true,
@@ -899,6 +1093,8 @@ function getControlKeyInfo(code) {
       return { key: 'a', windowsVirtualKeyCode: 65 };
     case 'KeyD':
       return { key: 'd', windowsVirtualKeyCode: 68 };
+    case 'KeyR':
+      return { key: 'r', windowsVirtualKeyCode: 82 };
     case 'KeyS':
       return { key: 's', windowsVirtualKeyCode: 83 };
     case 'KeyW':
@@ -988,6 +1184,10 @@ async function captureChromeRecording({
     return captureM6DrivingRecording({ cdp, durationMs, outputPath });
   }
 
+  if (expectedPhase === 'm7') {
+    return captureM7DrivingRecording({ cdp, durationMs, outputPath });
+  }
+
   try {
     const recording = await captureCanvasRecording(cdp, durationMs);
     await writeFile(outputPath, recording.buffer);
@@ -1030,6 +1230,24 @@ async function captureM6DrivingRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M6 controls'
+  };
+}
+
+async function captureM7DrivingRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM7ViolationResetScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M7 records full page while driving into a keep-left violation.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M7 scoring input'
   };
 }
 

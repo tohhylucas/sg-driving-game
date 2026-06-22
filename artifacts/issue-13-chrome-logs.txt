@@ -1,0 +1,119 @@
+Chrome verification
+Timestamp: 2026-06-22T14:45:08.156Z
+Chrome: detected
+App URL: http://127.0.0.1:5174/
+Recording: artifacts/issue-13-chrome-recording.webm
+Recording source: Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M7 scoring input
+Recording duration ms: 9000
+Recording frames: 85
+Recording MIME type: video/webm
+Recording bytes: 119269
+
+Smoke result:
+{
+  "title": "Singapore Driving Game",
+  "canvasExists": true,
+  "overlayExists": true,
+  "canvasClientWidth": 758,
+  "canvasClientHeight": 482,
+  "viewportWidth": 758,
+  "viewportHeight": 482,
+  "overlayPhase": "m7",
+  "m4": {
+    "mirrorIds": [
+      "rearview",
+      "leftSide",
+      "rightSide"
+    ],
+    "steeringWheelExists": true,
+    "speedometerExists": true,
+    "instructorAudioExists": true,
+    "instructorCaptionExists": false,
+    "instructorAudioText": "",
+    "overlayText": "0\nKM/H\n0\nPASSES\n0\nVIOLATIONS\nGrace 1.5s | Session active | Side left | Correct yes | Outside 0.00s"
+  },
+  "m7": {
+    "keepLeftDebugExists": true,
+    "keepLeftDebugText": "Grace 1.5s | Session active | Side left | Correct yes | Outside 0.00s",
+    "keepLeftGracePeriodSec": 1.5,
+    "keepLeftLaneSide": "left",
+    "keepLeftSessionActive": "true",
+    "scoringFeedbackExists": true,
+    "passCount": 0,
+    "violationCount": 0,
+    "latestOutcome": ""
+  }
+}
+
+Pre-recording acceptance sample:
+not run
+
+Recorded acceptance scenario:
+{
+  "initial": {
+    "available": true,
+    "active": true,
+    "diagnosticGracePeriodSec": 1.5,
+    "diagnosticLaneSide": "left",
+    "feedbackGracePeriodSec": 1.5,
+    "feedbackLaneSide": "left",
+    "feedbackOutsideLaneSec": 0,
+    "feedbackSessionActive": "true",
+    "feedbackWithinDefaultLane": "true",
+    "keepLeftDebugText": "Grace 1.5s | Session active | Side left | Correct yes | Outside 0.00s",
+    "latestOutcome": "",
+    "passCount": 0,
+    "sessionId": 1,
+    "violationCount": 0,
+    "xM": -1.75,
+    "zM": 0
+  },
+  "violation": {
+    "available": true,
+    "active": true,
+    "diagnosticGracePeriodSec": 1.5,
+    "diagnosticLaneSide": "right",
+    "feedbackGracePeriodSec": 1.5,
+    "feedbackLaneSide": "right",
+    "feedbackOutsideLaneSec": 1.5833333333333326,
+    "feedbackSessionActive": "true",
+    "feedbackWithinDefaultLane": "false",
+    "keepLeftDebugText": "Grace 1.5s | Session active | Side right | Correct no | Outside 1.58s",
+    "latestOutcome": "violation",
+    "passCount": 0,
+    "sessionId": 1,
+    "violationCount": 1,
+    "xM": 3.364559321954597,
+    "zM": 4.09430922235234
+  },
+  "afterReset": {
+    "available": true,
+    "active": true,
+    "diagnosticGracePeriodSec": 1.5,
+    "diagnosticLaneSide": "left",
+    "feedbackGracePeriodSec": 1.5,
+    "feedbackLaneSide": "left",
+    "feedbackOutsideLaneSec": 0,
+    "feedbackSessionActive": "true",
+    "feedbackWithinDefaultLane": "true",
+    "keepLeftDebugText": "Grace 1.5s | Session active | Side left | Correct yes | Outside 0.00s",
+    "latestOutcome": "",
+    "passCount": 0,
+    "sessionId": 2,
+    "violationCount": 0,
+    "xM": -1.75,
+    "zM": 0
+  }
+}
+
+Browser log entries:
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:7CA4001840A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0x1a2400140e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x1a2400140e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x1a2400140e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0x1a2400140e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+
+Console/runtime error result: none
