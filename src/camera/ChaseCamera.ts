@@ -11,6 +11,10 @@ interface ChaseCameraConfig {
   viewLateralOffsetM: number;
 }
 
+interface ChaseCameraRuntimeOffset {
+  lookYawRad?: number;
+}
+
 export class ChaseCamera {
   readonly camera = new THREE.PerspectiveCamera(
     RENDER_CONFIG.cameraFovDeg,
@@ -28,12 +32,17 @@ export class ChaseCamera {
     };
   }
 
-  /** Positions the camera behind the car and points it toward the road ahead. */
-  update(state: CarState): void {
+  /** Positions the driving camera from the configured car-relative viewpoint. */
+  update(state: CarState, offset: ChaseCameraRuntimeOffset = {}): void {
     const forwardX = -Math.sin(state.headingRad);
     const forwardZ = -Math.cos(state.headingRad);
     const rightX = Math.cos(state.headingRad);
     const rightZ = -Math.sin(state.headingRad);
+    const lookYawRad = offset.lookYawRad ?? 0;
+    const lookDirectionX =
+      forwardX * Math.cos(lookYawRad) + rightX * Math.sin(lookYawRad);
+    const lookDirectionZ =
+      forwardZ * Math.cos(lookYawRad) + rightZ * Math.sin(lookYawRad);
 
     this.camera.position.set(
       state.position.x -
@@ -47,11 +56,11 @@ export class ChaseCamera {
 
     this.camera.lookAt(
       state.position.x +
-        forwardX * this.config.lookAheadM +
+        lookDirectionX * this.config.lookAheadM +
         rightX * this.config.viewLateralOffsetM,
       state.position.y + this.config.lookAtHeightM,
       state.position.z +
-        forwardZ * this.config.lookAheadM +
+        lookDirectionZ * this.config.lookAheadM +
         rightZ * this.config.viewLateralOffsetM
     );
   }

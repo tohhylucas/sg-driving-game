@@ -26,6 +26,7 @@ const WAIT_TIMEOUT_MS = 15_000;
 const RECORDING_DURATION_MS = 1_500;
 const M4_RECORDING_DURATION_MS = 4_500;
 const M5_RECORDING_DURATION_MS = 35_000;
+const M6_RECORDING_DURATION_MS = 9_000;
 const RECORDING_FRAME_RATE = 10;
 const ARTIFACT_DIR = 'artifacts';
 const M5_DRIVER_INTERVAL_MS = 100;
@@ -432,7 +433,11 @@ function assertSmokeResult(smoke, expectedPhase) {
     );
   }
 
-  if (expectedPhase === 'm4' || expectedPhase === 'm5') {
+  if (
+    expectedPhase === 'm4' ||
+    expectedPhase === 'm5' ||
+    expectedPhase === 'm6'
+  ) {
     assertM4SmokeResult(smoke.m4);
   }
 }
@@ -476,24 +481,28 @@ function getRecordingDurationMs(expectedPhase) {
     return M5_RECORDING_DURATION_MS;
   }
 
+  if (expectedPhase === 'm6') {
+    return M6_RECORDING_DURATION_MS;
+  }
+
   return RECORDING_DURATION_MS;
 }
 
 async function runM4AcceptanceSample(cdp) {
   const initial = await readM4HudState(cdp);
 
-  await dispatchKey(cdp, 'keyDown', 'ArrowUp', 'ArrowUp', 38);
+  await dispatchControlKey(cdp, 'keyDown', 'KeyW');
   await delay(650);
 
   const moving = await readM4HudState(cdp);
 
-  await dispatchKey(cdp, 'keyDown', 'ArrowLeft', 'ArrowLeft', 37);
+  await dispatchControlKey(cdp, 'keyDown', 'ArrowLeft');
   await delay(450);
 
   const steering = await readM4HudState(cdp);
 
-  await dispatchKey(cdp, 'keyUp', 'ArrowLeft', 'ArrowLeft', 37);
-  await dispatchKey(cdp, 'keyUp', 'ArrowUp', 'ArrowUp', 38);
+  await dispatchControlKey(cdp, 'keyUp', 'ArrowLeft');
+  await dispatchControlKey(cdp, 'keyUp', 'KeyW');
 
   if (!(moving.speedKmh > initial.speedKmh)) {
     throw new Error(
@@ -535,16 +544,181 @@ async function readM4HudState(cdp) {
 
 async function runM4DrivingScenario(cdp) {
   await delay(350);
-  await dispatchKey(cdp, 'keyDown', 'ArrowUp', 'ArrowUp', 38);
+  await dispatchControlKey(cdp, 'keyDown', 'KeyW');
   await delay(850);
-  await dispatchKey(cdp, 'keyDown', 'ArrowLeft', 'ArrowLeft', 37);
+  await dispatchControlKey(cdp, 'keyDown', 'ArrowLeft');
   await delay(950);
-  await dispatchKey(cdp, 'keyUp', 'ArrowLeft', 'ArrowLeft', 37);
-  await dispatchKey(cdp, 'keyDown', 'ArrowRight', 'ArrowRight', 39);
+  await dispatchControlKey(cdp, 'keyUp', 'ArrowLeft');
+  await dispatchControlKey(cdp, 'keyDown', 'ArrowRight');
   await delay(950);
-  await dispatchKey(cdp, 'keyUp', 'ArrowRight', 'ArrowRight', 39);
+  await dispatchControlKey(cdp, 'keyUp', 'ArrowRight');
   await delay(550);
-  await dispatchKey(cdp, 'keyUp', 'ArrowUp', 'ArrowUp', 38);
+  await dispatchControlKey(cdp, 'keyUp', 'KeyW');
+}
+
+async function runM6DrivingScenario(cdp) {
+  const sample = {};
+
+  try {
+    await delay(350);
+    sample.initial = await readM6State(cdp);
+
+    await dispatchControlKey(cdp, 'keyDown', 'KeyW');
+    await delay(800);
+    sample.accelerated = await readM6State(cdp);
+
+    await dispatchControlKey(cdp, 'keyDown', 'ArrowLeft');
+    await delay(450);
+    sample.steering = await readM6State(cdp);
+    await dispatchControlKey(cdp, 'keyUp', 'ArrowLeft');
+    await dispatchControlKey(cdp, 'keyUp', 'KeyW');
+    sample.beforeCoast = await readM6State(cdp);
+
+    await delay(900);
+    sample.coasted = await readM6State(cdp);
+
+    await dispatchControlKey(cdp, 'keyDown', 'KeyS');
+    await delay(900);
+    sample.reversed = await readM6State(cdp);
+    await dispatchControlKey(cdp, 'keyUp', 'KeyS');
+
+    await delay(200);
+    sample.beforeLook = await readM6State(cdp);
+    await dispatchControlKey(cdp, 'keyDown', 'KeyA');
+    await delay(550);
+    sample.leftLook = await readM6State(cdp);
+    await dispatchControlKey(cdp, 'keyUp', 'KeyA');
+    await delay(700);
+    sample.returnedFromLeft = await readM6State(cdp);
+
+    await dispatchControlKey(cdp, 'keyDown', 'KeyD');
+    await delay(550);
+    sample.rightLook = await readM6State(cdp);
+    await dispatchControlKey(cdp, 'keyUp', 'KeyD');
+    await delay(700);
+    sample.returnedFromRight = await readM6State(cdp);
+  } finally {
+    await releaseControlKeys(cdp, [
+      'KeyW',
+      'KeyS',
+      'ArrowLeft',
+      'ArrowRight',
+      'KeyA',
+      'KeyD'
+    ]);
+  }
+
+  assertM6Scenario(sample);
+  return sample;
+}
+
+async function readM6State(cdp) {
+  const result = await cdp.send('Runtime.evaluate', {
+    returnByValue: true,
+    expression: `(() => {
+      const api = window.__SG_DRIVING_GAME_DEV__;
+      const speedometer = document.querySelector('[data-instrument="speedometer"]');
+      const wheel = document.querySelector('[data-instrument="steering-wheel"]');
+
+      if (!api) {
+        return { available: false };
+      }
+
+      const diagnostics = api.readDiagnostics();
+      return {
+        available: true,
+        speedKmh: Number(speedometer?.dataset.speedKmh ?? 0),
+        steer: Number(wheel?.dataset.steer ?? 0),
+        carXM: diagnostics.car.position.x,
+        carYM: diagnostics.car.position.y,
+        carZM: diagnostics.car.position.z,
+        speedMps: diagnostics.car.speedMps,
+        cameraLookYawRad: diagnostics.camera.blindSpotLookYawRad,
+        cameraDirectionXM: diagnostics.camera.direction.x,
+        cameraDirectionYM: diagnostics.camera.direction.y,
+        cameraDirectionZM: diagnostics.camera.direction.z,
+        cameraXM: diagnostics.camera.position.x,
+        cameraYM: diagnostics.camera.position.y,
+        cameraZM: diagnostics.camera.position.z
+      };
+    })()`
+  });
+  const value = result.result?.value;
+
+  if (!value?.available) {
+    throw new Error('M6 browser acceptance requires dev diagnostics.');
+  }
+
+  return value;
+}
+
+function assertM6Scenario(sample) {
+  if (!(sample.initial.cameraYM < sample.initial.carYM + 2)) {
+    throw new Error('Expected M6 camera to use a low driver-seat height.');
+  }
+
+  if (!(sample.initial.cameraZM < sample.initial.carZM)) {
+    throw new Error('Expected M6 camera to sit forward in/near the car cabin.');
+  }
+
+  if (!(sample.initial.cameraDirectionZM < -0.75)) {
+    throw new Error('Expected M6 camera to face forward from the driver seat.');
+  }
+
+  if (!(sample.accelerated.speedMps > sample.initial.speedMps)) {
+    throw new Error('Expected KeyW to accelerate the car in M6 scenario.');
+  }
+
+  if (!(sample.steering.steer > sample.initial.steer)) {
+    throw new Error('Expected ArrowLeft to move the steering wheel in M6 scenario.');
+  }
+
+  if (!(sample.coasted.speedMps < sample.beforeCoast.speedMps)) {
+    throw new Error('Expected releasing KeyW to coast the car toward zero speed.');
+  }
+
+  if (!(sample.reversed.speedMps < 0)) {
+    throw new Error('Expected holding KeyS to brake and then reverse the car.');
+  }
+
+  if (!(sample.leftLook.cameraLookYawRad < sample.beforeLook.cameraLookYawRad)) {
+    throw new Error('Expected KeyA to turn the camera left.');
+  }
+
+  if (!(sample.leftLook.cameraDirectionXM < sample.beforeLook.cameraDirectionXM)) {
+    throw new Error('Expected KeyA to rotate the camera view direction left.');
+  }
+
+  if (
+    !(
+      Math.abs(sample.returnedFromLeft.cameraLookYawRad) <
+      Math.abs(sample.leftLook.cameraLookYawRad)
+    )
+  ) {
+    throw new Error('Expected camera to return toward center after releasing KeyA.');
+  }
+
+  if (!(sample.rightLook.cameraLookYawRad > sample.returnedFromLeft.cameraLookYawRad)) {
+    throw new Error('Expected KeyD to turn the camera right.');
+  }
+
+  if (
+    !(
+      sample.rightLook.cameraDirectionXM >
+      sample.returnedFromLeft.cameraDirectionXM
+    )
+  ) {
+    throw new Error('Expected KeyD to rotate the camera view direction right.');
+  }
+
+  if (
+    !(
+      Math.abs(sample.returnedFromRight.cameraLookYawRad) <
+      Math.abs(sample.rightLook.cameraLookYawRad)
+    )
+  ) {
+    throw new Error('Expected camera to return toward center after releasing KeyD.');
+  }
 }
 
 async function runM5DrivingScenario(cdp, maxDurationMs) {
@@ -587,8 +761,8 @@ async function runM5DrivingScenario(cdp, maxDurationMs) {
         car.speedMps > desiredSpeedMps + M5_BRAKE_MARGIN_MPS;
       const shouldThrottle = !shouldBrake && car.speedMps < desiredSpeedMps;
 
-      await setM5Key(cdp, keyState, 'ArrowUp', shouldThrottle);
-      await setM5Key(cdp, keyState, 'ArrowDown', shouldBrake);
+      await setM5Key(cdp, keyState, 'KeyW', shouldThrottle);
+      await setM5Key(cdp, keyState, 'KeyS', shouldBrake);
       await setM5Key(
         cdp,
         keyState,
@@ -661,36 +835,15 @@ async function setM5Key(cdp, keyState, code, shouldBeDown) {
   }
 
   keyState.set(code, shouldBeDown);
-  await dispatchKey(
-    cdp,
-    shouldBeDown ? 'keyDown' : 'keyUp',
-    code,
-    code,
-    getArrowKeyCode(code)
-  );
+  await dispatchControlKey(cdp, shouldBeDown ? 'keyDown' : 'keyUp', code);
 }
 
 async function releaseM5DrivingKeys(cdp, keyState) {
-  for (const code of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+  for (const code of ['KeyW', 'KeyS', 'ArrowLeft', 'ArrowRight']) {
     if (keyState.get(code)) {
-      await dispatchKey(cdp, 'keyUp', code, code, getArrowKeyCode(code));
+      await dispatchControlKey(cdp, 'keyUp', code);
       keyState.set(code, false);
     }
-  }
-}
-
-function getArrowKeyCode(code) {
-  switch (code) {
-    case 'ArrowDown':
-      return 40;
-    case 'ArrowLeft':
-      return 37;
-    case 'ArrowRight':
-      return 39;
-    case 'ArrowUp':
-      return 38;
-    default:
-      throw new Error(`Unsupported M5 driving key: ${code}`);
   }
 }
 
@@ -719,6 +872,40 @@ function wrapAngleRad(angleRad) {
   }
 
   return wrapped;
+}
+
+async function dispatchControlKey(cdp, type, code) {
+  const { key, windowsVirtualKeyCode } = getControlKeyInfo(code);
+  await dispatchKey(cdp, type, code, key, windowsVirtualKeyCode);
+}
+
+async function releaseControlKeys(cdp, codes) {
+  for (const code of codes) {
+    await dispatchControlKey(cdp, 'keyUp', code);
+  }
+}
+
+function getControlKeyInfo(code) {
+  switch (code) {
+    case 'ArrowDown':
+      return { key: 'ArrowDown', windowsVirtualKeyCode: 40 };
+    case 'ArrowLeft':
+      return { key: 'ArrowLeft', windowsVirtualKeyCode: 37 };
+    case 'ArrowRight':
+      return { key: 'ArrowRight', windowsVirtualKeyCode: 39 };
+    case 'ArrowUp':
+      return { key: 'ArrowUp', windowsVirtualKeyCode: 38 };
+    case 'KeyA':
+      return { key: 'a', windowsVirtualKeyCode: 65 };
+    case 'KeyD':
+      return { key: 'd', windowsVirtualKeyCode: 68 };
+    case 'KeyS':
+      return { key: 's', windowsVirtualKeyCode: 83 };
+    case 'KeyW':
+      return { key: 'w', windowsVirtualKeyCode: 87 };
+    default:
+      throw new Error(`Unsupported browser control key: ${code}`);
+  }
 }
 
 async function dispatchKey(cdp, type, code, key, windowsVirtualKeyCode) {
@@ -797,6 +984,10 @@ async function captureChromeRecording({
     return captureM5DrivingRecording({ cdp, durationMs, outputPath });
   }
 
+  if (expectedPhase === 'm6') {
+    return captureM6DrivingRecording({ cdp, durationMs, outputPath });
+  }
+
   try {
     const recording = await captureCanvasRecording(cdp, durationMs);
     await writeFile(outputPath, recording.buffer);
@@ -821,6 +1012,24 @@ async function captureM5DrivingRecording({ cdp, durationMs, outputPath }) {
     acceptance,
     source:
       'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M5 driving input'
+  };
+}
+
+async function captureM6DrivingRecording({ cdp, durationMs, outputPath }) {
+  const scenario = runM6DrivingScenario(cdp);
+  const recording = await captureScreenshotRecording({
+    cdp,
+    durationMs,
+    error: new Error('M6 records full page while dispatching control input.'),
+    outputPath
+  });
+  const acceptance = await scenario;
+
+  return {
+    ...recording,
+    acceptance,
+    source:
+      'Chrome DevTools Protocol full-page screenshots encoded with ffmpeg while dispatching M6 controls'
   };
 }
 
@@ -1028,10 +1237,10 @@ function formatArtifactLog({
     'Smoke result:',
     JSON.stringify(smoke, null, 2),
     '',
-    'M4 acceptance sample:',
+    'Pre-recording acceptance sample:',
     acceptance ? JSON.stringify(acceptance, null, 2) : 'not run',
     '',
-    'M5 acceptance drive:',
+    'Recorded acceptance scenario:',
     recording.acceptance
       ? JSON.stringify(recording.acceptance, null, 2)
       : 'not run',
@@ -1068,13 +1277,13 @@ async function stopChrome(chrome) {
 async function removeTempDir(path) {
   let lastError;
 
-  for (let attempt = 0; attempt < 5; attempt += 1) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
     try {
       await rm(path, { force: true, recursive: true });
       return;
     } catch (error) {
       lastError = error;
-      await delay(300);
+      await delay(500);
     }
   }
 

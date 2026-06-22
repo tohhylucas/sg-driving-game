@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { VEHICLE_CONFIG } from '../src/config/constants';
-import type { CarState, InputState } from '../src/types';
+import type { CarState, DriveInputState } from '../src/types';
 import { KinematicModel } from '../src/vehicle/KinematicModel';
 
 describe('KinematicModel', () => {
@@ -10,7 +10,7 @@ describe('KinematicModel', () => {
     speedMps: 0
   };
 
-  const noInput: InputState = {
+  const noInput: DriveInputState = {
     throttle: 0,
     brake: 0,
     steer: 0
@@ -38,6 +38,48 @@ describe('KinematicModel', () => {
 
     expect(next.speedMps).toBeLessThan(movingForward.speedMps);
     expect(next.speedMps).toBeGreaterThanOrEqual(0);
+  });
+
+  it('coasts a forward-moving car toward zero when accelerator is released', () => {
+    const model = new KinematicModel();
+    const movingForward: CarState = {
+      ...stoppedAtOrigin,
+      speedMps: 5
+    };
+
+    const next = model.step(movingForward, noInput, 1);
+
+    expect(next.speedMps).toBeLessThan(movingForward.speedMps);
+    expect(next.speedMps).toBeGreaterThan(0);
+  });
+
+  it('does not let coasting deceleration reverse the car by itself', () => {
+    const model = new KinematicModel();
+    const nearlyStopped: CarState = {
+      ...stoppedAtOrigin,
+      speedMps: 0.5
+    };
+
+    const next = model.step(nearlyStopped, noInput, 10);
+
+    expect(next.speedMps).toBe(0);
+    expect(next.position.z).toBeLessThanOrEqual(stoppedAtOrigin.position.z);
+  });
+
+  it('uses weaker coasting deceleration than active braking', () => {
+    const model = new KinematicModel();
+    const movingForward: CarState = {
+      ...stoppedAtOrigin,
+      speedMps: 5
+    };
+
+    const coasting = model.step(movingForward, noInput, 0.5);
+    const braking = model.step(movingForward, { ...noInput, brake: 1 }, 0.5);
+
+    expect(VEHICLE_CONFIG.coastDecelerationMps2).toBeLessThan(
+      VEHICLE_CONFIG.brakeDecelerationMps2
+    );
+    expect(coasting.speedMps).toBeGreaterThan(braking.speedMps);
   });
 
   it('starts reversing after braking reaches zero speed', () => {

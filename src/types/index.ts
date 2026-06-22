@@ -15,10 +15,14 @@ export interface CarState {
   speedMps: number;
 }
 
-export interface InputState {
+export interface DriveInputState {
   throttle: number;
   brake: number;
   steer: number;
+}
+
+export interface InputState extends DriveInputState {
+  look: number;
 }
 
 export type MirrorId = 'rearview' | 'leftSide' | 'rightSide';

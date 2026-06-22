@@ -38,7 +38,7 @@ describe('ChaseCamera', () => {
     expect(offsetDirection.x).toBeGreaterThan(centeredDirection.x);
   });
 
-  it('applies the configured right-hand-drive cockpit viewpoint offset', () => {
+  it('applies the configured right-hand-drive driver-seat viewpoint', () => {
     const chaseCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
     const direction = new THREE.Vector3();
 
@@ -46,6 +46,41 @@ describe('ChaseCamera', () => {
     chaseCamera.camera.getWorldDirection(direction);
 
     expect(chaseCamera.camera.position.x).toBeGreaterThan(carState.position.x);
-    expect(direction.x).toBeGreaterThan(0);
+    expect(chaseCamera.camera.position.y).toBeLessThan(
+      carState.position.y + 2
+    );
+    expect(chaseCamera.camera.position.z).toBeLessThan(carState.position.z);
+    expect(direction.z).toBeLessThan(-0.9);
+  });
+
+  it('rotates side-look direction without translating the driver-seat position', () => {
+    const centeredCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const leftLookCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const rightLookCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const centeredDirection = new THREE.Vector3();
+    const leftDirection = new THREE.Vector3();
+    const rightDirection = new THREE.Vector3();
+
+    centeredCamera.update(carState);
+    leftLookCamera.update(carState, { lookYawRad: -Math.PI / 2 });
+    rightLookCamera.update(carState, { lookYawRad: Math.PI / 2 });
+    centeredCamera.camera.getWorldDirection(centeredDirection);
+    leftLookCamera.camera.getWorldDirection(leftDirection);
+    rightLookCamera.camera.getWorldDirection(rightDirection);
+
+    expect(leftLookCamera.camera.position.x).toBeCloseTo(
+      centeredCamera.camera.position.x
+    );
+    expect(leftLookCamera.camera.position.z).toBeCloseTo(
+      centeredCamera.camera.position.z
+    );
+    expect(rightLookCamera.camera.position.x).toBeCloseTo(
+      centeredCamera.camera.position.x
+    );
+    expect(rightLookCamera.camera.position.z).toBeCloseTo(
+      centeredCamera.camera.position.z
+    );
+    expect(leftDirection.x).toBeLessThan(centeredDirection.x);
+    expect(rightDirection.x).toBeGreaterThan(centeredDirection.x);
   });
 });

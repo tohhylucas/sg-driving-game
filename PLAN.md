@@ -64,29 +64,34 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 
 ## PHASE 2 - Controls, Rules & Scoring (PLANNED - DO NOT IMPLEMENT YET)
 
-Goal: Add comfortable driver controls, blind-spot camera shifting, and
+Goal: Add comfortable driver controls, blind-spot camera turning, and
 observer-style rule modules that are active for the full driving session and
 emit scored events without taking over free driving controls. Rules start when
 the driving session starts and remain active until the session ends; there is no
 practice settings UI or test mode for changing rule state.
 
 M6 and M7 can start independently after M5. M9 depends on both M6's visual
-blind-spot camera shift and M7's scoring foundation.
+blind-spot camera look controls and M7's scoring foundation.
 
-### M6 - Driver Controls and Blind-Spot Camera Shift
+### M6 - Driver Controls and Blind-Spot Camera Look
 
-- [ ] Normalize driving controls: W accelerates, S brakes/reverses, and
+- [DONE] Normalize driving controls: W accelerates, S brakes/reverses, and
   Left/Right arrows steer the wheel.
-- [ ] Use A and D to shift the right-hand-drive in-car viewpoint left and right
-  so the player can inspect blind spots.
-- [ ] Return the camera smoothly to the normal cockpit/chase viewpoint when the
+- [DONE] Use a true right-hand-drive driver-seat camera as the main driving view
+  instead of an exterior chase view.
+- [DONE] Use A and D to rotate the right-hand-drive in-car driver-seat camera
+  left and right so the player can inspect blind spots from the driver seat.
+- [DONE] Return the camera smoothly to the normal driver-seat viewpoint when the
   look key is released.
-- [ ] Keep this visual only: do not score whether the player used the camera
-  shift.
-- [ ] Unit-test any extractable input mapping or camera-offset state logic.
-- **Test:** W/S control speed, Left/Right arrows steer, A/D shift the camera to
-  inspect blind spots and return cleanly, and no scored events are emitted by
-  camera-shift usage alone.
+- [DONE] Keep this visual only: do not score whether the player used the camera
+  look.
+- [DONE] Unit-test any extractable input mapping or camera-look state logic.
+- Delivery note: Implemented issue #12 with W/S driving, arrow steering, natural
+  coasting, a right-hand-drive driver-seat camera, visual-only A/D blind-spot
+  camera turning, and browser evidence.
+- **Test:** W/S control speed, Left/Right arrows steer, A/D rotate the camera to
+  inspect blind spots from the driver-seat view and return cleanly, and no
+  scored events are emitted by camera-look usage alone.
 
 ### M7 - Keep-Left Rule and Scoring Foundation
 

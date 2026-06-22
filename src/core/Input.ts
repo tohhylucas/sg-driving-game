@@ -34,7 +34,10 @@ export class Input {
       brake: this.isAnyPressed(CONTROL_KEYS.brake) ? 1 : 0,
       steer:
         (this.isAnyPressed(CONTROL_KEYS.steerLeft) ? 1 : 0) -
-        (this.isAnyPressed(CONTROL_KEYS.steerRight) ? 1 : 0)
+        (this.isAnyPressed(CONTROL_KEYS.steerRight) ? 1 : 0),
+      look:
+        (this.isAnyPressed(CONTROL_KEYS.lookRight) ? 1 : 0) -
+        (this.isAnyPressed(CONTROL_KEYS.lookLeft) ? 1 : 0)
     };
   }
 

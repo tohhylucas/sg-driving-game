@@ -1,6 +1,8 @@
 export const CONTROL_KEYS = {
-  accelerate: ['ArrowUp', 'KeyW'],
-  brake: ['ArrowDown', 'KeyS'],
-  steerLeft: ['ArrowLeft', 'KeyA'],
-  steerRight: ['ArrowRight', 'KeyD']
+  accelerate: ['KeyW'],
+  brake: ['KeyS'],
+  steerLeft: ['ArrowLeft'],
+  steerRight: ['ArrowRight'],
+  lookLeft: ['KeyA'],
+  lookRight: ['KeyD']
 } as const;

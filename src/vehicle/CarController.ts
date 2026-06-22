@@ -1,5 +1,5 @@
 import { VEHICLE_CONFIG } from '../config/constants';
-import type { InputState } from '../types';
+import type { DriveInputState } from '../types';
 import { clamp, lerp } from '../utils/math';
 import type { Car } from './Car';
 import { KinematicModel } from './KinematicModel';
@@ -16,7 +16,7 @@ export class CarController {
   }
 
   /** Applies player input to the car through the kinematic model. */
-  update(input: InputState, dtSec: number): void {
+  update(input: DriveInputState, dtSec: number): void {
     this.smoothedSteer = lerp(
       this.smoothedSteer,
       input.steer,
