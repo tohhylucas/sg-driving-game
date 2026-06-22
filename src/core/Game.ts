@@ -4,11 +4,18 @@ import { ChaseCamera } from '../camera/ChaseCamera';
 import { MirrorCamera } from '../camera/MirrorCamera';
 import { COCKPIT_CAMERA_CONFIG, MIRROR_CONFIG } from '../config/constants';
 import type { CarState, MirrorId, Vec3 } from '../types';
+import { BrowserTtsAdapter } from '../instructor/BrowserTtsAdapter';
+import {
+  InstructorInstructionQueue,
+  type InstructorInstructionQueueDiagnostics
+} from '../instructor/InstructorInstructionQueue';
 import {
   DrivingSession,
   type SessionRuleDiagnostics
 } from '../rules/DrivingSession';
+import { FollowingTimeGapRule } from '../rules/FollowingTimeGapRule';
 import { KeepLeftRule } from '../rules/KeepLeftRule';
+import type { SessionOutcomeSummary } from '../rules/scoring';
 import { SideHazardRule } from '../rules/SideHazardRule';
 import { StopLineRule } from '../rules/StopLineRule';
 import { Cockpit } from '../ui/Cockpit';
@@ -16,6 +23,7 @@ import { Car } from '../vehicle/Car';
 import { CarController } from '../vehicle/CarController';
 import { createInitialCarState } from '../vehicle/carState';
 import { getFixedTestTrackLayout } from '../world/testTrackLayout';
+import { ScriptedMovingElementViews } from '../world/ScriptedMovingElementViews';
 import { World } from '../world/World';
 import { Engine, type TextureOverlay } from './Engine';
 import { Input } from './Input';
@@ -38,6 +46,13 @@ export interface GameDiagnostics {
     readonly direction: Vec3;
     readonly position: Vec3;
   };
+  readonly movingElements: readonly {
+    readonly id: string;
+    readonly kind: string;
+    readonly segmentId: string;
+    readonly speedMps: number;
+  }[];
+  readonly instructorAudio: InstructorInstructionQueueDiagnostics;
   readonly session: {
     readonly active: boolean;
     readonly endReason: string | undefined;
@@ -47,6 +62,7 @@ export interface GameDiagnostics {
       readonly ruleId: string;
     }[];
     readonly passCount: number;
+    readonly outcomeSummary?: SessionOutcomeSummary;
     readonly ruleDiagnostics: readonly SessionRuleDiagnostics[];
     readonly sessionId: number;
     readonly violationCount: number;
@@ -60,14 +76,24 @@ export class Game {
   private readonly blindSpotCameraLook = new BlindSpotCameraLook();
   private readonly chaseCamera: ChaseCamera;
   private readonly cockpit: Cockpit;
+  private readonly track = getFixedTestTrackLayout();
   private readonly drivingSession = new DrivingSession({
-    rules: [new KeepLeftRule(), new StopLineRule(), new SideHazardRule()],
-    track: getFixedTestTrackLayout()
+    rules: [
+      new KeepLeftRule(),
+      new StopLineRule(),
+      new SideHazardRule(),
+      new FollowingTimeGapRule()
+    ],
+    track: this.track
   });
   private readonly engine: Engine;
+  private readonly instructorInstructionQueue = new InstructorInstructionQueue({
+    tts: new BrowserTtsAdapter()
+  });
   private readonly input = new Input();
   private readonly loop = new Loop();
   private readonly mirrors: GameMirror[];
+  private readonly movingElements = new ScriptedMovingElementViews(this.track);
   private readonly resizeObserver: ResizeObserver;
   private readonly world: World;
   private wasResetPressed = false;
@@ -75,7 +101,7 @@ export class Game {
   constructor({ canvas, uiRoot }: GameOptions) {
     this.canvas = canvas;
     this.engine = new Engine(canvas);
-    this.world = new World();
+    this.world = new World(this.track);
     this.car = new Car();
     this.carController = new CarController(this.car);
     this.chaseCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
@@ -95,8 +121,12 @@ export class Game {
       }
     ];
     this.drivingSession.start(this.car.state);
+    this.instructorInstructionQueue.startSession(
+      this.drivingSession.state.sessionId
+    );
     this.chaseCamera.update(this.car.state);
     this.cockpit.update({
+      outcomeSummary: this.drivingSession.outcomeSummary,
       ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
       sessionActive: this.drivingSession.state.active,
@@ -105,9 +135,10 @@ export class Game {
     });
     this.engine.scene.background = this.world.sky.color;
     this.engine.scene.add(this.world.object);
+    this.engine.scene.add(this.movingElements.object);
     this.engine.scene.add(this.car.object);
 
-    uiRoot.dataset.phase = 'm9';
+    uiRoot.dataset.phase = 'm12';
 
     this.resizeObserver = new ResizeObserver(() => this.resize(canvas));
     this.resizeObserver.observe(canvas);
@@ -125,6 +156,7 @@ export class Game {
   dispose(): void {
     this.input.stop();
     this.loop.stop();
+    this.instructorInstructionQueue.endSession();
     this.resizeObserver.disconnect();
     for (const mirror of this.mirrors) {
       mirror.camera.dispose();
@@ -159,6 +191,13 @@ export class Game {
           z: this.chaseCamera.camera.position.z
         }
       },
+      movingElements: this.movingElements.currentStates.map((element) => ({
+        id: element.id,
+        kind: element.kind,
+        segmentId: element.segmentId,
+        speedMps: element.speedMps
+      })),
+      instructorAudio: this.instructorInstructionQueue.diagnostics,
       session: {
         ...this.drivingSession.state,
         events: summary.events.map((event) => ({
@@ -166,6 +205,7 @@ export class Game {
           ruleId: event.ruleId
         })),
         passCount: summary.passCount,
+        outcomeSummary: this.drivingSession.outcomeSummary,
         ruleDiagnostics: this.drivingSession.ruleDiagnostics,
         violationCount: summary.violationCount
       }
@@ -187,22 +227,49 @@ export class Game {
     if (input.reset && !this.wasResetPressed) {
       this.car.applyState(createInitialCarState());
       this.carController.reset();
+      this.movingElements.update(0);
       this.drivingSession.reset(this.car.state);
+      this.instructorInstructionQueue.startSession(
+        this.drivingSession.state.sessionId
+      );
     }
 
     this.wasResetPressed = input.reset;
     this.carController.update(input, dtSec);
-    this.drivingSession.update(this.car.state, dtSec);
+    this.movingElements.update(this.drivingSession.state.elapsedSec + dtSec);
+    this.drivingSession.update(
+      this.car.state,
+      dtSec,
+      this.movingElements.currentStates
+    );
+    this.syncInstructorInstructionQueue();
     const blindSpotLookYawRad = this.blindSpotCameraLook.update(input, dtSec);
     this.chaseCamera.update(this.car.state, {
       lookYawRad: blindSpotLookYawRad
     });
     this.cockpit.update({
+      outcomeSummary: this.drivingSession.outcomeSummary,
       ruleDiagnostics: this.drivingSession.ruleDiagnostics,
       score: this.drivingSession.summary,
       sessionActive: this.drivingSession.state.active,
       speedMps: this.car.state.speedMps,
       steer: this.carController.steerAmount
+    });
+  }
+
+  private syncInstructorInstructionQueue(): void {
+    if (!this.drivingSession.state.active) {
+      if (this.instructorInstructionQueue.diagnostics.active) {
+        this.instructorInstructionQueue.endSession();
+      }
+
+      return;
+    }
+
+    this.instructorInstructionQueue.update({
+      car: this.car.state,
+      elapsedSec: this.drivingSession.state.elapsedSec,
+      track: this.track
     });
   }
 

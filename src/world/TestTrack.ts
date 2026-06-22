@@ -4,6 +4,7 @@ import { makeGroup, makeHorizontalPlaneMesh } from '../utils/three';
 import { getCenterDashCenterZMs } from './roadLayout';
 import {
   getFixedTestTrackLayout,
+  type FixedTestTrackLayout,
   type TrackFinishZone,
   type TrackSegment,
   type TrackSideHazard,
@@ -24,9 +25,7 @@ const BICYCLE_WHEEL_ROTATION_Z_RAD = Math.PI / 2;
 export class TestTrack {
   readonly object: THREE.Group = makeGroup('TestTrack');
 
-  constructor() {
-    const layout = getFixedTestTrackLayout();
-
+  constructor(layout: FixedTestTrackLayout = getFixedTestTrackLayout()) {
     for (const segment of layout.segments) {
       this.object.add(createRoadSegmentGroup(segment));
     }

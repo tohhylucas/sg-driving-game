@@ -157,45 +157,49 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M10 - Forward Moving Elements and Following Time-Gap Rule
 
-- [ ] Add a simple scripted lead vehicle as the first tracked forward moving
+- [DONE] Add a simple scripted lead vehicle as the first tracked forward moving
   element on the fixed test track, not a traffic simulation.
-- [ ] Apply one global configurable safe time-gap threshold to all tracked
+- [DONE] Apply one global configurable safe time-gap threshold to all tracked
   moving elements in the player's current lane in front of the car.
-- [ ] Score only against the nearest tracked moving element ahead in the
+- [DONE] Score only against the nearest tracked moving element ahead in the
   player's current lane.
-- [ ] Ignore farther current-lane objects, adjacent-lane objects, and
+- [DONE] Ignore farther current-lane objects, adjacent-lane objects, and
   side-hazard objects for M10 following time-gap scoring.
-- [ ] Compute the relevant current-lane forward following gap as a time gap from
+- [DONE] Compute the relevant current-lane forward following gap as a time gap from
   car state and moving-element state.
-- [ ] Start an encounter-based following segment when the nearest tracked moving
+- [DONE] Start an encounter-based following segment when the nearest tracked moving
   element is ahead in the player's current lane and within a configurable
   forward detection range; do not wait until the player is already too close and
   do not use fixed scoring zones for M10.
-- [ ] End the following segment when that moving element is no longer the
+- [DONE] End the following segment when that moving element is no longer the
   relevant current-lane object, or when the route/session ends.
-- [ ] Allow the same moving element to start a new independent following
+- [DONE] Allow the same moving element to start a new independent following
   encounter later if it again becomes the nearest current-lane object within the
   forward detection range.
-- [ ] Emit pass/violation following time-gap events with a grace period and
+- [DONE] Emit pass/violation following time-gap events with a grace period and
   hysteresis.
-- [ ] Once an encounter-based following segment emits a violation, keep that
+- [DONE] Once an encounter-based following segment emits a violation, keep that
   segment marked as a violation even if the player later restores a safe gap
   before the segment ends.
-- [ ] Emit at most one violation event per encounter-based following segment;
+- [DONE] Emit at most one violation event per encounter-based following segment;
   continued unsafe following after the first violation does not emit duplicate
   M10 violations.
-- [ ] Emit a pass only when the player completes an encounter-based following
+- [DONE] Emit a pass only when the player completes an encounter-based following
   segment cleanly; do not emit continuous pass events while the time gap is
   safe.
-- [ ] Require a configurable minimum encounter duration before a clean encounter
+- [DONE] Require a configurable minimum encounter duration before a clean encounter
   can emit a pass; too-short clean encounters emit no scored event.
-- [ ] Apply minimum encounter duration only to pass eligibility; violations can
+- [DONE] Apply minimum encounter duration only to pass eligibility; violations can
   still emit whenever the unsafe-gap grace period is exceeded.
-- [ ] Unit-test nearest current-lane forward-element selection, time-gap
+- [DONE] Unit-test nearest current-lane forward-element selection, time-gap
   calculation, detection-range encounter start/end, global-threshold usage,
   same-object re-entry as a new encounter, violation lockout after recovery,
   single-violation-per-encounter suppression, minimum-duration pass
   eligibility, clean segment completion, and repeated-event suppression.
+- Delivery note: Implemented issue #16 with a deterministic scripted lead
+  vehicle, live moving-element state, always-active encounter-based following
+  time-gap scoring, repeated-event suppression, M10 unit coverage, and M10
+  Chrome evidence.
 - **Test:** Completing an encounter-based following segment behind the nearest
   current-lane object without tailgating emits a pass; tailgating that nearest
   object for longer than the grace period emits one scored violation event,
@@ -209,31 +213,38 @@ blind-spot camera look controls and M7's scoring foundation.
 
 ### M11 - Instructor TTS Instruction Queue
 
-- [ ] Add an audio-only instruction queue tied only to configured fixed road
+- [DONE] Add an audio-only instruction queue tied only to configured fixed road
   features.
-- [ ] Keep instructor prompts separate from rule and scoring feedback; scored
+- [DONE] Keep instructor prompts separate from rule and scoring feedback; scored
   pass/violation events must not queue instructor audio.
-- [ ] Use a small TTS adapter that can be mocked in tests.
-- [ ] Trigger instructions without adding on-screen instructional text or
+- [DONE] Use a small TTS adapter that can be mocked in tests.
+- [DONE] Trigger instructions without adding on-screen instructional text or
   transcripts.
-- [ ] Unit-test route-feature filtering, score-event non-enqueue behavior, queue
+- [DONE] Unit-test route-feature filtering, score-event non-enqueue behavior, queue
   ordering, de-duplication, and trigger cooldown behavior.
+- Delivery note: Implemented issue #17 with a fixed-route instructor instruction
+  feature, an audio-only queue, mockable browser TTS adapter, session lifecycle
+  wiring, duplicate trigger cooldowns, and M11 Chrome evidence support without
+  HUD transcripts.
 - **Test:** Approaching a configured feature queues and plays one audio
   instruction; pass/violation events do not queue instructor audio; repeated
   triggers do not overlap; no instruction text appears in the HUD.
 
 ### M12 - Session Outcome Summary and Feedback Loop
 
-- [ ] Aggregate pass and violation events from always-active rule modules into a
+- [DONE] Aggregate pass and violation events from always-active rule modules into a
   deterministic session outcome summary, not a numeric score.
-- [ ] Show post-drive feedback grouped into rule-level `passes`, `violations`,
+- [DONE] Show post-drive feedback grouped into rule-level `passes`, `violations`,
   and `not encountered` sections when the player crosses the finish zone.
-- [ ] Treat missing rule events as `not encountered`, not as implicit passes.
-- [ ] Do not calculate or display a Phase 2 numeric score, percentage, stars, or
+- [DONE] Treat missing rule events as `not encountered`, not as implicit passes.
+- [DONE] Do not calculate or display a Phase 2 numeric score, percentage, stars, or
   severity weighting.
-- [ ] Keep in-drive feedback lightweight and separate from instructor audio.
-- [ ] Unit-test outcome grouping, not-encountered handling, session finish, and
+- [DONE] Keep in-drive feedback lightweight and separate from instructor audio.
+- [DONE] Unit-test outcome grouping, not-encountered handling, session finish, and
   reset behavior.
+- Delivery note: Implemented issue #18 with deterministic non-numeric session
+  outcome grouping, post-finish cockpit feedback, reset clearing, M12 unit
+  coverage, and M12 Chrome evidence.
 - **Test:** Crossing the finish zone produces a stable non-numeric session
   summary from real rule events; resetting the run clears summary state without
   reloading the app.

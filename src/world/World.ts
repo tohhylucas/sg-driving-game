@@ -3,14 +3,18 @@ import { makeGroup } from '../utils/three';
 import { Ground } from './Ground';
 import { Sky } from './Sky';
 import { TestTrack } from './TestTrack';
+import {
+  getFixedTestTrackLayout,
+  type FixedTestTrackLayout
+} from './testTrackLayout';
 
 export class World {
   readonly object: THREE.Group = makeGroup('World');
   readonly sky = new Sky();
 
-  constructor() {
+  constructor(layout: FixedTestTrackLayout = getFixedTestTrackLayout()) {
     this.object.add(this.sky.object);
     this.object.add(new Ground().object);
-    this.object.add(new TestTrack().object);
+    this.object.add(new TestTrack(layout).object);
   }
 }

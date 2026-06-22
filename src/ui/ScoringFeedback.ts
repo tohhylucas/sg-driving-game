@@ -1,6 +1,10 @@
 import type { SessionRuleDiagnostics } from '../rules/DrivingSession';
 import type { KeepLeftRuleDiagnostics } from '../rules/KeepLeftRule';
-import type { ScoredEventSummary } from '../rules/scoring';
+import type {
+  RuleOutcomeSummary,
+  ScoredEventSummary,
+  SessionOutcomeSummary
+} from '../rules/scoring';
 
 export class ScoringFeedback {
   readonly root: HTMLElement;
@@ -17,15 +21,30 @@ export class ScoringFeedback {
   update(
     summary: ScoredEventSummary,
     ruleDiagnostics: readonly SessionRuleDiagnostics[] = [],
-    sessionActive = true
+    sessionActive = true,
+    outcomeSummary?: SessionOutcomeSummary
   ): void {
     const latestEvent = summary.events.at(-1);
     const keepLeftDiagnostics = ruleDiagnostics.find(isKeepLeftDiagnostics);
+    const shouldShowOutcomeSummary =
+      !sessionActive && outcomeSummary !== undefined;
 
     this.root.dataset.passCount = String(summary.passCount);
     this.root.dataset.sessionActive = String(sessionActive);
+    this.root.dataset.sessionOutcomeVisible = String(shouldShowOutcomeSummary);
     this.root.dataset.violationCount = String(summary.violationCount);
     this.root.dataset.latestOutcome = latestEvent?.outcome ?? '';
+    this.root.classList.toggle(
+      'cockpit__scoring-feedback--summary',
+      shouldShowOutcomeSummary
+    );
+
+    if (shouldShowOutcomeSummary) {
+      syncKeepLeftDataset(this.root, undefined, sessionActive);
+      this.root.replaceChildren(createSessionOutcomeSummary(outcomeSummary));
+      return;
+    }
+
     syncKeepLeftDataset(this.root, keepLeftDiagnostics, sessionActive);
     this.root.replaceChildren(
       createMetric('Passes', summary.passCount),
@@ -47,6 +66,106 @@ export class ScoringFeedback {
       this.root.append(latest);
     }
   }
+}
+
+function createSessionOutcomeSummary(
+  summary: SessionOutcomeSummary
+): HTMLElement {
+  const panel = document.createElement('section');
+  panel.className = 'cockpit__session-summary';
+  panel.dataset.instrument = 'session-outcome-summary';
+
+  const title = document.createElement('h2');
+  title.className = 'cockpit__session-summary-title';
+  title.textContent = 'Session outcome';
+
+  panel.append(
+    title,
+    createOutcomeGroupSection('Passes', 'passes', summary.passes),
+    createOutcomeGroupSection('Violations', 'violations', summary.violations),
+    createNotEncounteredSection(summary.notEncountered)
+  );
+
+  return panel;
+}
+
+function createOutcomeGroupSection(
+  title: string,
+  key: string,
+  groups: readonly RuleOutcomeSummary[]
+): HTMLElement {
+  const section = createOutcomeSection(title, key);
+
+  if (groups.length === 0) {
+    section.append(createEmptyOutcomeText(`No ${key} recorded`));
+    return section;
+  }
+
+  for (const group of groups) {
+    const rule = document.createElement('article');
+    rule.className = 'cockpit__session-rule';
+    rule.dataset.ruleId = group.ruleId;
+
+    const heading = document.createElement('h4');
+    heading.className = 'cockpit__session-rule-title';
+    heading.textContent = formatRuleOutcomeLabel(group.ruleId);
+
+    const events = document.createElement('ul');
+    events.className = 'cockpit__session-events';
+
+    for (const event of group.events) {
+      const item = document.createElement('li');
+      item.textContent = event.message;
+      events.append(item);
+    }
+
+    rule.append(heading, events);
+    section.append(rule);
+  }
+
+  return section;
+}
+
+function createNotEncounteredSection(ruleIds: readonly string[]): HTMLElement {
+  const section = createOutcomeSection('Not encountered', 'not-encountered');
+
+  if (ruleIds.length === 0) {
+    section.append(createEmptyOutcomeText('Every active rule emitted feedback'));
+    return section;
+  }
+
+  const list = document.createElement('ul');
+  list.className = 'cockpit__session-events';
+
+  for (const ruleId of ruleIds) {
+    const item = document.createElement('li');
+    item.dataset.ruleId = ruleId;
+    item.textContent = formatRuleOutcomeLabel(ruleId);
+    list.append(item);
+  }
+
+  section.append(list);
+  return section;
+}
+
+function createOutcomeSection(title: string, key: string): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'cockpit__session-section';
+  section.dataset.outcomeSection = key;
+
+  const heading = document.createElement('h3');
+  heading.className = 'cockpit__session-section-title';
+  heading.textContent = title;
+
+  section.append(heading);
+  return section;
+}
+
+function createEmptyOutcomeText(text: string): HTMLElement {
+  const empty = document.createElement('p');
+  empty.className = 'cockpit__session-empty';
+  empty.textContent = text;
+  return empty;
 }
 
 function createMetric(label: string, value: number): HTMLElement {
@@ -122,6 +241,12 @@ export function formatKeepLeftDebugText(
     `Correct ${diagnostics.withinDefaultLane ? 'yes' : 'no'}`,
     outsideText
   ].join(' | ');
+}
+
+export function formatRuleOutcomeLabel(ruleId: string): string {
+  const words = ruleId.replaceAll('-', ' ');
+
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 function isKeepLeftDiagnostics(
