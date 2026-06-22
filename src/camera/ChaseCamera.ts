@@ -32,7 +32,7 @@ export class ChaseCamera {
     };
   }
 
-  /** Positions the camera behind the car and points it toward the road ahead. */
+  /** Positions the driving camera from the configured car-relative viewpoint. */
   update(state: CarState, offset: ChaseCameraRuntimeOffset = {}): void {
     const forwardX = -Math.sin(state.headingRad);
     const forwardZ = -Math.cos(state.headingRad);

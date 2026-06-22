@@ -77,18 +77,21 @@ blind-spot camera shift and M7's scoring foundation.
 
 - [DONE] Normalize driving controls: W accelerates, S brakes/reverses, and
   Left/Right arrows steer the wheel.
-- [DONE] Use A and D to shift the right-hand-drive in-car viewpoint left and right
-  so the player can inspect blind spots.
-- [DONE] Return the camera smoothly to the normal cockpit/chase viewpoint when the
+- [DONE] Use a true right-hand-drive driver-seat camera as the main driving view
+  instead of an exterior chase view.
+- [DONE] Use A and D to shift the right-hand-drive in-car driver-seat viewpoint
+  left and right so the player can inspect blind spots.
+- [DONE] Return the camera smoothly to the normal driver-seat viewpoint when the
   look key is released.
 - [DONE] Keep this visual only: do not score whether the player used the camera
   shift.
 - [DONE] Unit-test any extractable input mapping or camera-offset state logic.
 - Delivery note: Implemented issue #12 with W/S driving, arrow steering, natural
-  coasting, visual-only A/D blind-spot camera shifting, and browser evidence.
+  coasting, a right-hand-drive driver-seat camera, visual-only A/D blind-spot
+  camera shifting, and browser evidence.
 - **Test:** W/S control speed, Left/Right arrows steer, A/D shift the camera to
-  inspect blind spots and return cleanly, and no scored events are emitted by
-  camera-shift usage alone.
+  inspect blind spots from the driver-seat view and return cleanly, and no
+  scored events are emitted by camera-shift usage alone.
 
 ### M7 - Keep-Left Rule and Scoring Foundation
 

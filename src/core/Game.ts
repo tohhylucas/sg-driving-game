@@ -161,6 +161,13 @@ export class Game {
       }
     }
 
-    this.engine.render(this.chaseCamera.camera, overlays);
+    const wasCarVisible = this.car.object.visible;
+
+    try {
+      this.car.object.visible = false;
+      this.engine.render(this.chaseCamera.camera, overlays);
+    } finally {
+      this.car.object.visible = wasCarVisible;
+    }
   }
 }

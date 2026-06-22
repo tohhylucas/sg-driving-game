@@ -87,8 +87,12 @@ export const CHASE_CAMERA_CONFIG = {
 } as const;
 
 export const COCKPIT_CAMERA_CONFIG = {
+  distanceM: -0.45,
+  heightM: 1.45,
   lateralOffsetM: 0.45,
-  viewLateralOffsetM: 0.6,
+  lookAheadM: 18,
+  lookAtHeightM: 1.25,
+  viewLateralOffsetM: 0,
   blindSpotMaxShiftM: 0.7,
   blindSpotSmoothingRatePerSec: 8
 } as const;

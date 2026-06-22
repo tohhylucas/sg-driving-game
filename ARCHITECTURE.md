@@ -34,7 +34,8 @@ Scripts in `package.json`:
 
 The screen is composed in layers:
 
-1. Main 3D pass: full-window render of the world from the car/chase camera.
+1. Main 3D pass: full-window render of the world from the right-hand-drive
+   driver-seat camera.
 2. Mirror passes: separate `MirrorCamera`s render the scene into
    `WebGLRenderTarget`s. These should be composited into the cockpit as the
    rearview and side-mirror images. The implementation may use scissored
@@ -125,8 +126,12 @@ driving-game/
   config, including the Singapore keep-left spawn convention.
 - `CarController.ts`: adapter from driving input to model to Three.js car
   transform.
+- `ChaseCamera.ts`: car-relative driving camera. M6 configures it as a
+  right-hand-drive driver-seat camera, while older tests still cover its
+  general car-following offset behavior.
 - `BlindSpotCameraShift.ts`: pure, testable smoothing state for A/D lateral
-  camera shifts. It does not emit scoring events or affect vehicle motion.
+  driver-seat camera shifts. It does not emit scoring events or affect vehicle
+  motion.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live
   car state.
 - `MirrorView.ts`: places a mirror render target into a cockpit frame and
@@ -155,7 +160,7 @@ driving-game/
 ```text
 Input -> CarController -> KinematicModel -> Car transform
    |                          |
-   `-> BlindSpotCameraShift -> ChaseCamera follows Car
+   `-> BlindSpotCameraShift -> driver-seat camera follows Car
 MirrorCameras follow Car -> render targets -> MirrorView
 Cockpit reads CarState/InputState
 Engine renders main pass + mirror passes; DOM HUD overlays on top

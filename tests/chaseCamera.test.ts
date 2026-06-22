@@ -38,7 +38,7 @@ describe('ChaseCamera', () => {
     expect(offsetDirection.x).toBeGreaterThan(centeredDirection.x);
   });
 
-  it('applies the configured right-hand-drive cockpit viewpoint offset', () => {
+  it('applies the configured right-hand-drive driver-seat viewpoint', () => {
     const chaseCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
     const direction = new THREE.Vector3();
 
@@ -46,7 +46,11 @@ describe('ChaseCamera', () => {
     chaseCamera.camera.getWorldDirection(direction);
 
     expect(chaseCamera.camera.position.x).toBeGreaterThan(carState.position.x);
-    expect(direction.x).toBeGreaterThan(0);
+    expect(chaseCamera.camera.position.y).toBeLessThan(
+      carState.position.y + 2
+    );
+    expect(chaseCamera.camera.position.z).toBeLessThan(carState.position.z);
+    expect(direction.z).toBeLessThan(-0.9);
   });
 
   it('applies runtime lateral shift for blind-spot camera movement', () => {

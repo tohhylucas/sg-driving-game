@@ -629,9 +629,14 @@ async function readM6State(cdp) {
         available: true,
         speedKmh: Number(speedometer?.dataset.speedKmh ?? 0),
         steer: Number(wheel?.dataset.steer ?? 0),
+        carXM: diagnostics.car.position.x,
+        carYM: diagnostics.car.position.y,
+        carZM: diagnostics.car.position.z,
         speedMps: diagnostics.car.speedMps,
         cameraShiftM: diagnostics.camera.blindSpotShiftM,
-        cameraXM: diagnostics.camera.position.x
+        cameraXM: diagnostics.camera.position.x,
+        cameraYM: diagnostics.camera.position.y,
+        cameraZM: diagnostics.camera.position.z
       };
     })()`
   });
@@ -645,6 +650,14 @@ async function readM6State(cdp) {
 }
 
 function assertM6Scenario(sample) {
+  if (!(sample.initial.cameraYM < sample.initial.carYM + 2)) {
+    throw new Error('Expected M6 camera to use a low driver-seat height.');
+  }
+
+  if (!(sample.initial.cameraZM < sample.initial.carZM)) {
+    throw new Error('Expected M6 camera to sit forward in/near the car cabin.');
+  }
+
   if (!(sample.accelerated.speedMps > sample.initial.speedMps)) {
     throw new Error('Expected KeyW to accelerate the car in M6 scenario.');
   }
