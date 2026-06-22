@@ -91,7 +91,7 @@ export class SideHazardRule {
             context.sessionId,
             hazard,
             'violation',
-            'Side-hazard collision',
+            'IMMEDIATE FAILURE: Side hazard collision',
             context.elapsedSec
           )
         );

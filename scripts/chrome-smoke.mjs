@@ -1164,6 +1164,7 @@ async function runM9SideHazardScenario(cdp) {
     returnByValue: true,
     expression: `(async () => {
       const [
+        { DrivingSession },
         {
           SideHazardRule,
           isCarCollidingWithSideHazard,
@@ -1171,6 +1172,7 @@ async function runM9SideHazardScenario(cdp) {
         },
         { getFixedTestTrackLayout }
       ] = await Promise.all([
+        import('/src/rules/DrivingSession.ts'),
         import('/src/rules/SideHazardRule.ts'),
         import('/src/world/testTrackLayout.ts')
       ]);
@@ -1228,6 +1230,28 @@ async function runM9SideHazardScenario(cdp) {
           }))
         };
       };
+      const runTerminalFailureSession = () => {
+        const session = new DrivingSession({
+          rules: [new SideHazardRule()],
+          track: layout
+        });
+
+        session.start(makeCarState(layout.defaultDrivingLane.centerOffsetM, 0, 0));
+        session.update(
+          makeCarState(
+            hazard.collisionBox.centerLocalXM,
+            hazard.collisionBox.centerLocalZM,
+            3
+          ),
+          0.1
+        );
+
+        return {
+          active: session.state.active,
+          endReason: session.state.endReason,
+          latestMessage: session.summary.events.at(-1)?.message
+        };
+      };
       const activeDiagnostics = api
         .readDiagnostics()
         .session.ruleDiagnostics.find((entry) => entry.ruleId === 'side-hazard');
@@ -1272,6 +1296,7 @@ async function runM9SideHazardScenario(cdp) {
           3
         ]
       ]);
+      const terminalFailureSession = runTerminalFailureSession();
       const checks = {
         activeAtSessionStart:
           activeDiagnostics?.activeHazardCount === 1 &&
@@ -1279,6 +1304,14 @@ async function runM9SideHazardScenario(cdp) {
         collisionViolates:
           collision.events.length === 1 &&
           collision.events[0].outcome === 'violation',
+        immediateFailureMessage:
+          collision.events[0]?.message ===
+          'IMMEDIATE FAILURE: Side hazard collision',
+        terminalFailureEndsSession:
+          terminalFailureSession.active === false &&
+          terminalFailureSession.endReason === 'failure' &&
+          terminalFailureSession.latestMessage ===
+            'IMMEDIATE FAILURE: Side hazard collision',
         duplicateIncidentSuppressed:
           duplicateCollision.events.length === 1 &&
           duplicateCollision.diagnostics.violationHazardCount === 1,
@@ -1329,7 +1362,8 @@ async function runM9SideHazardScenario(cdp) {
         collision,
         duplicateCollision,
         hazard,
-        safeClear
+        safeClear,
+        terminalFailureSession
       };
     })()`
   });

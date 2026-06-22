@@ -172,5 +172,8 @@ export class DrivingSession {
 }
 
 function isTerminalFailureEvent(event: ScoredEvent): boolean {
-  return event.ruleId === 'stop-line' && event.outcome === 'violation';
+  return (
+    event.outcome === 'violation' &&
+    (event.ruleId === 'side-hazard' || event.ruleId === 'stop-line')
+  );
 }

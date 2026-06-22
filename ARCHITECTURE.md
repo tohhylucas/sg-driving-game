@@ -162,7 +162,9 @@ driving-game/
 - `SideHazardRule.ts`: always-active Phase 2 side-hazard rule for configured
   fixed track side hazards. It scores only physical collision with visible
   hazard footprints or cleanly clearing a triggered hazard scenario, with one
-  scored event per configured hazard per session.
+  scored event per configured hazard per session. A side-hazard collision is a
+  terminal failure, emits an `IMMEDIATE FAILURE` message, and ends the active
+  session immediately.
 - `finishZone.ts`: pure finish-gate containment helper.
 - `scoring.ts`: shared scored-event shape and pass/violation aggregation.
 - `MirrorCamera.ts`: camera and render target for a mirror, mounted from live

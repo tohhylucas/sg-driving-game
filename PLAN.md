@@ -147,11 +147,13 @@ blind-spot camera look controls and M7's scoring foundation.
   repeated-event suppression.
 - Delivery note: Implemented issue #15 with a fixed visible right-lane bicycle
   side hazard, trigger/clearance and collision footprints, always-active
-  side-hazard scoring through the M7 session stream, repeated-event
-  suppression, focused unit coverage, and M9 Chrome evidence.
+  side-hazard scoring through the M7 session stream, immediate session failure
+  on collision, repeated-event suppression, focused unit coverage, and M9
+  Chrome evidence.
 - **Test:** A player who turns or changes lane into a configured side hazard
-  receives an accident/violation event; avoiding the hazard passes; no
-  check-action input is required or scored.
+  receives an `IMMEDIATE FAILURE` accident/violation event and the session ends
+  immediately; avoiding the hazard passes; no check-action input is required or
+  scored.
 
 ### M10 - Forward Moving Elements and Following Time-Gap Rule
 

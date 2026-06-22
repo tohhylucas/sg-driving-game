@@ -115,7 +115,7 @@ describe('DrivingSession', () => {
     ]);
   });
 
-  it('aggregates side-hazard collision events through the session event stream', () => {
+  it('ends the session immediately when the car collides with a side hazard', () => {
     const session = new DrivingSession({
       rules: [new SideHazardRule()],
       track
@@ -135,11 +135,13 @@ describe('DrivingSession', () => {
       0.1
     );
 
-    expect(session.state.active).toBe(true);
+    expect(session.state.active).toBe(false);
+    expect(session.state.endReason).toBe('failure');
     expect(session.summary.violationCount).toBe(1);
     expect(session.summary.passCount).toBe(0);
     expect(session.summary.events).toEqual([
       expect.objectContaining({
+        message: 'IMMEDIATE FAILURE: Side hazard collision',
         outcome: 'violation',
         ruleId: 'side-hazard'
       })

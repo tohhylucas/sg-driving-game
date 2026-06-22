@@ -46,6 +46,7 @@ describe('SideHazardRule', () => {
       })
     ).toEqual([
       expect.objectContaining({
+        message: 'IMMEDIATE FAILURE: Side hazard collision',
         outcome: 'violation',
         ruleId: 'side-hazard',
         sessionId: 1
@@ -187,6 +188,7 @@ describe('SideHazardRule', () => {
       })
     ).toEqual([
       expect.objectContaining({
+        message: 'IMMEDIATE FAILURE: Side hazard collision',
         outcome: 'violation',
         sessionId: 4
       })
