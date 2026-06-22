@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 import type { CarState } from '../src/types';
 import { ChaseCamera } from '../src/camera/ChaseCamera';
+import { COCKPIT_CAMERA_CONFIG } from '../src/config/constants';
 
 describe('ChaseCamera', () => {
   const carState: CarState = {
@@ -35,5 +36,16 @@ describe('ChaseCamera', () => {
     offsetCamera.camera.getWorldDirection(offsetDirection);
 
     expect(offsetDirection.x).toBeGreaterThan(centeredDirection.x);
+  });
+
+  it('applies the configured right-hand-drive cockpit viewpoint offset', () => {
+    const chaseCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
+    const direction = new THREE.Vector3();
+
+    chaseCamera.update(carState);
+    chaseCamera.camera.getWorldDirection(direction);
+
+    expect(chaseCamera.camera.position.x).toBeGreaterThan(carState.position.x);
+    expect(direction.x).toBeGreaterThan(0);
   });
 });

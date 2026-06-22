@@ -34,4 +34,14 @@ describe('CarController', () => {
     expect(car.state.headingRad).toBeGreaterThan(movingState.headingRad);
     expect(car.state.headingRad).toBeLessThan(rawSteerState.headingRad);
   });
+
+  it('exposes the smoothed steering amount for cockpit instruments', () => {
+    const car = new Car();
+    const controller = new CarController(car);
+
+    controller.update({ throttle: 0, brake: 0, steer: 1 }, 1 / 60);
+
+    expect(controller.steerAmount).toBeGreaterThan(0);
+    expect(controller.steerAmount).toBeLessThan(1);
+  });
 });

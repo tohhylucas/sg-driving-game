@@ -46,12 +46,15 @@ real rendered mirror views. No rules, no scoring, and no procedural generation.
 
 ### M4 - In-Car Cockpit UI
 
-- [ ] Rearview mirror (top center) - real rendered view via mirror camera.
-- [ ] Left and right side mirrors - real rendered views.
-- [ ] Steering wheel (bottom center) rotates with steering input.
-- [ ] Speedometer (bottom center) shows live km/h.
-- [ ] Instructor caption frame (empty placeholder; no logic this phase).
-- **Test:** Mirrors reflect actual scene behind/beside the car; wheel and speedometer respond live; layout matches the reference mockup.
+- [DONE] Cockpit overlay over the M3 chase camera, not a full cockpit/interior camera.
+- [DONE] Apply a right-hand-drive viewpoint offset using M3 camera offset support.
+- [DONE] Rearview mirror (top center) - real rendered view via mirror camera/render target.
+- [DONE] Left and right side mirrors - real rendered views via mirror cameras/render targets.
+- [DONE] Steering wheel uses right-hand-drive placement and rotates with steering input.
+- [DONE] Speedometer (bottom center) shows live km/h.
+- [DONE] Instructor audio placeholder frame (empty; no text captions or instruction logic this phase).
+- Delivery note: Implemented issue #5 cockpit overlay with right-hand-drive chase-camera offset, live rendered rear/side mirrors, live steering wheel and speedometer UI, and an audio-only instructor placeholder.
+- **Test:** Mirrors reflect actual scene behind/beside the car; wheel and speedometer respond live; right-hand-drive layout reads correctly; no instructor text appears.
 
 ### M5 - Hand-Built Test Track
 
@@ -67,6 +70,6 @@ module emitting scored events.
 - [ ] Keep-left enforcement
 - [ ] Stop-line detection (solid white line, side road to main road)
 - [ ] Safe following-distance with lead vehicles
-- [ ] Instructor instruction system (queued voice/text tied to road features)
+- [ ] Instructor TTS instruction system (queued audio tied to road features; no on-screen text)
 - [ ] Scoring / feedback loop
 - [ ] Procedural map generation (last)
