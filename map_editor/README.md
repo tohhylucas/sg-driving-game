@@ -1,97 +1,241 @@
 # SG Driving Map Editor
 
-Standalone, ad-hoc browser tool for tracing a satellite or orthophoto PNG into a
-semantic road map for the Three.js driving game.
+Standalone browser tool for tracing a satellite or orthophoto image into a
+game-previewable `mapData.json`.
 
-The editor is intentionally 2D. It exports `mapData.json`; the game can then use
-that JSON to build Three.js road meshes, markings, and decals.
+The editor is intentionally 2D. It stores editable geometry in image pixels,
+then exports world coordinates in meters using the calibrated scale and origin.
+The game can preview exported road paths and line markings with
+`?mapData=/maps/file-name.json`. The default game URL still uses the fixed
+training route.
 
-## Run
+## What You Need
 
-From this folder:
+- Node dependencies installed in the repo.
+- A PNG, JPEG, or WebP map image. A satellite crop, orthophoto, or simple test
+  drawing works.
+- At least one known real-world distance in the image for calibration.
+  A Singapore lane width is commonly around `3.5` meters.
+
+## 1. Start the Editor
+
+From `map_editor/`:
 
 ```powershell
 npm install
 npm run dev
 ```
 
-Vite prints the local URL, normally `http://127.0.0.1:5173/`.
+Open the Vite URL, normally:
 
-## Verify
+```text
+http://127.0.0.1:5173/
+```
+
+## 2. Create a New Map
+
+1. Click `Image` and choose your source image.
+2. Edit `Map name` if needed. This becomes `meta.name` in the export.
+3. Enter `Known distance (m)`.
+4. Click `Calibrate Scale`.
+5. Click the first point of the known distance on the canvas.
+6. Click the second point. The `Map Panel` should show the new `m/px` scale.
+7. Click `Set Origin`.
+8. Click the image point that should become world origin `(0, 0)`.
+
+Coordinate rules after export:
+
+- `+X` is right on the image.
+- `+Y` is up.
+- `-Z` is down-screen from the chosen origin.
+- A car driving forward moves toward `-Z`.
+- Singapore keep-left defaults still matter when placing a first usable route.
+
+## 3. Trace Road Paths
+
+1. Click `Draw Road Path`.
+2. Click ordered points along the road center path.
+3. For a curved segment, click the next road point first, then `Ctrl`-click to
+   place or move the curve pivot for the latest segment.
+4. Press `Enter` to finish the road path.
+5. Open `Map Panel`.
+6. Select the road path and set:
+   - `Lanes on path`
+   - `Lane width (m)`
+   - `Center marking`
+   - `Left edge marking`
+   - `Right edge marking`
+   - `One-way`
+
+Use one road path per continuous logical centerline. For a loop, click enough
+points around the loop and click the start point again as the final point.
+
+## 4. Add Markings and Symbols
+
+1. Choose a symbol type from the symbol dropdown.
+2. Click `Place Symbol`.
+3. Click-drag from the symbol center.
+4. Drag direction sets rotation.
+5. Drag distance sets size.
+6. Release to place the symbol.
+
+Current game preview support:
+
+- Road surfaces render from road paths.
+- Center, left-edge, and right-edge markings render from road path metadata.
+- `paintedLines` render, including editable give-way line markings.
+- Exported decals and symbols are preserved in JSON, but the game preview does
+  not render them yet.
+
+## 5. Fix Mistakes
+
+- `Ctrl+Z`: undo the last edit.
+- `Erase`: click an item to remove it.
+- `Delete`: remove the selected item.
+- `Q` / `E`: rotate a selected symbol or give-way line.
+- `Escape`: cancel the current road draft or clear selection.
+- Hold `Space` and drag: pan.
+- Mouse wheel: zoom.
+- `Rotate -15`, `Map rotation`, `Rotate +15`, `Reset Rotation`: rotate the view
+  while keeping canvas clicks mapped to the image.
+
+The `Shortcuts` button shows the main controls inside the editor.
+
+## 6. Export the Map
+
+1. Click `Export JSON`.
+2. Save the downloaded file as a clear name, for example:
+
+```text
+my-test-map.json
+```
+
+`Export JSON` automatically finishes the active road draft if it has at least
+two points.
+
+## 7. Reopen or Continue a Map
+
+1. Open the editor.
+2. Optional: upload the same source image first.
+3. Click `Import JSON`.
+4. Choose the previously exported `mapData.json`.
+
+If the current image has the same dimensions as the imported map, it stays
+behind the imported geometry. If dimensions differ, the geometry imports
+without a background image.
+
+Older exports with ordered nodes but no edges are recovered as one editable
+road path.
+
+## 8. Preview the Map in the Game
+
+1. Copy the exported JSON into the root app's public map folder:
+
+```powershell
+New-Item -ItemType Directory -Force ..\public\maps | Out-Null
+Copy-Item .\path\to\my-test-map.json ..\public\maps\my-test-map.json
+```
+
+If you are already at the repo root, use:
+
+```powershell
+New-Item -ItemType Directory -Force public\maps | Out-Null
+Copy-Item .\path\to\my-test-map.json public\maps\my-test-map.json
+```
+
+2. Start the game from the repo root:
+
+```powershell
+npm install
+npm run dev -- --host 127.0.0.1
+```
+
+If the editor is still running on `5173`, Vite may choose another port for the
+game. Use the game URL printed by the root `npm run dev` command.
+
+3. Open the game with a root-relative `mapData` URL. Replace the host and port
+   with the game URL Vite printed:
+
+```text
+http://127.0.0.1:5173/?mapData=/maps/my-test-map.json
+```
+
+The query string must start with `/maps/...`. Non-root-relative paths are
+rejected.
+
+4. Confirm the preview:
+   - The fixed training route is replaced by your map.
+   - The car still starts at the normal Singapore keep-left spawn.
+   - Road surfaces and supported line markings render.
+   - The default URL without `?mapData=...` still loads the fixed training
+     route.
+
+## 9. Browser Diagnostic Check
+
+In dev mode, open the browser console on the game preview page and run:
+
+```js
+window.__SG_DRIVING_GAME_DEV__.readDiagnostics().previewMap
+```
+
+Expected shape:
+
+```js
+{
+  name: "My Test Map",
+  nodeCount: 33,
+  edgeCount: 1,
+  renderedRoadSegmentCount: 32
+}
+```
+
+Counts depend on your map. `renderedRoadSegmentCount` is usually one less than
+the node count for a simple closed loop with the first point repeated at the
+end.
+
+## 10. Run Verification
+
+From `map_editor/`:
 
 ```powershell
 npm test
 npm run build
 ```
 
-## Workflow
+From the repo root:
 
-1. Upload a satellite PNG, JPEG, or WebP from the top toolbar.
-2. To continue previous work, choose the previously exported `mapData.json` from
-   the JSON file picker. If the currently loaded image has the same dimensions
-   as the imported map, it stays behind the imported geometry; otherwise the
-   map imports without a background image.
-3. Enter the known distance in meters, then use `Calibrate Scale` and click two
-   points on the image. The editor draws the first point, preview line, and
-   final measured pair. A Singapore lane width is commonly around `3.5` meters
-   when a lane is the known reference.
-4. Use `Set Origin` to place the game-world origin on the image. If you skip this,
-   the origin defaults to the image center.
-5. Use `Rotate -15`, `Map rotation`, `Rotate +15`, or `Reset Rotation` to rotate
-   the map view while tracing. Clicks, zoom, and canvas editing stay aligned to
-   the rotated view.
-6. Use `Draw Road Path` to click ordered points along each road center path.
-   This defines road topology and lane metadata, not every visible painted
-   lane line. After two road points exist, `Ctrl`-click to place a curve pivot
-   for the latest segment between those two points. Press `Enter` to finish the
-   road. `Export JSON` also finishes the active road path automatically when it
-   has at least two points.
-7. Use `Select/Edit` to select a road, line marking, node, or symbol.
-   Road path lane count, lane width, one-way status, and marking metadata can
-   be edited in the `Selected Road Path` controls. With a road path selected,
-   `Ctrl`-click near a segment to add or move that segment's curve pivot.
-8. Use `Erase` and click an item to remove it directly. This is useful for
-   removing unwanted line markings or symbols.
-9. Choose a symbol type, use `Place Symbol`, then click-drag on the map. The
-   first click sets the symbol center, the drag direction sets rotation, the
-   drag distance from center sets size, and releasing the mouse places the final
-   symbol. `give_way_line` creates an editable line segment in `paintedLines`,
-   so it can meet other road linework.
-10. Calibration updates the pixel-to-meter scale immediately, so symbol previews
-   resize to real-world meter sizes as soon as the scale is set. The
-   `Symbol size (m)` field shows the current placement size and can still set a
-   precise fallback size before dragging.
-11. Select a symbol or give-way line and press `Q` / `E` to rotate it.
-12. Use `Export JSON` to download `mapData.json`.
+```powershell
+npm test
+npm run build
+```
 
-Canvas controls:
+Manual browser checks:
 
-- Hold `Space` and drag to pan.
-- Use the mouse wheel to zoom.
-- Press `Ctrl+Z` to undo the last edit.
-- Press `Delete` to remove the selected road, node, detected line, or symbol.
-- `Ctrl`-click while drawing a road path to curve the latest road segment.
-- `Ctrl`-click a selected road path segment to add or move its curve pivot.
-- Press `Q` / `E` to rotate the selected symbol or selected give-way line.
-- Press `Escape` to cancel the current road draft or clear selection.
+1. Editor opens with no console errors.
+2. Source image uploads.
+3. Calibration changes `m/px`.
+4. Road path can be drawn and selected.
+5. `Export JSON` downloads a file.
+6. `Import JSON` restores the same road path, scale, origin, and map name.
+7. Game preview URL loads without runtime errors.
+8. Game diagnostics show the expected `previewMap`.
 
-The `Map Panel` button opens the `Map Status` and selected-item drawer. It shows
-the calibrated scale, origin, item counts, current symbol size, and selected
-road path or symbol metadata without permanently consuming canvas width. Road
-paths also show lane-count badges directly on the canvas.
+## Troubleshooting
 
-The `Shortcuts` button in the right-side nav opens a compact reminder for the
-keyboard and mouse controls that matter while tracing.
+- Blank game page: check that the JSON file is under `public/maps/`.
+- `Unable to load mapData`: check the URL is root-relative, such as
+  `?mapData=/maps/my-test-map.json`.
+- Unsupported coordinate system: export again from this editor so
+  `meta.coordinateSystem` is
+  `+X right, +Y up, -Z down-screen from origin`.
+- Road appears offset: reopen in the editor and check `Origin`.
+- Road appears too large or too small: recalibrate scale and export again.
+- Missing symbols in game preview: expected for now. Symbols are exported but
+  not yet rendered by the preview path.
 
 ## Export Contract
 
 The export type lives in `src/schema.ts`.
-
-Coordinates are already in meters and follow the game convention:
-
-- `+X` is right.
-- `+Y` is up.
-- `-Z` is down-screen from the chosen image origin.
 
 Top-level shape:
 
@@ -138,7 +282,7 @@ Top-level shape:
 }
 ```
 
-`decals` are exported as world-space road markings:
+`decals` are exported as world-space road symbols:
 
 ```json
 {
@@ -167,13 +311,3 @@ Top-level shape:
 ```
 
 Give-way lines use the same export shape with `"style": "give_way_line"`.
-
-## Notes
-
-- The editor uses exported `mapData.json` as its ad-hoc save format. Import that
-  JSON later to continue editing.
-- Older JSON files that contain ordered road points but no road-path edges are
-  imported as a single editable road path so the visible line is restored.
-- The game-side Three.js builder is not wired in this folder. Import the
-  `MapData` contract from `src/schema.ts` or copy it into a future shared map
-  module when the runtime starts consuming exported maps.

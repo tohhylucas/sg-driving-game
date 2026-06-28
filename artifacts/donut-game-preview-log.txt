@@ -1,0 +1,59 @@
+Donut map game preview smoke
+Status: PASS
+Timestamp: 2026-06-28T19:09:17.347Z
+Screenshot: C:\Users\tohhy\Documents\GitHub\sg-driving-game\artifacts\donut-game-preview.png
+
+Checkpoints:
+{
+  "page": {
+    "title": "Singapore Driving Game",
+    "canvasExists": true,
+    "canvasSize": [
+      1418,
+      882
+    ],
+    "phase": "m12",
+    "devAvailable": true
+  },
+  "diagnostics": {
+    "previewMap": {
+      "edgeCount": 1,
+      "name": "Donut Test Map",
+      "nodeCount": 33,
+      "renderedRoadSegmentCount": 32
+    },
+    "car": {
+      "position": {
+        "x": -1.75,
+        "y": 0.01,
+        "z": 0
+      },
+      "headingRad": 0,
+      "speedMps": 0
+    },
+    "movingElements": [],
+    "sessionActive": true,
+    "phase": "m12"
+  }
+}
+
+Extra:
+{
+  "gameUrl": "http://127.0.0.1:5173/?mapData=/maps/donut-mapData.json"
+}
+
+Browser logs:
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.warning: THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+browser.warning: [GroupMarkerNotSet(crbug.com/242999)!:7AC4001840A8]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+browser.warning: [.WebGL-0xd2400140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0xd2400140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0xd2400140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+browser.warning: [.WebGL-0xd2400140800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+
+Action errors:
+none
+
+Network errors:
+none

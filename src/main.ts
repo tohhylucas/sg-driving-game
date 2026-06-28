@@ -1,4 +1,5 @@
 import { Game } from './core/Game';
+import { parseMapData, type MapData } from './world/mapData';
 import './styles.css';
 
 declare global {
@@ -20,12 +21,43 @@ if (!uiRoot) {
   throw new Error('Missing #ui-overlay element.');
 }
 
-const game = new Game({ canvas, uiRoot });
+const gameCanvas = canvas;
+const gameUiRoot = uiRoot;
 
-if (import.meta.env.DEV) {
-  window.__SG_DRIVING_GAME_DEV__ = {
-    readDiagnostics: () => game.readDiagnostics()
-  };
+async function loadPreviewMapData(): Promise<MapData | undefined> {
+  const mapDataUrl = new URL(window.location.href).searchParams.get('mapData');
+
+  if (!mapDataUrl) {
+    return undefined;
+  }
+
+  if (!mapDataUrl.startsWith('/')) {
+    throw new Error('mapData must be a root-relative URL.');
+  }
+
+  const response = await fetch(mapDataUrl);
+
+  if (!response.ok) {
+    throw new Error(`Unable to load mapData from ${mapDataUrl}.`);
+  }
+
+  return parseMapData(await response.json());
 }
 
-game.start();
+async function startGame(): Promise<void> {
+  const game = new Game({
+    canvas: gameCanvas,
+    previewMapData: await loadPreviewMapData(),
+    uiRoot: gameUiRoot
+  });
+
+  if (import.meta.env.DEV) {
+    window.__SG_DRIVING_GAME_DEV__ = {
+      readDiagnostics: () => game.readDiagnostics()
+    };
+  }
+
+  game.start();
+}
+
+void startGame();

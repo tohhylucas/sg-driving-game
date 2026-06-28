@@ -1,0 +1,132 @@
+Donut map editor browser export
+Status: PASS
+Timestamp: 2026-06-28T19:01:44.543Z
+Source image: C:\Users\tohhy\Documents\GitHub\sg-driving-game\artifacts\donut-editor-source.png
+Exported JSON: C:\Users\tohhy\Documents\GitHub\sg-driving-game\artifacts\donut-mapData.json
+Editor screenshot: C:\Users\tohhy\Documents\GitHub\sg-driving-game\artifacts\donut-editor-roundtrip.png
+
+Checkpoints:
+{
+  "initial": {
+    "title": "SG Driving Map Editor",
+    "canvasExists": true,
+    "buttons": [
+      "Export JSON",
+      "Select/Edit",
+      "Draw Road Path",
+      "Erase",
+      "Place Symbol",
+      "Rotate -15",
+      "Rotate +15",
+      "Reset Rotation",
+      "Calibrate Scale",
+      "Set Origin",
+      "Map Panel",
+      "Shortcuts"
+    ]
+  },
+  "afterRoad": {
+    "status": "800x800px image | Draw Road Path: click points along the road center path, then press Enter. | undo steps: 37 | line markings: 0",
+    "counts": "33 road points, 1 roads, 0 line markings, 0 symbols",
+    "selectionHeading": "Selected Road Path",
+    "scale": "0.2000 m/px",
+    "origin": "219.6, 400.0 px"
+  },
+  "exported": {
+    "version": 1,
+    "name": "Donut Test Map",
+    "imageWidthPx": 800,
+    "imageHeightPx": 800,
+    "metersPerPixel": 0.2,
+    "originPx": 219.6078431372549,
+    "originPy": 400,
+    "nodes": 33,
+    "edges": 1,
+    "decals": 0,
+    "paintedLines": 0,
+    "firstNode": {
+      "id": "n1",
+      "xM": -1.5686274509803924,
+      "yM": 0,
+      "zM": 0
+    },
+    "lastNode": {
+      "id": "n33",
+      "xM": -1.5686274509803924,
+      "yM": 0,
+      "zM": 0
+    }
+  },
+  "imported": {
+    "name": "Donut Test Map",
+    "status": "Imported Donut Test Map: 33 road points, 1 roads, 0 line markings, 0 symbols.",
+    "counts": "33 road points, 1 roads, 0 line markings, 0 symbols",
+    "scale": "0.2000 m/px",
+    "origin": "219.6, 400.0 px"
+  }
+}
+
+Extra:
+{
+  "editorUrl": "http://127.0.0.1:5173/",
+  "downloadDir": "C:\\Users\\tohhy\\AppData\\Local\\Temp\\sg-map-editor-donut-downloads-mfKCj6",
+  "roadPointsSample": [
+    {
+      "worldPoint": {
+        "xM": -1.75,
+        "zM": 2.9391523179536475e-15
+      },
+      "imagePoint": {
+        "px": 211.25,
+        "py": 400
+      }
+    },
+    {
+      "worldPoint": {
+        "xM": -1.2888467296775303,
+        "zM": -4.68216772838708
+      },
+      "imagePoint": {
+        "px": 213.55576635161236,
+        "py": 423.4108386419354
+      }
+    },
+    {
+      "worldPoint": {
+        "xM": 0.0768912197291165,
+        "zM": -9.184402376762153
+      },
+      "imagePoint": {
+        "px": 220.3844560986456,
+        "py": 445.92201188381074
+      }
+    },
+    {
+      "worldPoint": {
+        "xM": 2.294729304738908,
+        "zM": -13.333685592470447
+      },
+      "imagePoint": {
+        "px": 231.47364652369453,
+        "py": 466.6684279623522
+      }
+    }
+  ]
+}
+
+Browser logs:
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+network.404: http://127.0.0.1:5173/favicon.ico
+browser.error: Failed to load resource: the server responded with a status of 404 (Not Found)
+
+Action errors:
+none
+
+Network errors:
+[
+  {
+    "status": 404,
+    "url": "http://127.0.0.1:5173/favicon.ico"
+  }
+]

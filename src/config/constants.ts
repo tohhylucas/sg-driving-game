@@ -60,6 +60,12 @@ export const ROAD_CONFIG = {
   finishLineColor: 0x22c55e
 } as const;
 
+export const MAP_DATA_TRACK_CONFIG = {
+  curveSamplesPerSegment: 12,
+  doubleLineOffsetM: ROAD_CONFIG.centerLineWidthM * 1.75,
+  yellowMarkingColor: 0xfacc15
+} as const;
+
 export const INSTRUCTOR_CONFIG = {
   routeFeatureTriggerDistanceM: 16,
   routeFeatureTriggerWidthM: ROAD_CONFIG.laneWidthM,

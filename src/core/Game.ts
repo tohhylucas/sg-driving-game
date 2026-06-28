@@ -25,12 +25,14 @@ import { createInitialCarState } from '../vehicle/carState';
 import { getFixedTestTrackLayout } from '../world/testTrackLayout';
 import { ScriptedMovingElementViews } from '../world/ScriptedMovingElementViews';
 import { World } from '../world/World';
+import type { MapData } from '../world/mapData';
 import { Engine, type TextureOverlay } from './Engine';
 import { Input } from './Input';
 import { Loop } from './Loop';
 
 interface GameOptions {
   canvas: HTMLCanvasElement;
+  previewMapData?: MapData;
   uiRoot: HTMLElement;
 }
 
@@ -53,6 +55,14 @@ export interface GameDiagnostics {
     readonly speedMps: number;
   }[];
   readonly instructorAudio: InstructorInstructionQueueDiagnostics;
+  readonly previewMap:
+    | {
+        readonly edgeCount: number;
+        readonly name: string;
+        readonly nodeCount: number;
+        readonly renderedRoadSegmentCount: number;
+      }
+    | undefined;
   readonly session: {
     readonly active: boolean;
     readonly endReason: string | undefined;
@@ -94,14 +104,16 @@ export class Game {
   private readonly loop = new Loop();
   private readonly mirrors: GameMirror[];
   private readonly movingElements = new ScriptedMovingElementViews(this.track);
+  private readonly previewMapData?: MapData;
   private readonly resizeObserver: ResizeObserver;
   private readonly world: World;
   private wasResetPressed = false;
 
-  constructor({ canvas, uiRoot }: GameOptions) {
+  constructor({ canvas, previewMapData, uiRoot }: GameOptions) {
     this.canvas = canvas;
+    this.previewMapData = previewMapData;
     this.engine = new Engine(canvas);
-    this.world = new World(this.track);
+    this.world = new World(this.track, previewMapData);
     this.car = new Car();
     this.carController = new CarController(this.car);
     this.chaseCamera = new ChaseCamera(COCKPIT_CAMERA_CONFIG);
@@ -135,7 +147,9 @@ export class Game {
     });
     this.engine.scene.background = this.world.sky.color;
     this.engine.scene.add(this.world.object);
-    this.engine.scene.add(this.movingElements.object);
+    if (!this.previewMapData) {
+      this.engine.scene.add(this.movingElements.object);
+    }
     this.engine.scene.add(this.car.object);
 
     uiRoot.dataset.phase = 'm12';
@@ -191,13 +205,24 @@ export class Game {
           z: this.chaseCamera.camera.position.z
         }
       },
-      movingElements: this.movingElements.currentStates.map((element) => ({
-        id: element.id,
-        kind: element.kind,
-        segmentId: element.segmentId,
-        speedMps: element.speedMps
-      })),
+      movingElements: this.previewMapData
+        ? []
+        : this.movingElements.currentStates.map((element) => ({
+            id: element.id,
+            kind: element.kind,
+            segmentId: element.segmentId,
+            speedMps: element.speedMps
+          })),
       instructorAudio: this.instructorInstructionQueue.diagnostics,
+      previewMap: this.previewMapData
+        ? {
+            edgeCount: this.previewMapData.edges.length,
+            name: this.previewMapData.meta.name,
+            nodeCount: this.previewMapData.nodes.length,
+            renderedRoadSegmentCount:
+              this.world.previewMapTrack?.roadSegmentCount ?? 0
+          }
+        : undefined,
       session: {
         ...this.drivingSession.state,
         events: summary.events.map((event) => ({

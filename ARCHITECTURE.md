@@ -32,7 +32,7 @@ placement-drag sizing and numeric controls for precise adjustment.
 Road center paths and placed symbols remain separate map objects. Editor
 mutations push local undo snapshots so `Ctrl+Z` can restore accidental road,
 symbol, painted-line, origin, scale, and inspector edits. Its `src/schema.ts`
-file is the current export contract for future game-side map builders.
+file is the current export contract for game-side map previews.
 The map status and selection inspector is a toggleable right-side drawer so
 setup metadata remains available without permanently reducing the canvas at
 normal browser zoom levels. Road paths display lane-count badges on the canvas,
@@ -42,6 +42,15 @@ quadratic curves; a curve stores a control point between adjacent road path
 nodes and is authored with Ctrl-click while drawing or editing a selected path.
 The toolbar is grouped by workflow, with symbol placement controls kept beside
 the symbol tool, and shortcut reminders live in a compact right-side popout.
+
+Generated maps can be previewed visually in the game runtime by placing a
+`mapData.json` file under `public/maps/` and opening the game with
+`?mapData=/maps/file-name.json`. This preview replaces the rendered fixed test
+track with `MapDataTrack`, built from the editor export's road paths, lane
+metadata, markings, curve controls, and painted lines. It does not import rule
+zones, instructor features, scoring behavior, moving elements, or procedural
+world generation; the default game URL still uses the hand-built fixed training
+route.
 
 ## Setup Guidance
 
@@ -117,6 +126,8 @@ driving-game/
 |-- tsconfig.json
 |-- vite.config.ts
 |-- public/
+|   `-- maps/
+|       `-- donut-mapData.json
 |-- src/
 |   |-- main.ts
 |   |-- styles.css
@@ -132,11 +143,13 @@ driving-game/
 |   |   |-- World.ts
 |   |   |-- Ground.ts
 |   |   |-- Sky.ts
+|   |   |-- MapDataTrack.ts
 |   |   |-- Road.ts
 |   |   |-- RoadMarkings.ts
 |   |   |-- roadLayout.ts
 |   |   |-- scriptedMovingElements.ts
 |   |   |-- ScriptedMovingElementViews.ts
+|   |   |-- mapData.ts
 |   |   |-- testTrackLayout.ts
 |   |   `-- TestTrack.ts
 |   |-- vehicle/
@@ -261,7 +274,16 @@ driving-game/
   helpers.
 - `config/constants.ts`: single source of truth for tunable numbers, colors,
   and instructor audio trigger/TTS settings.
-- `World.ts`: composes the static sky, ground, and fixed test track.
+- `World.ts`: composes the static sky, ground, and fixed test track. When
+  explicit preview `MapData` is supplied, it renders `MapDataTrack` instead of
+  the fixed `TestTrack` so editor exports can be visually checked in the game
+  without changing the default route.
+- `mapData.ts`: game-side copy of the editor export contract plus strict
+  parsing for preview-loaded `mapData.json` files.
+- `MapDataTrack.ts`: visual-only renderer for editor-exported maps. It turns
+  road path edges into oriented Three.js road surface segments, samples
+  quadratic curve controls into renderable segments, and draws supported edge,
+  center, and painted-line markings.
 - `Road.ts`: renders the earlier straight-road surface and markings. It remains
   available for milestone history but is not the active M5 world road.
 - `TestTrack.ts`: renders the M5 fixed test track from pure layout data:
