@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "meta": {
+    "name": "Editor Scenery Kerb Smoke Map",
+    "imageWidthPx": 800,
+    "imageHeightPx": 600,
+    "metersPerPixel": 0.25,
+    "originPx": 120,
+    "originPy": 420,
+    "coordinateSystem": "+X right, +Y up, -Z down-screen from origin"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": 12
+    },
+    {
+      "id": "n2",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -58
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "nodeIds": ["n1", "n2"],
+      "lanes": 2,
+      "laneWidthM": 3.5,
+      "oneway": false,
+      "markings": {
+        "center": "dashed_white",
+        "leftEdge": "solid_white",
+        "rightEdge": "solid_white"
+      }
+    }
+  ],
+  "decals": [
+    {
+      "id": "d1",
+      "type": "arrow_straight",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -12,
+      "rotationDeg": 180,
+      "scaleM": 4
+    }
+  ],
+  "paintedLines": [
+    {
+      "id": "l1",
+      "style": "solid_yellow",
+      "widthM": 0.15,
+      "points": [
+        {
+          "id": "l1-p1",
+          "xM": 1.75,
+          "yM": 0,
+          "zM": 10
+        },
+        {
+          "id": "l1-p2",
+          "xM": 1.75,
+          "yM": 0,
+          "zM": -56
+        }
+      ]
+    }
+  ],
+  "scenery": [
+    {
+      "id": "s1",
+      "type": "tree",
+      "xM": -7.5,
+      "yM": 0,
+      "zM": -12,
+      "rotationDeg": 25,
+      "scaleM": 5
+    },
+    {
+      "id": "s2",
+      "type": "tree",
+      "xM": 4.5,
+      "yM": 0,
+      "zM": -28,
+      "rotationDeg": 340,
+      "scaleM": 4
+    },
+    {
+      "id": "s3",
+      "type": "grass",
+      "xM": -7,
+      "yM": 0,
+      "zM": -24,
+      "rotationDeg": 0,
+      "scaleM": 3
+    },
+    {
+      "id": "s4",
+      "type": "grass",
+      "xM": 4.8,
+      "yM": 0,
+      "zM": -16,
+      "rotationDeg": 20,
+      "scaleM": 3.5
+    }
+  ],
+  "kerbLines": [
+    {
+      "id": "k1",
+      "widthM": 0.35,
+      "heightM": 0.18,
+      "points": [
+        {
+          "id": "k1-p1",
+          "xM": -5.25,
+          "yM": 0,
+          "zM": 10
+        },
+        {
+          "id": "k1-p2",
+          "xM": -5.25,
+          "yM": 0,
+          "zM": -56
+        }
+      ]
+    },
+    {
+      "id": "k2",
+      "widthM": 0.35,
+      "heightM": 0.18,
+      "points": [
+        {
+          "id": "k2-p1",
+          "xM": 1.75,
+          "yM": 0,
+          "zM": 10
+        },
+        {
+          "id": "k2-p2",
+          "xM": 1.75,
+          "yM": 0,
+          "zM": -56
+        }
+      ]
+    }
+  ]
+}

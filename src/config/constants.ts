@@ -63,7 +63,117 @@ export const ROAD_CONFIG = {
 export const MAP_DATA_TRACK_CONFIG = {
   curveSamplesPerSegment: 12,
   doubleLineOffsetM: ROAD_CONFIG.centerLineWidthM * 1.75,
-  yellowMarkingColor: 0xfacc15
+  yellowMarkingColor: 0xfacc15,
+  kerbBrickLengthM: 0.8,
+  kerbBlackColor: 0x111827,
+  kerbWhiteColor: 0xf8fafc,
+  treeTrunkColor: 0x7c4a25,
+  treeCanopyColor: 0x15803d,
+  sceneryYOffsetM: 0.02,
+  treeTrunkHeightRatio: 0.55,
+  treeTrunkRadiusRatio: 0.08,
+  treeTrunkBaseRadiusRatio: 1.15,
+  treeTrunkSegments: 8,
+  treeCanopyRadiusRatio: 0.28,
+  treeCanopyWidthSegments: 10,
+  treeCanopyHeightSegments: 8,
+  treeCanopyYOffsetRatio: 0.75,
+  grassPatchColor: 0x15803d,
+  grassPatchRadiusRatio: 0.34,
+  grassPatchTopRadiusRatio: 0.9,
+  grassPatchHeightM: 0.025,
+  grassPatchSegments: 14,
+  grassBladeColors: [0x4ade80, 0x22c55e, 0x16a34a, 0x65a30d],
+  grassBladeMinHeightM: 0.24,
+  grassBladeMinWidthM: 0.035,
+  grassBladeTipWidthRatio: 0.18,
+  grassBladeCurveSideControlRatio: 0.8,
+  grassBladeCurveMidHeightRatio: 0.45,
+  grassBladeCurveShoulderHeightRatio: 0.82,
+  grassBladeCurveTipControlHeightRatio: 0.94,
+  grassBladeTemplates: [
+    {
+      offsetXRatio: -0.22,
+      offsetZRatio: -0.1,
+      heightRatio: 0.35,
+      widthRatio: 0.04,
+      yawDeg: -48,
+      leanDeg: -13,
+      colorIndex: 0
+    },
+    {
+      offsetXRatio: -0.12,
+      offsetZRatio: 0.08,
+      heightRatio: 0.43,
+      widthRatio: 0.036,
+      yawDeg: -22,
+      leanDeg: -8,
+      colorIndex: 1
+    },
+    {
+      offsetXRatio: 0,
+      offsetZRatio: -0.03,
+      heightRatio: 0.5,
+      widthRatio: 0.042,
+      yawDeg: 6,
+      leanDeg: 3,
+      colorIndex: 2
+    },
+    {
+      offsetXRatio: 0.13,
+      offsetZRatio: 0.09,
+      heightRatio: 0.39,
+      widthRatio: 0.034,
+      yawDeg: 32,
+      leanDeg: 10,
+      colorIndex: 1
+    },
+    {
+      offsetXRatio: 0.23,
+      offsetZRatio: -0.08,
+      heightRatio: 0.31,
+      widthRatio: 0.038,
+      yawDeg: 58,
+      leanDeg: 15,
+      colorIndex: 3
+    },
+    {
+      offsetXRatio: -0.04,
+      offsetZRatio: 0.18,
+      heightRatio: 0.29,
+      widthRatio: 0.032,
+      yawDeg: 94,
+      leanDeg: -7,
+      colorIndex: 0
+    },
+    {
+      offsetXRatio: 0.07,
+      offsetZRatio: -0.19,
+      heightRatio: 0.33,
+      widthRatio: 0.033,
+      yawDeg: -104,
+      leanDeg: 8,
+      colorIndex: 2
+    },
+    {
+      offsetXRatio: -0.18,
+      offsetZRatio: 0.2,
+      heightRatio: 0.27,
+      widthRatio: 0.03,
+      yawDeg: 138,
+      leanDeg: -11,
+      colorIndex: 3
+    },
+    {
+      offsetXRatio: 0.18,
+      offsetZRatio: 0.19,
+      heightRatio: 0.3,
+      widthRatio: 0.031,
+      yawDeg: -146,
+      leanDeg: 12,
+      colorIndex: 0
+    }
+  ]
 } as const;
 
 export const INSTRUCTOR_CONFIG = {

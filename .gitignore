@@ -5,3 +5,4 @@ coverage/
 npm-debug.log*
 *.local
 .vite-dev.*.log
+.playwright-mcp/

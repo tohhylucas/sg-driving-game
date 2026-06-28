@@ -5,8 +5,11 @@ import type {
   PxDecal,
   PxEdge,
   PxCurveControl,
+  PxKerbLine,
   PxNode,
   PxPaintedLine,
+  PxScenery,
+  SceneryPlacementPreview,
   Selection,
   SymbolPlacementPreview
 } from './state';
@@ -50,6 +53,19 @@ function clonePaintedLine(line: PxPaintedLine): PxPaintedLine {
   };
 }
 
+function cloneScenery(scenery: PxScenery): PxScenery {
+  return { ...scenery };
+}
+
+function cloneKerbLine(line: PxKerbLine): PxKerbLine {
+  return {
+    id: line.id,
+    widthM: line.widthM,
+    heightM: line.heightM,
+    points: line.points.map((point) => ({ ...point }))
+  };
+}
+
 function cloneCalibrationPreview(
   preview: CalibrationPreview | null
 ): CalibrationPreview | null {
@@ -84,6 +100,22 @@ function cloneSymbolPlacementPreview(
   };
 }
 
+function cloneSceneryPlacementPreview(
+  preview: SceneryPlacementPreview | null
+): SceneryPlacementPreview | null {
+  if (!preview) {
+    return null;
+  }
+
+  return {
+    type: preview.type,
+    center: { ...preview.center },
+    pointer: { ...preview.pointer },
+    rotationDeg: preview.rotationDeg,
+    scaleM: preview.scaleM
+  };
+}
+
 export function createEditorSnapshot(editor: EditorState): EditorSnapshot {
   return {
     name: editor.name,
@@ -96,17 +128,25 @@ export function createEditorSnapshot(editor: EditorState): EditorSnapshot {
     edges: editor.edges.map(cloneEdge),
     decals: editor.decals.map(cloneDecal),
     paintedLines: editor.paintedLines.map(clonePaintedLine),
+    scenery: editor.scenery.map(cloneScenery),
+    kerbLines: editor.kerbLines.map(cloneKerbLine),
     decalType: editor.decalType,
+    sceneryType: editor.sceneryType,
     calibrationDistanceM: editor.calibrationDistanceM,
     edgeDraft: [...editor.edgeDraft],
     edgeDraftCurveControls: editor.edgeDraftCurveControls.map(cloneCurveControl),
+    kerbDraft: editor.kerbDraft.map((point) => ({ ...point })),
     calibrationStart: editor.calibrationStart
       ? { ...editor.calibrationStart }
       : null,
     lastCalibration: cloneCalibrationPreview(editor.lastCalibration),
     currentSymbolScaleM: editor.currentSymbolScaleM,
+    currentSceneryScaleM: editor.currentSceneryScaleM,
     symbolPlacementPreview: cloneSymbolPlacementPreview(
       editor.symbolPlacementPreview
+    ),
+    sceneryPlacementPreview: cloneSceneryPlacementPreview(
+      editor.sceneryPlacementPreview
     ),
     selection: cloneSelection(editor.selection)
   };
@@ -126,18 +166,26 @@ export function restoreEditorSnapshot(
   editor.edges = snapshot.edges.map(cloneEdge);
   editor.decals = snapshot.decals.map(cloneDecal);
   editor.paintedLines = snapshot.paintedLines.map(clonePaintedLine);
+  editor.scenery = snapshot.scenery.map(cloneScenery);
+  editor.kerbLines = snapshot.kerbLines.map(cloneKerbLine);
   editor.decalType = snapshot.decalType;
+  editor.sceneryType = snapshot.sceneryType;
   editor.calibrationDistanceM = snapshot.calibrationDistanceM;
   editor.edgeDraft = [...snapshot.edgeDraft];
   editor.edgeDraftCurveControls =
     snapshot.edgeDraftCurveControls.map(cloneCurveControl);
+  editor.kerbDraft = snapshot.kerbDraft.map((point) => ({ ...point }));
   editor.calibrationStart = snapshot.calibrationStart
     ? { ...snapshot.calibrationStart }
     : null;
   editor.lastCalibration = cloneCalibrationPreview(snapshot.lastCalibration);
   editor.currentSymbolScaleM = snapshot.currentSymbolScaleM;
+  editor.currentSceneryScaleM = snapshot.currentSceneryScaleM;
   editor.symbolPlacementPreview = cloneSymbolPlacementPreview(
     snapshot.symbolPlacementPreview
+  );
+  editor.sceneryPlacementPreview = cloneSceneryPlacementPreview(
+    snapshot.sceneryPlacementPreview
   );
   editor.selection = cloneSelection(snapshot.selection);
 }

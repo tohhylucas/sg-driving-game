@@ -5,7 +5,8 @@ game-previewable `mapData.json`.
 
 The editor is intentionally 2D. It stores editable geometry in image pixels,
 then exports world coordinates in meters using the calibrated scale and origin.
-The game can preview exported road paths and line markings with
+The game can preview exported road paths, line markings, symbols, scenery, and
+raised kerbs with
 `?mapData=/maps/file-name.json`. The default game URL still uses the fixed
 training route.
 
@@ -84,16 +85,35 @@ Current game preview support:
 - Road surfaces render from road paths.
 - Center, left-edge, and right-edge markings render from road path metadata.
 - `paintedLines` render, including editable give-way line markings.
-- Exported decals and symbols are preserved in JSON, but the game preview does
-  not render them yet.
+- Exported decals and symbols render as road markings.
 
-## 5. Fix Mistakes
+## 5. Add Scenery and Kerbs
+
+Trees and grass are visual-only scenery. They add 3D vertical reference points
+to the game preview and do not affect driving, scoring, or rules.
+
+1. Choose `tree` or `grass` from the scenery dropdown.
+2. Click `Place Scenery`.
+3. Click-drag from the scenery center.
+4. Drag direction sets rotation.
+5. Drag distance sets size.
+6. Release to place the scenery item.
+
+Kerbs are traced as polylines, similar to road paths, but they export as raised
+black-and-white kerb bricks in the game preview.
+
+1. Click `Draw Kerb Line`.
+2. Click ordered points along the road edge or kerb edge.
+3. Press `Enter` to finish the kerb line.
+4. Use `Select/Edit`, `Erase`, or `Delete` to remove a kerb line if needed.
+
+## 6. Fix Mistakes
 
 - `Ctrl+Z`: undo the last edit.
 - `Erase`: click an item to remove it.
 - `Delete`: remove the selected item.
 - `Q` / `E`: rotate a selected symbol or give-way line.
-- `Escape`: cancel the current road draft or clear selection.
+- `Escape`: cancel the current road or kerb draft, or clear selection.
 - Hold `Space` and drag: pan.
 - Mouse wheel: zoom.
 - `Rotate -15`, `Map rotation`, `Rotate +15`, `Reset Rotation`: rotate the view
@@ -101,7 +121,7 @@ Current game preview support:
 
 The `Shortcuts` button shows the main controls inside the editor.
 
-## 6. Export the Map
+## 7. Export the Map
 
 1. Click `Export JSON`.
 2. Save the downloaded file as a clear name, for example:
@@ -110,10 +130,10 @@ The `Shortcuts` button shows the main controls inside the editor.
 my-test-map.json
 ```
 
-`Export JSON` automatically finishes the active road draft if it has at least
-two points.
+`Export JSON` automatically finishes the active road or kerb draft if it has at
+least two points.
 
-## 7. Reopen or Continue a Map
+## 8. Reopen or Continue a Map
 
 1. Open the editor.
 2. Optional: upload the same source image first.
@@ -127,7 +147,7 @@ without a background image.
 Older exports with ordered nodes but no edges are recovered as one editable
 road path.
 
-## 8. Preview the Map in the Game
+## 9. Preview the Map in the Game
 
 1. Copy the exported JSON into the root app's public map folder:
 
@@ -166,11 +186,12 @@ rejected.
 4. Confirm the preview:
    - The fixed training route is replaced by your map.
    - The car still starts at the normal Singapore keep-left spawn.
-   - Road surfaces and supported line markings render.
+   - Road surfaces, supported line markings, road symbols, scenery, and raised
+     kerbs render.
    - The default URL without `?mapData=...` still loads the fixed training
      route.
 
-## 9. Browser Diagnostic Check
+## 10. Browser Diagnostic Check
 
 In dev mode, open the browser console on the game preview page and run:
 
@@ -185,7 +206,9 @@ Expected shape:
   name: "My Test Map",
   nodeCount: 33,
   edgeCount: 1,
-  renderedRoadSegmentCount: 32
+  renderedRoadSegmentCount: 32,
+  sceneryCount: 2,
+  kerbLineCount: 1
 }
 ```
 
@@ -193,7 +216,7 @@ Counts depend on your map. `renderedRoadSegmentCount` is usually one less than
 the node count for a simple closed loop with the first point repeated at the
 end.
 
-## 10. Run Verification
+## 11. Run Verification
 
 From `map_editor/`:
 
@@ -218,7 +241,8 @@ Manual browser checks:
 5. `Export JSON` downloads a file.
 6. `Import JSON` restores the same road path, scale, origin, and map name.
 7. Game preview URL loads without runtime errors.
-8. Game diagnostics show the expected `previewMap`.
+8. Game diagnostics show the expected `previewMap`, including scenery and kerb
+   counts when used.
 
 ## Troubleshooting
 
@@ -230,8 +254,9 @@ Manual browser checks:
   `+X right, +Y up, -Z down-screen from origin`.
 - Road appears offset: reopen in the editor and check `Origin`.
 - Road appears too large or too small: recalibrate scale and export again.
-- Missing symbols in game preview: expected for now. Symbols are exported but
-  not yet rendered by the preview path.
+- Missing scenery or kerbs in game preview: check that the JSON contains
+  `scenery` and `kerbLines` arrays and that you opened the game with the
+  `?mapData=/maps/...` URL.
 
 ## Export Contract
 
@@ -254,7 +279,9 @@ Top-level shape:
   "nodes": [],
   "edges": [],
   "decals": [],
-  "paintedLines": []
+  "paintedLines": [],
+  "scenery": [],
+  "kerbLines": []
 }
 ```
 
@@ -311,3 +338,31 @@ Top-level shape:
 ```
 
 Give-way lines use the same export shape with `"style": "give_way_line"`.
+
+`scenery` entries are exported as world-space visual objects:
+
+```json
+{
+  "id": "s6",
+  "type": "tree",
+  "xM": -7.5,
+  "yM": 0,
+  "zM": -12,
+  "rotationDeg": 25,
+  "scaleM": 5
+}
+```
+
+`kerbLines` are exported as raised black-and-white kerb polylines:
+
+```json
+{
+  "id": "k7",
+  "widthM": 0.35,
+  "heightM": 0.18,
+  "points": [
+    { "id": "k7-p1", "xM": -5.25, "yM": 0, "zM": 0 },
+    { "id": "k7-p2", "xM": -5.25, "yM": 0, "zM": -10 }
+  ]
+}
+```

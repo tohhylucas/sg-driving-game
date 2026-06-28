@@ -90,6 +90,27 @@ export interface MapPaintedLine {
   readonly points: readonly MapNode[];
 }
 
+export type SceneryType = 'tree' | 'grass';
+
+export const SCENERY_TYPES: readonly SceneryType[] = ['tree', 'grass'];
+
+export interface MapScenery {
+  readonly id: string;
+  readonly type: SceneryType;
+  readonly xM: number;
+  readonly yM: number;
+  readonly zM: number;
+  readonly rotationDeg: number;
+  readonly scaleM: number;
+}
+
+export interface MapKerbLine {
+  readonly id: string;
+  readonly widthM: number;
+  readonly heightM: number;
+  readonly points: readonly MapNode[];
+}
+
 export interface MapData {
   readonly version: 1;
   readonly meta: {
@@ -105,4 +126,6 @@ export interface MapData {
   readonly edges: readonly MapEdge[];
   readonly decals: readonly MapDecal[];
   readonly paintedLines: readonly MapPaintedLine[];
+  readonly scenery: readonly MapScenery[];
+  readonly kerbLines: readonly MapKerbLine[];
 }

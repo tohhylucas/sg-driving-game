@@ -28,6 +28,7 @@ export interface CanvasClickOptions {
 }
 
 let symbolPlacementUndoSnapshot: EditorSnapshot | null = null;
+let sceneryPlacementUndoSnapshot: EditorSnapshot | null = null;
 
 function nodeForId(nodeId: string) {
   const node = state.nodes.find((candidate) => candidate.id === nodeId);
@@ -200,6 +201,19 @@ export function handleCanvasClick(
     return;
   }
 
+  if (state.tool === 'scenery') {
+    startSceneryPlacement(sx, sy);
+    commitSceneryPlacement();
+    return;
+  }
+
+  if (state.tool === 'kerb') {
+    pushUndoSnapshot(state);
+    state.kerbDraft.push(point);
+    state.selection = null;
+    return;
+  }
+
   if (state.tool === 'origin') {
     pushUndoSnapshot(state);
     state.originPx = point.px;
@@ -246,21 +260,42 @@ export function finishEdge(): void {
   state.edgeDraftCurveControls = [];
 }
 
-export function commitPendingRoadPathForExport(): boolean {
-  if (state.edgeDraft.length < 2) {
-    return false;
+export function finishKerbLine(): void {
+  if (state.kerbDraft.length >= 2) {
+    pushUndoSnapshot(state);
+    const kerbLine = state.createKerbLine([...state.kerbDraft]);
+    state.kerbLines.push(kerbLine);
+    state.selection = { type: 'kerbLine', id: kerbLine.id };
   }
 
-  finishEdge();
-  return true;
+  state.kerbDraft = [];
+}
+
+export function commitPendingRoadPathForExport(): boolean {
+  let committed = false;
+
+  if (state.edgeDraft.length >= 2) {
+    finishEdge();
+    committed = true;
+  }
+
+  if (state.kerbDraft.length >= 2) {
+    finishKerbLine();
+    committed = true;
+  }
+
+  return committed;
 }
 
 export function cancelDraft(): void {
   state.edgeDraft = [];
   state.edgeDraftCurveControls = [];
+  state.kerbDraft = [];
   state.calibrationStart = null;
   state.symbolPlacementPreview = null;
+  state.sceneryPlacementPreview = null;
   symbolPlacementUndoSnapshot = null;
+  sceneryPlacementUndoSnapshot = null;
 }
 
 function selectionMatches(selection: Selection, type: Selection['type']): boolean {
@@ -288,8 +323,16 @@ export function deleteSelection(): void {
     state.paintedLines = state.paintedLines.filter(
       (line) => line.id !== selection.id
     );
-  } else {
+  } else if (selectionMatches(selection, 'decal')) {
     state.decals = state.decals.filter((decal) => decal.id !== selection.id);
+  } else if (selectionMatches(selection, 'scenery')) {
+    state.scenery = state.scenery.filter(
+      (scenery) => scenery.id !== selection.id
+    );
+  } else {
+    state.kerbLines = state.kerbLines.filter(
+      (line) => line.id !== selection.id
+    );
   }
 
   state.selection = null;
@@ -347,6 +390,17 @@ export function rotateSelectedMarking(deltaDeg: number): void {
     if (decal) {
       pushUndoSnapshot(state);
       decal.rotationDeg = (decal.rotationDeg + deltaDeg + 360) % 360;
+    }
+  }
+
+  if (selection.type === 'scenery') {
+    const scenery = state.scenery.find(
+      (candidate) => candidate.id === selection.id
+    );
+
+    if (scenery) {
+      pushUndoSnapshot(state);
+      scenery.rotationDeg = (scenery.rotationDeg + deltaDeg + 360) % 360;
     }
   }
 }
@@ -431,4 +485,73 @@ export function commitSymbolPlacement(): void {
 
   state.currentSymbolScaleM = preview.scaleM;
   state.symbolPlacementPreview = null;
+}
+
+export function startSceneryPlacement(sx: number, sy: number): void {
+  const point = screenToImage(sx, sy);
+
+  sceneryPlacementUndoSnapshot = createEditorSnapshot(state);
+  state.sceneryPlacementPreview = {
+    type: state.sceneryType,
+    center: point,
+    pointer: point,
+    rotationDeg: 0,
+    scaleM: state.currentSceneryScaleM
+  };
+  state.selection = null;
+}
+
+export function updateSceneryPlacement(sx: number, sy: number): void {
+  const preview = state.sceneryPlacementPreview;
+
+  if (!preview) {
+    return;
+  }
+
+  preview.pointer = screenToImage(sx, sy);
+  preview.rotationDeg = getPlacementRotationDeg({
+    center: preview.center,
+    pointer: preview.pointer
+  });
+  preview.scaleM = getPlacementScaleM({
+    center: preview.center,
+    pointer: preview.pointer,
+    metersPerPixel: state.metersPerPixel,
+    fallbackScaleM: state.currentSceneryScaleM
+  });
+  state.currentSceneryScaleM = preview.scaleM;
+}
+
+export function commitSceneryPlacement(): void {
+  const preview = state.sceneryPlacementPreview;
+
+  if (!preview) {
+    sceneryPlacementUndoSnapshot = null;
+    return;
+  }
+
+  const undoSnapshot = sceneryPlacementUndoSnapshot;
+  sceneryPlacementUndoSnapshot = null;
+
+  if (undoSnapshot) {
+    pushUndoSnapshot(state, undoSnapshot);
+  } else {
+    state.sceneryPlacementPreview = null;
+    pushUndoSnapshot(state);
+    state.sceneryPlacementPreview = preview;
+  }
+
+  const scenery = {
+    id: state.createId('s'),
+    type: preview.type,
+    px: preview.center.px,
+    py: preview.center.py,
+    rotationDeg: preview.rotationDeg,
+    scaleM: preview.scaleM
+  };
+
+  state.scenery.push(scenery);
+  state.selection = { type: 'scenery', id: scenery.id };
+  state.currentSceneryScaleM = preview.scaleM;
+  state.sceneryPlacementPreview = null;
 }

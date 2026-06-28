@@ -1,5 +1,7 @@
 import {
   DEFAULT_DECAL_SCALE_M,
+  DEFAULT_KERB_HEIGHT_M,
+  DEFAULT_KERB_WIDTH_M,
   DEFAULT_LANE_WIDTH_M,
   DEFAULT_MAP_NAME,
   DEFAULT_METERS_PER_PIXEL,
@@ -10,10 +12,19 @@ import type {
   DecalType,
   EdgeMarkings,
   MarkingStyle,
-  PaintedLineStyle
+  PaintedLineStyle,
+  SceneryType
 } from './schema';
 
-export type Tool = 'select' | 'edge' | 'decal' | 'calibrate' | 'origin' | 'erase';
+export type Tool =
+  | 'select'
+  | 'edge'
+  | 'decal'
+  | 'scenery'
+  | 'kerb'
+  | 'calibrate'
+  | 'origin'
+  | 'erase';
 
 export interface PxNode {
   readonly id: string;
@@ -53,6 +64,22 @@ export interface PxPaintedLine {
   points: ImagePoint[];
 }
 
+export interface PxScenery {
+  readonly id: string;
+  type: SceneryType;
+  px: number;
+  py: number;
+  rotationDeg: number;
+  scaleM: number;
+}
+
+export interface PxKerbLine {
+  readonly id: string;
+  readonly widthM: number;
+  readonly heightM: number;
+  points: ImagePoint[];
+}
+
 export interface CalibrationPreview {
   readonly start: ImagePoint;
   readonly end: ImagePoint;
@@ -61,6 +88,14 @@ export interface CalibrationPreview {
 
 export interface SymbolPlacementPreview {
   readonly type: DecalType;
+  readonly center: ImagePoint;
+  pointer: ImagePoint;
+  rotationDeg: number;
+  scaleM: number;
+}
+
+export interface SceneryPlacementPreview {
+  readonly type: SceneryType;
   readonly center: ImagePoint;
   pointer: ImagePoint;
   rotationDeg: number;
@@ -78,6 +113,8 @@ export interface EditableMap {
   readonly edges: readonly PxEdge[];
   readonly decals: readonly PxDecal[];
   readonly paintedLines: readonly PxPaintedLine[];
+  readonly scenery: readonly PxScenery[];
+  readonly kerbLines: readonly PxKerbLine[];
 }
 
 export interface EditorSnapshot {
@@ -91,14 +128,20 @@ export interface EditorSnapshot {
   readonly edges: readonly PxEdge[];
   readonly decals: readonly PxDecal[];
   readonly paintedLines: readonly PxPaintedLine[];
+  readonly scenery: readonly PxScenery[];
+  readonly kerbLines: readonly PxKerbLine[];
   readonly decalType: DecalType;
+  readonly sceneryType: SceneryType;
   readonly calibrationDistanceM: number;
   readonly edgeDraft: readonly string[];
   readonly edgeDraftCurveControls: readonly PxCurveControl[];
+  readonly kerbDraft: readonly ImagePoint[];
   readonly calibrationStart: ImagePoint | null;
   readonly lastCalibration: CalibrationPreview | null;
   readonly currentSymbolScaleM: number;
+  readonly currentSceneryScaleM: number;
   readonly symbolPlacementPreview: SymbolPlacementPreview | null;
+  readonly sceneryPlacementPreview: SceneryPlacementPreview | null;
   readonly selection: Selection | null;
 }
 
@@ -106,7 +149,9 @@ export type Selection =
   | { readonly type: 'node'; readonly id: string }
   | { readonly type: 'edge'; readonly id: string }
   | { readonly type: 'decal'; readonly id: string }
-  | { readonly type: 'paintedLine'; readonly id: string };
+  | { readonly type: 'paintedLine'; readonly id: string }
+  | { readonly type: 'scenery'; readonly id: string }
+  | { readonly type: 'kerbLine'; readonly id: string };
 
 export const DEFAULT_EDGE_MARKINGS: EdgeMarkings = {
   center: 'dashed_white',
@@ -126,16 +171,22 @@ export class EditorState {
   edges: PxEdge[] = [];
   decals: PxDecal[] = [];
   paintedLines: PxPaintedLine[] = [];
+  scenery: PxScenery[] = [];
+  kerbLines: PxKerbLine[] = [];
   tool: Tool = 'select';
   decalType: DecalType = 'arrow_straight';
+  sceneryType: SceneryType = 'tree';
   calibrationDistanceM = DEFAULT_LANE_WIDTH_M;
   currentSymbolScaleM = DEFAULT_DECAL_SCALE_M;
+  currentSceneryScaleM = DEFAULT_DECAL_SCALE_M;
   edgeDraft: string[] = [];
   edgeDraftCurveControls: PxCurveControl[] = [];
+  kerbDraft: ImagePoint[] = [];
   calibrationStart: ImagePoint | null = null;
   hoverImagePoint: ImagePoint | null = null;
   lastCalibration: CalibrationPreview | null = null;
   symbolPlacementPreview: SymbolPlacementPreview | null = null;
+  sceneryPlacementPreview: SceneryPlacementPreview | null = null;
   selection: Selection | null = null;
   undoStack: EditorSnapshot[] = [];
   view: ViewTransform = {
@@ -179,12 +230,16 @@ export class EditorState {
     this.edges = [];
     this.decals = [];
     this.paintedLines = [];
+    this.scenery = [];
+    this.kerbLines = [];
     this.edgeDraft = [];
     this.edgeDraftCurveControls = [];
+    this.kerbDraft = [];
     this.calibrationStart = null;
     this.hoverImagePoint = null;
     this.lastCalibration = null;
     this.symbolPlacementPreview = null;
+    this.sceneryPlacementPreview = null;
     this.selection = null;
     this.undoStack = [];
   }
@@ -216,6 +271,15 @@ export class EditorState {
       py: point.py,
       rotationDeg: 0,
       scaleM: DEFAULT_DECAL_SCALE_M
+    };
+  }
+
+  createKerbLine(points: ImagePoint[]): PxKerbLine {
+    return {
+      id: this.createId('k'),
+      widthM: DEFAULT_KERB_WIDTH_M,
+      heightM: DEFAULT_KERB_HEIGHT_M,
+      points: points.map((point) => ({ ...point }))
     };
   }
 

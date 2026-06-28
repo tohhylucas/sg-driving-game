@@ -29,10 +29,13 @@ point is the center, drag direction sets rotation, drag distance from center
 sets size, and mouse-up commits the final symbol. Symbol sizes are stored in
 meters and rendered through the calibrated `metersPerPixel` scale, with
 placement-drag sizing and numeric controls for precise adjustment.
-Road center paths and placed symbols remain separate map objects. Editor
-mutations push local undo snapshots so `Ctrl+Z` can restore accidental road,
-symbol, painted-line, origin, scale, and inspector edits. Its `src/schema.ts`
-file is the current export contract for game-side map previews.
+Scenery placement uses the same click-drag shape for tree and grass aesthetics.
+Kerbs are separate line traces that export as raised black-and-white kerb
+geometry in the game preview. Road center paths, placed symbols, scenery, kerbs,
+and painted lines remain separate map objects. Editor mutations push local undo
+snapshots so `Ctrl+Z` can restore accidental road, symbol, scenery, kerb,
+painted-line, origin, scale, and inspector edits. Its `src/schema.ts` file is
+the current export contract for game-side map previews.
 The map status and selection inspector is a toggleable right-side drawer so
 setup metadata remains available without permanently reducing the canvas at
 normal browser zoom levels. Road paths display lane-count badges on the canvas,
@@ -47,10 +50,12 @@ Generated maps can be previewed visually in the game runtime by placing a
 `mapData.json` file under `public/maps/` and opening the game with
 `?mapData=/maps/file-name.json`. This preview replaces the rendered fixed test
 track with `MapDataTrack`, built from the editor export's road paths, lane
-metadata, markings, curve controls, and painted lines. It does not import rule
-zones, instructor features, scoring behavior, moving elements, or procedural
-world generation; the default game URL still uses the hand-built fixed training
-route.
+metadata, markings, curve controls, painted lines, and road-symbol decals such
+as arrows, stop lines, give-way lines, zebra crossings, and keep-left chevrons.
+It also renders visual-only scenery objects and raised black-and-white kerb
+lines from `scenery` and `kerbLines`. It does not import rule zones, instructor
+features, scoring behavior, moving elements, or procedural world generation; the
+default game URL still uses the hand-built fixed training route.
 
 ## Setup Guidance
 
@@ -282,8 +287,9 @@ driving-game/
   parsing for preview-loaded `mapData.json` files.
 - `MapDataTrack.ts`: visual-only renderer for editor-exported maps. It turns
   road path edges into oriented Three.js road surface segments, samples
-  quadratic curve controls into renderable segments, and draws supported edge,
-  center, and painted-line markings.
+  quadratic curve controls into renderable segments, draws supported edge,
+  center, painted-line, and road-symbol decal markings, and renders scenery plus
+  raised black-and-white kerb line geometry.
 - `Road.ts`: renders the earlier straight-road surface and markings. It remains
   available for milestone history but is not the active M5 world road.
 - `TestTrack.ts`: renders the M5 fixed test track from pure layout data:

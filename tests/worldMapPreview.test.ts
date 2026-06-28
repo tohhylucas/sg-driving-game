@@ -32,7 +32,9 @@ const previewMapData: MapData = {
     }
   ],
   decals: [],
-  paintedLines: []
+  paintedLines: [],
+  scenery: [],
+  kerbLines: []
 };
 
 describe('world map preview', () => {

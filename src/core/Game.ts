@@ -58,9 +58,11 @@ export interface GameDiagnostics {
   readonly previewMap:
     | {
         readonly edgeCount: number;
+        readonly kerbLineCount: number;
         readonly name: string;
         readonly nodeCount: number;
         readonly renderedRoadSegmentCount: number;
+        readonly sceneryCount: number;
       }
     | undefined;
   readonly session: {
@@ -217,10 +219,12 @@ export class Game {
       previewMap: this.previewMapData
         ? {
             edgeCount: this.previewMapData.edges.length,
+            kerbLineCount: this.previewMapData.kerbLines.length,
             name: this.previewMapData.meta.name,
             nodeCount: this.previewMapData.nodes.length,
             renderedRoadSegmentCount:
-              this.world.previewMapTrack?.roadSegmentCount ?? 0
+              this.world.previewMapTrack?.roadSegmentCount ?? 0,
+            sceneryCount: this.previewMapData.scenery.length
           }
         : undefined,
       session: {

@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "meta": {
+    "name": "Editor Symbol Origin Smoke Map",
+    "imageWidthPx": 800,
+    "imageHeightPx": 600,
+    "metersPerPixel": 0.25,
+    "originPx": 120,
+    "originPy": 420,
+    "coordinateSystem": "+X right, +Y up, -Z down-screen from origin"
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": 12
+    },
+    {
+      "id": "n2",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -56
+    },
+    {
+      "id": "n3",
+      "xM": 18,
+      "yM": 0,
+      "zM": -64
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "nodeIds": ["n1", "n2", "n3"],
+      "lanes": 2,
+      "laneWidthM": 3.5,
+      "oneway": false,
+      "markings": {
+        "center": "dashed_white",
+        "leftEdge": "solid_white",
+        "rightEdge": "solid_white"
+      },
+      "curveControls": [
+        {
+          "fromNodeId": "n2",
+          "toNodeId": "n3",
+          "control": {
+            "id": "c1",
+            "xM": 5,
+            "yM": 0,
+            "zM": -70
+          }
+        }
+      ]
+    }
+  ],
+  "decals": [
+    {
+      "id": "d1",
+      "type": "arrow_straight",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -6,
+      "rotationDeg": 180,
+      "scaleM": 4
+    },
+    {
+      "id": "d2",
+      "type": "arrow_left",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -12,
+      "rotationDeg": 180,
+      "scaleM": 4
+    },
+    {
+      "id": "d3",
+      "type": "arrow_right",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -18,
+      "rotationDeg": 180,
+      "scaleM": 4
+    },
+    {
+      "id": "d4",
+      "type": "arrow_straight_left",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -24,
+      "rotationDeg": 180,
+      "scaleM": 4
+    },
+    {
+      "id": "d5",
+      "type": "arrow_straight_right",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -30,
+      "rotationDeg": 180,
+      "scaleM": 4
+    },
+    {
+      "id": "d6",
+      "type": "arrow_uturn",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -36,
+      "rotationDeg": 180,
+      "scaleM": 4
+    },
+    {
+      "id": "d7",
+      "type": "stop_line",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -42,
+      "rotationDeg": 0,
+      "scaleM": 7
+    },
+    {
+      "id": "d8",
+      "type": "give_way_line",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -46,
+      "rotationDeg": 0,
+      "scaleM": 7
+    },
+    {
+      "id": "d9",
+      "type": "zebra_crossing",
+      "xM": -1.75,
+      "yM": 0,
+      "zM": -50,
+      "rotationDeg": 0,
+      "scaleM": 7
+    },
+    {
+      "id": "d10",
+      "type": "keep_left_chevron",
+      "xM": -4.2,
+      "yM": 0,
+      "zM": -54,
+      "rotationDeg": 180,
+      "scaleM": 4
+    }
+  ],
+  "paintedLines": [
+    {
+      "id": "l1",
+      "style": "solid_yellow",
+      "widthM": 0.15,
+      "points": [
+        {
+          "id": "l1-p1",
+          "xM": 1.75,
+          "yM": 0,
+          "zM": 8
+        },
+        {
+          "id": "l1-p2",
+          "xM": 1.75,
+          "yM": 0,
+          "zM": -54
+        }
+      ]
+    },
+    {
+      "id": "l2",
+      "style": "give_way_line",
+      "widthM": 0.15,
+      "points": [
+        {
+          "id": "l2-p1",
+          "xM": -5.2,
+          "yM": 0,
+          "zM": -58
+        },
+        {
+          "id": "l2-p2",
+          "xM": 1.7,
+          "yM": 0,
+          "zM": -58
+        }
+      ]
+    },
+    {
+      "id": "l3",
+      "style": "solid_white",
+      "widthM": 0.12,
+      "points": [
+        {
+          "id": "l3-p1",
+          "xM": -5.25,
+          "yM": 0,
+          "zM": 8
+        },
+        {
+          "id": "l3-p2",
+          "xM": -5.25,
+          "yM": 0,
+          "zM": -54
+        }
+      ]
+    }
+  ]
+}

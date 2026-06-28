@@ -27,6 +27,27 @@ describe('map editor undo history', () => {
         ]
       }
     ];
+    editor.scenery = [
+      {
+        id: 's1',
+        type: 'tree',
+        px: 12,
+        py: 14,
+        rotationDeg: 90,
+        scaleM: 4
+      }
+    ];
+    editor.kerbLines = [
+      {
+        id: 'k1',
+        widthM: 0.35,
+        heightM: 0.18,
+        points: [
+          { px: 0, py: 5 },
+          { px: 10, py: 5 }
+        ]
+      }
+    ];
     editor.selection = { type: 'decal', id: 'd1' };
 
     pushUndoSnapshot(editor);
@@ -34,12 +55,16 @@ describe('map editor undo history', () => {
     editor.nodes.push({ id: 'n2', px: 50, py: 60 });
     editor.decals = [];
     editor.paintedLines = [];
+    editor.scenery = [];
+    editor.kerbLines = [];
     editor.selection = null;
 
     expect(undoLastChange(editor)).toBe(true);
     expect(editor.nodes).toEqual([{ id: 'n1', px: 10, py: 20 }]);
     expect(editor.decals).toHaveLength(1);
     expect(editor.paintedLines).toHaveLength(1);
+    expect(editor.scenery).toHaveLength(1);
+    expect(editor.kerbLines).toHaveLength(1);
     expect(editor.selection).toEqual({ type: 'decal', id: 'd1' });
   });
 
@@ -52,8 +77,8 @@ describe('map editor undo history', () => {
   it('continues generated ids after imported ids', () => {
     const editor = new EditorState();
 
-    editor.resetIdCounterFromIds(['n1', 'e3', 'd4', 'l5']);
+    editor.resetIdCounterFromIds(['n1', 'e3', 'd4', 'l5', 's6', 'k7']);
 
-    expect(editor.createId('n')).toBe('n6');
+    expect(editor.createId('n')).toBe('n8');
   });
 });

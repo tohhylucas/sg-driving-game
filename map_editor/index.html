@@ -36,6 +36,16 @@
           </label>
         </div>
 
+        <div class="toolbar-group" aria-label="Scenery and kerbs">
+          <button type="button" data-tool="scenery" title="Place trees or grass that render as 3D scenery in the game preview">Place Scenery</button>
+          <select id="scenery-type" aria-label="Scenery type"></select>
+          <label class="toolbar-field">
+            Scenery size (m)
+            <input id="scenery-scale" type="number" min="0.5" max="20" step="0.25" value="5" />
+          </label>
+          <button type="button" data-tool="kerb" title="Trace raised black-and-white kerbs along road edges">Draw Kerb Line</button>
+        </div>
+
         <div class="toolbar-group" aria-label="View and calibration">
           <button id="rotate-map-left" type="button" title="Rotate map view left">Rotate -15</button>
           <label class="toolbar-field">
@@ -89,7 +99,7 @@
             </div>
             <div>
               <dt>Enter</dt>
-              <dd>Finish road path</dd>
+              <dd>Finish road or kerb path</dd>
             </div>
             <div>
               <dt>Ctrl-click</dt>
@@ -109,7 +119,7 @@
             </div>
             <div>
               <dt>Q / E</dt>
-              <dd>Rotate selected marking</dd>
+              <dd>Rotate selected marking or scenery</dd>
             </div>
             <div>
               <dt>Esc</dt>

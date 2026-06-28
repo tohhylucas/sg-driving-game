@@ -5,6 +5,8 @@ export const DEFAULT_ROAD_LANES = 2;
 export const DEFAULT_DECAL_SCALE_M = 5;
 export const DEFAULT_GIVE_WAY_LINE_LENGTH_M = 6;
 export const DEFAULT_ROAD_MARKING_WIDTH_M = 0.15;
+export const DEFAULT_KERB_WIDTH_M = 0.35;
+export const DEFAULT_KERB_HEIGHT_M = 0.18;
 export const SYMBOL_MIN_SCALE_M = 0.5;
 export const SYMBOL_MAX_SCALE_M = 20;
 

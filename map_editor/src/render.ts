@@ -1,5 +1,9 @@
-import { VIEW_CONFIG } from './constants';
-import { DEFAULT_ROAD_MARKING_WIDTH_M } from './constants';
+import {
+  DEFAULT_KERB_HEIGHT_M,
+  DEFAULT_KERB_WIDTH_M,
+  DEFAULT_ROAD_MARKING_WIDTH_M,
+  VIEW_CONFIG
+} from './constants';
 import {
   distanceToQuadraticBezier,
   distanceToSegment,
@@ -12,8 +16,10 @@ import {
   type PxCurveControl,
   type PxDecal,
   type PxEdge,
+  type PxKerbLine,
   type PxNode,
   type PxPaintedLine,
+  type PxScenery,
   type Selection
 } from './state';
 
@@ -298,6 +304,111 @@ function drawPaintedLine(
   }
 }
 
+function drawKerbLine(
+  context: CanvasRenderingContext2D,
+  line: PxKerbLine,
+  selected: boolean
+): void {
+  if (line.points.length < 2) {
+    return;
+  }
+
+  const widthPx = Math.max(
+    line.widthM / state.metersPerPixel,
+    3 / state.view.scale
+  );
+
+  context.save();
+  context.lineCap = 'butt';
+  context.lineJoin = 'round';
+  context.strokeStyle = selected ? '#64d2ff' : '#111827';
+  context.lineWidth = widthPx + (selected ? 4 / state.view.scale : 0);
+  context.beginPath();
+  line.points.forEach((point, index) => {
+    if (index === 0) {
+      context.moveTo(point.px, point.py);
+    } else {
+      context.lineTo(point.px, point.py);
+    }
+  });
+  context.stroke();
+
+  context.strokeStyle = '#ffffff';
+  context.lineWidth = widthPx * 0.7;
+
+  for (let index = 0; index < line.points.length - 1; index += 1) {
+    drawKerbStripeSegment(context, line.points[index], line.points[index + 1]);
+  }
+
+  if (selected) {
+    for (const point of line.points) {
+      drawSelectionRing(context, point.px, point.py);
+    }
+  }
+
+  context.restore();
+}
+
+function drawKerbStripeSegment(
+  context: CanvasRenderingContext2D,
+  start: { readonly px: number; readonly py: number },
+  end: { readonly px: number; readonly py: number }
+): void {
+  const lengthPx = Math.hypot(end.px - start.px, end.py - start.py);
+  const stripeLengthPx = Math.max(12 / state.view.scale, 0.8 / state.metersPerPixel);
+
+  if (lengthPx <= 0) {
+    return;
+  }
+
+  let offsetPx = 0;
+  let stripeIndex = 0;
+
+  while (offsetPx < lengthPx) {
+    const nextOffsetPx = Math.min(offsetPx + stripeLengthPx, lengthPx);
+
+    if (stripeIndex % 2 === 0) {
+      const fromT = offsetPx / lengthPx;
+      const toT = nextOffsetPx / lengthPx;
+
+      context.beginPath();
+      context.moveTo(
+        start.px + (end.px - start.px) * fromT,
+        start.py + (end.py - start.py) * fromT
+      );
+      context.lineTo(
+        start.px + (end.px - start.px) * toT,
+        start.py + (end.py - start.py) * toT
+      );
+      context.stroke();
+    }
+
+    offsetPx = nextOffsetPx;
+    stripeIndex += 1;
+  }
+}
+
+function drawKerbDraft(context: CanvasRenderingContext2D): void {
+  if (state.kerbDraft.length === 0) {
+    return;
+  }
+
+  const points = state.hoverImagePoint
+    ? [...state.kerbDraft, state.hoverImagePoint]
+    : state.kerbDraft;
+
+  drawKerbLine(
+    context,
+    {
+      id: 'kerb-draft',
+      widthM: DEFAULT_KERB_WIDTH_M,
+      heightM: DEFAULT_KERB_HEIGHT_M,
+      points
+    },
+    true
+  );
+}
+
 function drawArrowHead(
   context: CanvasRenderingContext2D,
   x: number,
@@ -393,6 +504,56 @@ function drawKeepLeftChevron(context: CanvasRenderingContext2D, size: number): v
   context.stroke();
 }
 
+function drawScenery(
+  context: CanvasRenderingContext2D,
+  scenery: PxScenery,
+  forceSelected = false
+): void {
+  const selected = forceSelected || isSelected('scenery', scenery.id);
+  const size = Math.max(
+    scenery.scaleM / state.metersPerPixel,
+    18 / state.view.scale
+  );
+
+  context.save();
+  context.translate(scenery.px, scenery.py);
+  context.rotate((scenery.rotationDeg * Math.PI) / 180);
+
+  if (scenery.type === 'tree') {
+    context.fillStyle = selected ? '#ffffff' : '#7c4a25';
+    context.fillRect(-size * 0.08, -size * 0.08, size * 0.16, size * 0.24);
+    context.fillStyle = selected ? '#d9f99d' : '#15803d';
+    context.beginPath();
+    context.arc(0, -size * 0.12, size * 0.32, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = selected ? '#bbf7d0' : '#22c55e';
+    context.beginPath();
+    context.arc(-size * 0.15, -size * 0.04, size * 0.22, 0, Math.PI * 2);
+    context.arc(size * 0.16, -size * 0.02, size * 0.24, 0, Math.PI * 2);
+    context.fill();
+  } else {
+    context.fillStyle = selected ? '#d9f99d' : 'rgba(34, 197, 94, 0.78)';
+    context.beginPath();
+    context.ellipse(0, 0, size * 0.42, size * 0.28, 0, 0, Math.PI * 2);
+    context.fill();
+    context.strokeStyle = selected ? '#ffffff' : '#166534';
+    context.lineWidth = Math.max(size * 0.04, 1.5 / state.view.scale);
+
+    for (const offset of [-0.24, -0.08, 0.08, 0.24]) {
+      context.beginPath();
+      context.moveTo(size * offset, size * 0.22);
+      context.lineTo(size * offset * 0.3, -size * 0.24);
+      context.stroke();
+    }
+  }
+
+  context.restore();
+
+  if (selected) {
+    drawSelectionRing(context, scenery.px, scenery.py);
+  }
+}
+
 function drawDecal(
   context: CanvasRenderingContext2D,
   decal: PxDecal,
@@ -442,6 +603,27 @@ function drawDecal(
   if (selected) {
     drawSelectionRing(context, decal.px, decal.py);
   }
+}
+
+function drawSceneryPlacementPreview(context: CanvasRenderingContext2D): void {
+  const preview = state.sceneryPlacementPreview;
+
+  if (!preview) {
+    return;
+  }
+
+  drawScenery(
+    context,
+    {
+      id: 'scenery-preview',
+      type: preview.type,
+      px: preview.center.px,
+      py: preview.center.py,
+      rotationDeg: preview.rotationDeg,
+      scaleM: preview.scaleM
+    },
+    true
+  );
 }
 
 function drawCalibration(
@@ -549,6 +731,14 @@ export function render(context: CanvasRenderingContext2D): void {
     );
   }
 
+  for (const kerbLine of state.kerbLines) {
+    drawKerbLine(
+      context,
+      kerbLine,
+      isSelected('kerbLine', kerbLine.id)
+    );
+  }
+
   for (const edge of state.edges) {
     drawEdge(
       context,
@@ -602,6 +792,8 @@ export function render(context: CanvasRenderingContext2D): void {
     });
   }
 
+  drawKerbDraft(context);
+
   for (const node of state.nodes) {
     context.fillStyle = isSelected('node', node.id) ? '#ffffff' : '#64d2ff';
     context.beginPath();
@@ -614,6 +806,12 @@ export function render(context: CanvasRenderingContext2D): void {
   }
 
   drawSymbolPlacementPreview(context);
+
+  for (const scenery of state.scenery) {
+    drawScenery(context, scenery);
+  }
+
+  drawSceneryPlacementPreview(context);
 
   context.strokeStyle = '#ffcc00';
   context.lineWidth = 2 / state.view.scale;
@@ -641,6 +839,15 @@ export function findNearestSelection(px: number, py: number): Selection | null {
     }
   }
 
+  for (const scenery of state.scenery) {
+    const distance = Math.hypot(px - scenery.px, py - scenery.py);
+
+    if (distance < bestDistance) {
+      best = { type: 'scenery', id: scenery.id };
+      bestDistance = distance;
+    }
+  }
+
   for (const node of state.nodes) {
     const distance = Math.hypot(px - node.px, py - node.py);
 
@@ -660,6 +867,21 @@ export function findNearestSelection(px: number, py: number): Selection | null {
 
       if (distance < bestDistance) {
         best = { type: 'paintedLine', id: line.id };
+        bestDistance = distance;
+      }
+    }
+  }
+
+  for (const line of state.kerbLines) {
+    for (let index = 0; index < line.points.length - 1; index += 1) {
+      const distance = distanceToSegment(
+        { px, py },
+        line.points[index],
+        line.points[index + 1]
+      );
+
+      if (distance < bestDistance) {
+        best = { type: 'kerbLine', id: line.id };
         bestDistance = distance;
       }
     }

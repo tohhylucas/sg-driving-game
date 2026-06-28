@@ -9,18 +9,28 @@ import type {
   MapData,
   MapDecal,
   MapEdge,
+  MapKerbLine,
   MapNode,
   MapPaintedLine,
+  MapScenery,
   MarkingStyle,
   PaintedLineStyle
 } from './schema';
-import { DECAL_TYPES, MARKING_STYLES, type DecalType } from './schema';
+import {
+  DECAL_TYPES,
+  MARKING_STYLES,
+  SCENERY_TYPES,
+  type DecalType,
+  type SceneryType
+} from './schema';
 import type {
   EditableMap,
+  PxKerbLine,
   PxDecal,
   PxEdge,
   PxNode,
-  PxPaintedLine
+  PxPaintedLine,
+  PxScenery
 } from './state';
 
 const COORDINATE_SYSTEM =
@@ -36,6 +46,8 @@ export interface ImportedEditableMap extends EditableMap {
   readonly edges: readonly PxEdge[];
   readonly decals: readonly PxDecal[];
   readonly paintedLines: readonly PxPaintedLine[];
+  readonly scenery: readonly PxScenery[];
+  readonly kerbLines: readonly PxKerbLine[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -139,6 +151,22 @@ function readDecalType(record: Record<string, unknown>, key: string): DecalType 
   return value as DecalType;
 }
 
+function readSceneryType(
+  record: Record<string, unknown>,
+  key: string
+): SceneryType {
+  const value = record[key];
+
+  if (
+    typeof value !== 'string' ||
+    !SCENERY_TYPES.includes(value as SceneryType)
+  ) {
+    throw new Error(`${key} must be a supported scenery type.`);
+  }
+
+  return value as SceneryType;
+}
+
 function readMarkings(value: unknown): EdgeMarkings {
   if (value === undefined) {
     return { ...DEFAULT_EDGE_MARKINGS };
@@ -215,6 +243,20 @@ function readMapDecal(value: unknown): MapDecal {
   };
 }
 
+function readMapScenery(value: unknown): MapScenery {
+  const record = readRecord(value, 'map scenery');
+
+  return {
+    id: readString(record, 'id'),
+    type: readSceneryType(record, 'type'),
+    xM: readNumber(record, 'xM'),
+    yM: readNumber(record, 'yM'),
+    zM: readNumber(record, 'zM'),
+    rotationDeg: readNumber(record, 'rotationDeg'),
+    scaleM: readNumber(record, 'scaleM')
+  };
+}
+
 function readPaintedLine(value: unknown): MapPaintedLine {
   const record = readRecord(value, 'line marking');
 
@@ -222,6 +264,17 @@ function readPaintedLine(value: unknown): MapPaintedLine {
     id: readString(record, 'id'),
     style: readPaintedLineStyle(record, 'style'),
     widthM: readNumber(record, 'widthM'),
+    points: readArray(record, 'points').map(readMapNode)
+  };
+}
+
+function readKerbLine(value: unknown): MapKerbLine {
+  const record = readRecord(value, 'kerb line');
+
+  return {
+    id: readString(record, 'id'),
+    widthM: readNumber(record, 'widthM'),
+    heightM: readNumber(record, 'heightM'),
     points: readArray(record, 'points').map(readMapNode)
   };
 }
@@ -260,7 +313,9 @@ function readMapData(value: unknown): MapData {
     nodes: readArray(record, 'nodes').map(readMapNode),
     edges: readArray(record, 'edges').map(readMapEdge),
     decals: readArray(record, 'decals').map(readMapDecal),
-    paintedLines: readOptionalArray(record, 'paintedLines').map(readPaintedLine)
+    paintedLines: readOptionalArray(record, 'paintedLines').map(readPaintedLine),
+    scenery: readOptionalArray(record, 'scenery').map(readMapScenery),
+    kerbLines: readOptionalArray(record, 'kerbLines').map(readKerbLine)
   };
 }
 
@@ -336,6 +391,19 @@ export function importMapData(mapData: MapData): ImportedEditableMap {
       id: line.id,
       style: line.style,
       widthM: line.widthM,
+      points: line.points.map((point) => worldToImage(point, mapData.meta))
+    })),
+    scenery: mapData.scenery.map((scenery) => ({
+      id: scenery.id,
+      type: scenery.type,
+      ...worldToImage(scenery, mapData.meta),
+      rotationDeg: scenery.rotationDeg,
+      scaleM: scenery.scaleM
+    })),
+    kerbLines: mapData.kerbLines.map((line) => ({
+      id: line.id,
+      widthM: line.widthM,
+      heightM: line.heightM,
       points: line.points.map((point) => worldToImage(point, mapData.meta))
     }))
   };

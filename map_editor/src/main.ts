@@ -9,18 +9,33 @@ import {
   parseMapDataJson,
   type ImportedEditableMap
 } from './importMap';
-import { DECAL_TYPES, MARKING_STYLES, type MarkingStyle } from './schema';
-import { state, type PxDecal, type PxEdge, type Tool } from './state';
+import {
+  DECAL_TYPES,
+  MARKING_STYLES,
+  SCENERY_TYPES,
+  type MarkingStyle
+} from './schema';
+import {
+  state,
+  type PxDecal,
+  type PxEdge,
+  type PxScenery,
+  type Tool
+} from './state';
 import { render, screenToImage } from './render';
 import {
   cancelDraft,
   commitPendingRoadPathForExport,
+  commitSceneryPlacement,
   commitSymbolPlacement,
   deleteSelection,
   finishEdge,
+  finishKerbLine,
   handleCanvasClick,
   rotateSelectedMarking,
+  startSceneryPlacement,
   startSymbolPlacement,
+  updateSceneryPlacement,
   updateSymbolPlacement
 } from './tools';
 import { loadImageFromFile } from './upload';
@@ -51,6 +66,8 @@ const calibrationDistanceInput = getElement<HTMLInputElement>('calibration-dista
 const mapRotationInput = getElement<HTMLInputElement>('map-rotation');
 const decalTypeSelect = getElement<HTMLSelectElement>('decal-type');
 const symbolScaleInput = getElement<HTMLInputElement>('symbol-scale');
+const sceneryTypeSelect = getElement<HTMLSelectElement>('scenery-type');
+const sceneryScaleInput = getElement<HTMLInputElement>('scenery-scale');
 const inspectorToggleButton = getElement<HTMLButtonElement>('inspector-toggle');
 const shortcutsToggleButton = getElement<HTMLButtonElement>('shortcuts-toggle');
 const shortcutsPopover = getElement<HTMLDivElement>('shortcuts-popover');
@@ -86,6 +103,7 @@ function fillSelect(
 }
 
 fillSelect(decalTypeSelect, DECAL_TYPES);
+fillSelect(sceneryTypeSelect, SCENERY_TYPES);
 fillSelect(edgeCenterMarkingSelect, MARKING_STYLES);
 fillSelect(edgeLeftMarkingSelect, MARKING_STYLES);
 fillSelect(edgeRightMarkingSelect, MARKING_STYLES);
@@ -148,18 +166,27 @@ function applyImportedMap(imported: ImportedEditableMap): void {
     ...line,
     points: line.points.map((point) => ({ ...point }))
   }));
+  state.scenery = imported.scenery.map((scenery) => ({ ...scenery }));
+  state.kerbLines = imported.kerbLines.map((line) => ({
+    ...line,
+    points: line.points.map((point) => ({ ...point }))
+  }));
   state.edgeDraft = [];
   state.edgeDraftCurveControls = [];
+  state.kerbDraft = [];
   state.calibrationStart = null;
   state.hoverImagePoint = null;
   state.lastCalibration = null;
   state.symbolPlacementPreview = null;
+  state.sceneryPlacementPreview = null;
   state.selection = null;
   state.resetIdCounterFromIds([
     ...state.nodes.map((node) => node.id),
     ...state.edges.map((edge) => edge.id),
     ...state.decals.map((decal) => decal.id),
-    ...state.paintedLines.map((line) => line.id)
+    ...state.paintedLines.map((line) => line.id),
+    ...state.scenery.map((scenery) => scenery.id),
+    ...state.kerbLines.map((line) => line.id)
   ]);
 }
 
@@ -185,6 +212,16 @@ function selectedDecal(): PxDecal | null {
   return state.decals.find((decal) => decal.id === state.selection?.id) ?? null;
 }
 
+function selectedScenery(): PxScenery | null {
+  if (state.selection?.type !== 'scenery') {
+    return null;
+  }
+
+  return (
+    state.scenery.find((scenery) => scenery.id === state.selection?.id) ?? null
+  );
+}
+
 function selectedPaintedLine(): string | null {
   return state.selection?.type === 'paintedLine' ? state.selection.id : null;
 }
@@ -206,6 +243,18 @@ function getToolHint(): string {
       : 'Place Symbol: click-drag from the center; direction rotates and distance sets size.';
   }
 
+  if (state.tool === 'scenery') {
+    return state.sceneryPlacementPreview
+      ? 'Place Scenery: drag direction rotates and distance sets size; release to place.'
+      : 'Place Scenery: click-drag from the center; direction rotates and distance sets size.';
+  }
+
+  if (state.tool === 'kerb') {
+    return state.kerbDraft.length >= 2
+      ? 'Draw Kerb Line: click the next kerb point, then press Enter.'
+      : 'Draw Kerb Line: click points along the kerb edge, then press Enter.';
+  }
+
   if (state.tool === 'calibrate') {
     return state.calibrationStart
       ? 'Calibrate Scale: click the second point to apply the known distance.'
@@ -213,7 +262,7 @@ function getToolHint(): string {
   }
 
   if (state.tool === 'erase') {
-    return 'Erase: click a road, line marking, node, or symbol to remove it.';
+    return 'Erase: click a road, kerb, line marking, node, symbol, or scenery to remove it.';
   }
 
   return 'Set Origin: click the image point that should become world 0,0.';
@@ -222,16 +271,17 @@ function getToolHint(): string {
 function updateInspector(): void {
   scaleReadout.textContent = `${state.metersPerPixel.toFixed(4)} m/px`;
   originReadout.textContent = `${state.originPx.toFixed(1)}, ${state.originPy.toFixed(1)} px`;
-  countsReadout.textContent = `${state.nodes.length} road points, ${state.edges.length} roads, ${state.paintedLines.length} line markings, ${state.decals.length} symbols`;
   symbolSizeReadout.textContent = `${state.currentSymbolScaleM.toFixed(2)} m`;
   symbolScaleInput.value = String(state.currentSymbolScaleM);
+  sceneryScaleInput.value = String(state.currentSceneryScaleM);
 
   const edge = selectedEdge();
   const decal = selectedDecal();
+  const scenery = selectedScenery();
   const paintedLineId = selectedPaintedLine();
 
   edgeControls.hidden = !edge;
-  decalControls.hidden = !decal;
+  decalControls.hidden = !decal && !scenery;
 
   if (edge) {
     const curveCount = edge.curveControls.length;
@@ -248,9 +298,17 @@ function updateInspector(): void {
     selectionSummary.textContent = `Symbol ${decal.id}: ${decal.type}.`;
     decalRotationInput.value = String(decal.rotationDeg);
     decalScaleInput.value = String(decal.scaleM);
+  } else if (scenery) {
+    selectionHeading.textContent = 'Selected Scenery';
+    selectionSummary.textContent = `Scenery ${scenery.id}: ${scenery.type}.`;
+    decalRotationInput.value = String(scenery.rotationDeg);
+    decalScaleInput.value = String(scenery.scaleM);
   } else if (paintedLineId) {
     selectionHeading.textContent = 'Selected Line Marking';
     selectionSummary.textContent = `Line marking ${paintedLineId}. Press Delete to remove it.`;
+  } else if (state.selection?.type === 'kerbLine') {
+    selectionHeading.textContent = 'Selected Kerb Line';
+    selectionSummary.textContent = `Kerb line ${state.selection.id}. Press Delete to remove it.`;
   } else if (state.selection?.type === 'node') {
     selectionHeading.textContent = 'Selected Road Point';
     selectionSummary.textContent = `Road point ${state.selection.id}.`;
@@ -262,13 +320,16 @@ function updateInspector(): void {
   const imageState = state.image
     ? `${state.imageWidthPx}x${state.imageHeightPx}px image`
     : 'No image loaded';
-  statusLine.textContent = `${imageState} | ${getToolHint()} | undo steps: ${state.undoStack.length} | line markings: ${state.paintedLines.length}`;
+  countsReadout.textContent = `${state.nodes.length} road points, ${state.edges.length} roads, ${state.paintedLines.length} line markings, ${state.decals.length} symbols, ${state.scenery.length} scenery, ${state.kerbLines.length} kerbs`;
+  statusLine.textContent = `${imageState} | ${getToolHint()} | undo steps: ${state.undoStack.length} | line markings: ${state.paintedLines.length} | scenery: ${state.scenery.length} | kerbs: ${state.kerbLines.length}`;
 }
 
 function syncToolbarInputs(): void {
   mapNameInput.value = state.name;
   calibrationDistanceInput.value = String(state.calibrationDistanceM);
   symbolScaleInput.value = String(state.currentSymbolScaleM);
+  sceneryTypeSelect.value = state.sceneryType;
+  sceneryScaleInput.value = String(state.currentSceneryScaleM);
 }
 
 function setInspectorOpen(open: boolean): void {
@@ -347,6 +408,10 @@ decalTypeSelect.addEventListener('change', () => {
   state.decalType = decalTypeSelect.value as typeof state.decalType;
 });
 
+sceneryTypeSelect.addEventListener('change', () => {
+  state.sceneryType = sceneryTypeSelect.value as typeof state.sceneryType;
+});
+
 symbolScaleInput.addEventListener('input', () => {
   const scaleM = Number(symbolScaleInput.value);
 
@@ -355,6 +420,20 @@ symbolScaleInput.addEventListener('input', () => {
 
     if (state.symbolPlacementPreview) {
       state.symbolPlacementPreview.scaleM = scaleM;
+    }
+
+    updateInspector();
+  }
+});
+
+sceneryScaleInput.addEventListener('input', () => {
+  const scaleM = Number(sceneryScaleInput.value);
+
+  if (Number.isFinite(scaleM) && scaleM > 0) {
+    state.currentSceneryScaleM = scaleM;
+
+    if (state.sceneryPlacementPreview) {
+      state.sceneryPlacementPreview.scaleM = scaleM;
     }
 
     updateInspector();
@@ -391,7 +470,7 @@ jsonFileInput.addEventListener('change', async () => {
     fitMapToCanvas();
     updateActiveToolButtons();
     updateInspector();
-    statusLine.textContent = `Imported ${imported.name}: ${imported.nodes.length} road points, ${imported.edges.length} roads, ${imported.paintedLines.length} line markings, ${imported.decals.length} symbols.`;
+    statusLine.textContent = `Imported ${imported.name}: ${imported.nodes.length} road points, ${imported.edges.length} roads, ${imported.paintedLines.length} line markings, ${imported.decals.length} symbols, ${imported.scenery.length} scenery, ${imported.kerbLines.length} kerbs.`;
   } catch (error) {
     window.alert(error instanceof Error ? error.message : 'Unable to import map JSON.');
   } finally {
@@ -409,10 +488,10 @@ shortcutsToggleButton.addEventListener('click', () => {
 
 exportButton.addEventListener('click', () => {
   try {
-    const committedRoadPath = commitPendingRoadPathForExport();
+    const committedDraft = commitPendingRoadPathForExport();
     downloadMapData(state);
 
-    if (committedRoadPath) {
+    if (committedDraft) {
       updateInspector();
     }
   } catch (error) {
@@ -485,26 +564,36 @@ edgeOnewayInput.addEventListener('change', () => {
 
 decalRotationInput.addEventListener('input', () => {
   const decal = selectedDecal();
+  const scenery = selectedScenery();
 
   if (decal) {
     pushUndoSnapshot(state);
     decal.rotationDeg = Number(decalRotationInput.value) % 360;
+  } else if (scenery) {
+    pushUndoSnapshot(state);
+    scenery.rotationDeg = Number(decalRotationInput.value) % 360;
   }
 });
 
 decalScaleInput.addEventListener('input', () => {
   const decal = selectedDecal();
+  const scenery = selectedScenery();
 
   if (decal) {
     pushUndoSnapshot(state);
     decal.scaleM = Number(decalScaleInput.value);
     state.currentSymbolScaleM = decal.scaleM;
+  } else if (scenery) {
+    pushUndoSnapshot(state);
+    scenery.scaleM = Number(decalScaleInput.value);
+    state.currentSceneryScaleM = scenery.scaleM;
   }
 });
 
 let panning = false;
 let spaceDown = false;
 let placingSymbol = false;
+let placingScenery = false;
 let lastPointerX = 0;
 let lastPointerY = 0;
 
@@ -523,6 +612,13 @@ canvas.addEventListener('mousedown', (event) => {
     return;
   }
 
+  if (state.tool === 'scenery') {
+    placingScenery = true;
+    startSceneryPlacement(event.offsetX, event.offsetY);
+    updateInspector();
+    return;
+  }
+
   handleCanvasClick(event.offsetX, event.offsetY, {
     curveControl: event.ctrlKey
   });
@@ -534,6 +630,12 @@ canvas.addEventListener('mousemove', (event) => {
 
   if (placingSymbol) {
     updateSymbolPlacement(event.offsetX, event.offsetY);
+    updateInspector();
+    return;
+  }
+
+  if (placingScenery) {
+    updateSceneryPlacement(event.offsetX, event.offsetY);
     updateInspector();
     return;
   }
@@ -559,6 +661,12 @@ window.addEventListener('mouseup', () => {
   if (placingSymbol) {
     placingSymbol = false;
     commitSymbolPlacement();
+    updateInspector();
+  }
+
+  if (placingScenery) {
+    placingScenery = false;
+    commitSceneryPlacement();
     updateInspector();
   }
 
@@ -612,9 +720,14 @@ window.addEventListener('keydown', (event) => {
   }
 
   if (event.key === 'Enter') {
-    finishEdge();
+    if (state.tool === 'kerb') {
+      finishKerbLine();
+    } else {
+      finishEdge();
+    }
   } else if (event.key === 'Escape') {
     placingSymbol = false;
+    placingScenery = false;
     cancelDraft();
     setShortcutsOpen(false);
     state.selection = null;

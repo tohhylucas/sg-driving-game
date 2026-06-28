@@ -51,6 +51,27 @@ describe('map editor export', () => {
             { px: 100, py: 70 }
           ]
         }
+      ],
+      scenery: [
+        {
+          id: 's1',
+          type: 'tree',
+          px: 130,
+          py: 60,
+          rotationDeg: 90,
+          scaleM: 4
+        }
+      ],
+      kerbLines: [
+        {
+          id: 'k1',
+          widthM: 0.35,
+          heightM: 0.18,
+          points: [
+            { px: 80, py: 50 },
+            { px: 80, py: 70 }
+          ]
+        }
       ]
     };
 
@@ -104,6 +125,28 @@ describe('map editor export', () => {
             { id: 'l1-p2', xM: 0, yM: 0, zM: -10 }
           ]
         }
+      ],
+      scenery: [
+        {
+          id: 's1',
+          type: 'tree',
+          xM: 15,
+          yM: 0,
+          zM: -5,
+          rotationDeg: 90,
+          scaleM: 4
+        }
+      ],
+      kerbLines: [
+        {
+          id: 'k1',
+          widthM: 0.35,
+          heightM: 0.18,
+          points: [
+            { id: 'k1-p1', xM: -10, yM: 0, zM: 0 },
+            { id: 'k1-p2', xM: -10, yM: 0, zM: -10 }
+          ]
+        }
       ]
     });
   });
@@ -133,7 +176,9 @@ describe('map editor export', () => {
         }
       ],
       decals: [],
-      paintedLines: []
+      paintedLines: [],
+      scenery: [],
+      kerbLines: []
     };
 
     expect(() => buildMapData(editable)).toThrow(
@@ -175,7 +220,9 @@ describe('map editor export', () => {
         }
       ],
       decals: [],
-      paintedLines: []
+      paintedLines: [],
+      scenery: [],
+      kerbLines: []
     };
 
     expect(buildMapData(editable).edges[0]).toEqual({
@@ -207,8 +254,11 @@ describe('map editor export', () => {
     state.edges = [];
     state.decals = [];
     state.paintedLines = [];
+    state.scenery = [];
+    state.kerbLines = [];
     state.edgeDraft = ['n1', 'n2'];
     state.edgeDraftCurveControls = [];
+    state.kerbDraft = [];
     state.name = 'Pending Road';
     state.imageWidthPx = 200;
     state.imageHeightPx = 100;
@@ -231,6 +281,42 @@ describe('map editor export', () => {
           leftEdge: 'solid_white',
           rightEdge: 'solid_white'
         }
+      }
+    ]);
+  });
+
+  it('commits a pending kerb line before export so raised kerbs round trip', () => {
+    state.nodes = [];
+    state.edges = [];
+    state.decals = [];
+    state.paintedLines = [];
+    state.scenery = [];
+    state.kerbLines = [];
+    state.edgeDraft = [];
+    state.edgeDraftCurveControls = [];
+    state.kerbDraft = [
+      { px: 90, py: 50 },
+      { px: 110, py: 50 }
+    ];
+    state.name = 'Pending Kerb';
+    state.imageWidthPx = 200;
+    state.imageHeightPx = 100;
+    state.metersPerPixel = 0.5;
+    state.originPx = 100;
+    state.originPy = 50;
+    state.undoStack = [];
+    state.resetIdCounterFromIds([]);
+
+    expect(commitPendingRoadPathForExport()).toBe(true);
+    expect(buildMapData(state).kerbLines).toEqual([
+      {
+        id: 'k1',
+        widthM: 0.35,
+        heightM: 0.18,
+        points: [
+          { id: 'k1-p1', xM: -5, yM: 0, zM: 0 },
+          { id: 'k1-p2', xM: 5, yM: 0, zM: 0 }
+        ]
       }
     ]);
   });

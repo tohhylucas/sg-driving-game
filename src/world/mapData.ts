@@ -68,6 +68,25 @@ export interface MapPaintedLine {
   readonly points: readonly MapNode[];
 }
 
+export type MapSceneryType = 'tree' | 'grass';
+
+export interface MapScenery {
+  readonly id: string;
+  readonly type: MapSceneryType;
+  readonly xM: number;
+  readonly yM: number;
+  readonly zM: number;
+  readonly rotationDeg: number;
+  readonly scaleM: number;
+}
+
+export interface MapKerbLine {
+  readonly id: string;
+  readonly widthM: number;
+  readonly heightM: number;
+  readonly points: readonly MapNode[];
+}
+
 export interface MapData {
   readonly version: 1;
   readonly meta: {
@@ -83,6 +102,8 @@ export interface MapData {
   readonly edges: readonly MapEdge[];
   readonly decals: readonly MapDecal[];
   readonly paintedLines: readonly MapPaintedLine[];
+  readonly scenery: readonly MapScenery[];
+  readonly kerbLines: readonly MapKerbLine[];
 }
 
 const COORDINATE_SYSTEM =
@@ -111,6 +132,7 @@ const PAINTED_LINE_STYLES: readonly MapPaintedLineStyle[] = [
   'solid_yellow',
   'give_way_line'
 ];
+const SCENERY_TYPES: readonly MapSceneryType[] = ['tree', 'grass'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -164,6 +186,13 @@ function readArray(record: Record<string, unknown>, key: string): unknown[] {
   return value;
 }
 
+function readOptionalArray(
+  record: Record<string, unknown>,
+  key: string
+): unknown[] {
+  return record[key] === undefined ? [] : readArray(record, key);
+}
+
 function readMarkingStyle(
   record: Record<string, unknown>,
   key: string
@@ -207,6 +236,22 @@ function readPaintedLineStyle(
   }
 
   return value as MapPaintedLineStyle;
+}
+
+function readSceneryType(
+  record: Record<string, unknown>,
+  key: string
+): MapSceneryType {
+  const value = record[key];
+
+  if (
+    typeof value !== 'string' ||
+    !SCENERY_TYPES.includes(value as MapSceneryType)
+  ) {
+    throw new Error(`${key} must be a supported scenery type.`);
+  }
+
+  return value as MapSceneryType;
 }
 
 function readNode(value: unknown): MapNode {
@@ -281,6 +326,20 @@ function readDecal(value: unknown): MapDecal {
   };
 }
 
+function readScenery(value: unknown): MapScenery {
+  const record = readRecord(value, 'map scenery');
+
+  return {
+    id: readString(record, 'id'),
+    type: readSceneryType(record, 'type'),
+    xM: readNumber(record, 'xM'),
+    yM: readNumber(record, 'yM'),
+    zM: readNumber(record, 'zM'),
+    rotationDeg: readNumber(record, 'rotationDeg'),
+    scaleM: readNumber(record, 'scaleM')
+  };
+}
+
 function readPaintedLine(value: unknown): MapPaintedLine {
   const record = readRecord(value, 'painted line');
 
@@ -288,6 +347,17 @@ function readPaintedLine(value: unknown): MapPaintedLine {
     id: readString(record, 'id'),
     style: readPaintedLineStyle(record, 'style'),
     widthM: readNumber(record, 'widthM'),
+    points: readArray(record, 'points').map(readNode)
+  };
+}
+
+function readKerbLine(value: unknown): MapKerbLine {
+  const record = readRecord(value, 'kerb line');
+
+  return {
+    id: readString(record, 'id'),
+    widthM: readNumber(record, 'widthM'),
+    heightM: readNumber(record, 'heightM'),
     points: readArray(record, 'points').map(readNode)
   };
 }
@@ -325,6 +395,8 @@ export function parseMapData(value: unknown): MapData {
     nodes: readArray(record, 'nodes').map(readNode),
     edges: readArray(record, 'edges').map(readEdge),
     decals: readArray(record, 'decals').map(readDecal),
-    paintedLines: readArray(record, 'paintedLines').map(readPaintedLine)
+    paintedLines: readOptionalArray(record, 'paintedLines').map(readPaintedLine),
+    scenery: readOptionalArray(record, 'scenery').map(readScenery),
+    kerbLines: readOptionalArray(record, 'kerbLines').map(readKerbLine)
   };
 }

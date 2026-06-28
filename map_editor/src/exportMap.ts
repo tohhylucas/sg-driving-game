@@ -60,6 +60,26 @@ function validateEditableMap(editable: EditableMap): void {
       throw new Error(`Decal ${decal.id} scale must be greater than zero.`);
     }
   }
+
+  for (const scenery of editable.scenery) {
+    if (scenery.scaleM <= 0) {
+      throw new Error(`Scenery ${scenery.id} scale must be greater than zero.`);
+    }
+  }
+
+  for (const kerbLine of editable.kerbLines) {
+    if (kerbLine.widthM <= 0) {
+      throw new Error(`Kerb line ${kerbLine.id} width must be greater than zero.`);
+    }
+
+    if (kerbLine.heightM <= 0) {
+      throw new Error(`Kerb line ${kerbLine.id} height must be greater than zero.`);
+    }
+
+    if (kerbLine.points.length < 2) {
+      throw new Error(`Kerb line ${kerbLine.id} must contain at least two points.`);
+    }
+  }
 }
 
 export function buildMapData(editable: EditableMap): MapData {
@@ -114,6 +134,22 @@ export function buildMapData(editable: EditableMap): MapData {
       id: line.id,
       style: line.style,
       widthM: line.widthM,
+      points: line.points.map((point, index) => ({
+        id: `${line.id}-p${index + 1}`,
+        ...imageToWorld(point, transform)
+      }))
+    })),
+    scenery: editable.scenery.map((scenery) => ({
+      id: scenery.id,
+      type: scenery.type,
+      ...imageToWorld({ px: scenery.px, py: scenery.py }, transform),
+      rotationDeg: scenery.rotationDeg,
+      scaleM: scenery.scaleM
+    })),
+    kerbLines: editable.kerbLines.map((line) => ({
+      id: line.id,
+      widthM: line.widthM,
+      heightM: line.heightM,
       points: line.points.map((point, index) => ({
         id: `${line.id}-p${index + 1}`,
         ...imageToWorld(point, transform)
